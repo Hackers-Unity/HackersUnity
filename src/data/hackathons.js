@@ -18,7 +18,7 @@ export const hackathons = [
     tags: ['AI/ML', 'Blockchain', 'Web3', 'IoT', 'FinTech', 'Open Innovation'],
     description: 'Get ready to build, innovate, and compete at a National-Level 24-Hour Hackathon powered by Hacker\'s Unity × Arya College of Engineering & IT (ACEIT). Whether you are into AI/ML, Web Development, Blockchain, IoT, or Cybersecurity — bring your idea, build it, and ship it!',
     image: '/gallery/codewars.png',
-    registrationLink: '#',
+    registrationLink: 'https://unstop.com/p/codewars-hackers-unity-1733690?lb=useX17Fj&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Hackeuni4731',
     featured: true,
     ctaText: 'Learn More',
   },
