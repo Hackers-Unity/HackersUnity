@@ -40,7 +40,7 @@ export default function AboutPage() {
 
       <section className="section"><div className="container"><AnimatedSection>
         <div className={styles.mission}>
-          <h2 className="heading-md gradient-text">Our Vision</h2>
+          <h2 className="heading-md">Our <span className="gradient-text">Vision</span></h2>
           <p className="text-body">Hacker&apos;s Unity&apos;s vision is to build a global developer community where students and developers don&apos;t just create projects — they create products. Through the Hacker&apos;s Unity network, we connect builders with funding, investment opportunities, and the resources they need to turn their ideas into reality.</p>
         </div>
       </AnimatedSection></div></section>

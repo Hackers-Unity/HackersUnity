@@ -168,7 +168,7 @@ const scrollPodcastRight = () => {
           <div className={`container ${styles.communitySection}`}>
             <div className={styles.communityText}>
               <span className="section-label">Community</span>
-              <h2 className="heading-lg gradient-text">Join a Global Community of Builders</h2>
+              <h2 className="heading-lg">Join a Global Community of <span className="gradient-text">Builders</span></h2>
               <p className={styles.communitySub}>Connect with thousands of developers, designers, and innovators. Share ideas, get mentorship, and collaborate on projects.</p>
               <div className={styles.communityStats}>
                 <div className={styles.commStat}><Zap size={18} className={styles.commIcon} /><span><strong>100+</strong> Active Channels</span></div>
@@ -248,7 +248,7 @@ const scrollPodcastRight = () => {
         <section className="section">
           <div className={`container ${styles.hostSection}`}>
             <div className={styles.hostContent}>
-              <h2 className="heading-md gradient-text">Host an Event with Us</h2>
+              <h2 className="heading-md">Host an Event <span className="gradient-text">with Us</span></h2>
               <p className={styles.hostDesc}>
                 If you want to host an event with us, Hacker&apos;s Unity provides the platform, community, and expertise. This includes promotion, marketing support, and technical infrastructure.
               </p>

@@ -40,7 +40,7 @@ export default function CommunityPage() {
 
         <AnimatedSection>
           <div className={styles.joinCta}>
-            <h2 className="heading-md gradient-text">Ready to Join?</h2>
+            <h2 className="heading-md">Ready to <span className="gradient-text">Join?</span></h2>
             <p className="text-body">Our WhatsApp is the beating heart of the community. Jump in!</p>
             <a href="https://chat.whatsapp.com/JqVKrBiZIdND1n40ffErw3?mode=gi_t" className="btn btn-primary btn-lg"><MessageCircle size={18} /> Join WhatsApp Community <ArrowRight size={16} /></a>
           </div>

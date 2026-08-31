@@ -8,7 +8,7 @@ export default function PrivacyPage() {
       <div className="container">
         <div className={styles.header}>
           <span className={styles.label}>LEGAL</span>
-          <h1 className="heading-lg gradient-text">Privacy Policy</h1>
+          <h1 className="heading-lg">Privacy <span className="gradient-text">Policy</span></h1>
           <p className={styles.updated}>Last updated: May 2, 2026</p>
         </div>
 

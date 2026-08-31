@@ -467,11 +467,18 @@ input, textarea {
 
 /* ---- Section Heading ---- */
 .section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--accent-primary);
+  letter-spacing: 0.12em;
+  color: var(--accent-secondary);
+  background: rgba(0, 136, 255, 0.08);
+  border: 1px solid rgba(0, 136, 255, 0.22);
+  border-radius: var(--radius-full);
+  padding: 4px 14px;
   margin-bottom: var(--space-3);
 }
 

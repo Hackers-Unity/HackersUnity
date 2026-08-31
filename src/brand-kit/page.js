@@ -32,7 +32,7 @@ export default function BrandKitPage() {
         {/* ---- Header ---- */}
         <div className={styles.header}>
           <span className={styles.label}>BRAND RESOURCES</span>
-          <h1 className="heading-lg gradient-text">Brand Kit</h1>
+          <h1 className="heading-lg">Brand <span className="gradient-text">Kit</span></h1>
           <p className={styles.subtitle}>
             Official logo assets and brand usage guidelines for Hacker&apos;s Unity. 
             Use these resources when representing our community in events, partnerships, and promotional materials.

@@ -43,7 +43,7 @@ export default function SponsorsPage() {
       <section className={`section ${styles.ctaSection}`}><div className="container">
         <AnimatedSection>
           <div className={styles.ctaCard}>
-            <h2 className="heading-md gradient-text">Become a Sponsor</h2>
+            <h2 className="heading-md">Become a <span className="gradient-text">Sponsor</span></h2>
             <p className="text-body" style={{ maxWidth: 500, margin: '0 auto' }}>Partner with us to reach the most talented developers and students in India.</p>
             <div className={styles.benefitsList}>{benefits.map(b => <div key={b} className={styles.benefit}>✓ {b}</div>)}</div>
             <Link href="/contact" className="btn btn-primary btn-lg">Get in Touch <ArrowRight size={16} /></Link>

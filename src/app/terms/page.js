@@ -8,7 +8,7 @@ export default function TermsPage() {
       <div className="container">
         <div className={styles.header}>
           <span className={styles.label}>LEGAL</span>
-          <h1 className="heading-lg gradient-text">Terms of Service</h1>
+          <h1 className="heading-lg">Terms of <span className="gradient-text">Service</span></h1>
           <p className={styles.updated}>Last updated: May 2, 2026</p>
         </div>
 

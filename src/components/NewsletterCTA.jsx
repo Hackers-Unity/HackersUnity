@@ -17,7 +17,7 @@ export default function NewsletterCTA() {
       <div className={`container ${styles.inner}`}>
         <div className={styles.content}>
           <span className="section-label">Newsletter</span>
-          <h2 className="heading-lg gradient-text">Get Hackathon Alerts in Your Inbox</h2>
+          <h2 className="heading-lg">Get Hackathon Alerts <span className="gradient-text">in Your Inbox</span></h2>
           <p className={styles.sub}>Join 8,000+ hackers getting weekly alerts about the latest hackathons, workshops, and opportunities.</p>
         </div>
         {submitted ? (
