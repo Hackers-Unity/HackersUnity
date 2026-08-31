@@ -7,9 +7,9 @@
   justify-content: center;
   overflow: hidden;
   background-image: 
-    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
-  background-size: 44px 44px;
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 .heroGradient {
@@ -39,34 +39,61 @@
   gap: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #D97706;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #0088FF;
+  background: rgba(0, 136, 255, 0.08);
+  border: 1px solid rgba(0, 136, 255, 0.25);
   border-radius: var(--radius-full);
   padding: 8px 20px;
   animation: fadeUp 0.8s ease forwards;
 }
 
+.heroBadge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0088FF;
+  box-shadow: 0 0 8px rgba(0, 136, 255, 0.6);
+  display: inline-block;
+}
+
 .heroTitle {
-  max-width: 800px;
+  max-width: 860px;
   min-height: 1.2em;
+  font-size: clamp(2.35rem, 4.4vw, 3.85rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
 }
 
 .brandHackers {
   color: var(--accent-secondary);
   font-weight: 800;
+  margin-right: 0.26em;
+  display: inline-block;
+  letter-spacing: -0.03em;
 }
 
 .brandUnity {
   color: var(--accent-primary);
   font-weight: 800;
+  margin-right: 0.26em;
+  display: inline-block;
+  letter-spacing: -0.03em;
+}
+
+.titleRest {
+  display: inline;
+  color: var(--text-primary);
 }
 
 .heroSub {
-  max-width: 600px;
+  max-width: 640px;
   font-size: 1.125rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   line-height: 1.7;
+  font-weight: 400;
 }
 
 .heroCtas {
@@ -78,12 +105,11 @@
 
 /* ━━ STATS ━━ */
 .statsBar {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #FFFFFF;
   border-top: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
   padding: var(--space-10) 0;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
 }
 
 .statsGrid {
@@ -104,6 +130,13 @@
   font-weight: 700;
   font-size: clamp(1.75rem, 3vw, 2.5rem);
   background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.statItem:nth-child(even) .statValue {
+  background: var(--gradient-secondary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
