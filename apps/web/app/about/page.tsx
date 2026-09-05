@@ -64,7 +64,7 @@ export default function AboutPage() {
       badgeColor: 'bg-sky-50 text-[#0099e6] border-sky-200/80',
       image: '/team/chinmay.jpg',
       bio: "Co-founder spearheading technical architecture, product design, and platform engineering. Passionate about empowering high-impact squads to turn bold ideas into production-ready software.",
-      handle: '@chinmaybhattt',
+      // handle: '@chinmaybhattt',
       socials: [
         {
           icon: FaLinkedin,
@@ -93,7 +93,7 @@ export default function AboutPage() {
       badgeColor: 'bg-purple-50 text-purple-600 border-purple-200/80',
       image: '/team/Pranjal.jpeg',
       bio: "Chief Marketing Officer leading strategic brand partnerships, campus ambassador networks, and community operations to make Hacker's Unity India's fastest-growing developer collective.",
-      handle: 'pranjal454',
+      // handle: 'pranjal454',
       socials: [
         {
           icon: FaLinkedin,
