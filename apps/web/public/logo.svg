@@ -1,0 +1,35 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield Outline -->
+  <path
+    d="M100 28C132 28 148 38 148 68C148 108 100 144 100 144C100 144 52 108 52 68C52 38 68 28 100 28Z"
+    fill="white"
+    stroke="black"
+    stroke-width="9"
+    stroke-linejoin="round"
+  />
+  <!-- Code Brackets < > -->
+  <path
+    d="M88 74L72 88L88 102"
+    stroke="black"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M112 74L128 88L112 102"
+    stroke="black"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Left Hand Cupping Shield -->
+  <path
+    d="M38 78C38 98 46 118 62 134C72 144 86 156 90 168C80 170 68 164 58 154C46 142 36 122 36 100C36 88 38 78 38 78Z"
+    fill="black"
+  />
+  <!-- Right Hand Cupping Shield -->
+  <path
+    d="M162 78C162 98 154 118 138 134C128 144 114 156 110 168C120 170 132 164 142 154C154 142 164 122 164 100C164 88 162 78 162 78Z"
+    fill="black"
+  />
+</svg>
