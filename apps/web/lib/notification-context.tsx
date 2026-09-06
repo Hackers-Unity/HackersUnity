@@ -8,6 +8,8 @@ import {
   getUnreadCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  markLocalNotificationAsRead,
+  markAllLocalNotificationsAsRead,
   subscribeToRealtimeNotifications,
 } from './notification-service';
 
@@ -30,59 +32,69 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [latestToast, setLatestToast] = useState<UserNotification | null>(null);
 
   // Track subscription cleanup to prevent duplicates
   const unsubscribeRef = useRef<(() => void) | null>(null);
-  const userIdRef = useRef<string | null>(null);
+  const activeSubKeyRef = useRef<string | null>(null);
 
-  // Load notifications when user changes
-  const loadNotifications = useCallback(async (userId: string) => {
+  // Load notifications (works for both guests and logged-in users!)
+  const loadNotifications = useCallback(async (userId?: string) => {
     setLoading(true);
-    const [notifResult, countResult] = await Promise.all([
-      fetchUserNotifications(userId, 30),
-      getUnreadCount(userId),
-    ]);
-    setNotifications(notifResult.data);
-    setUnreadCount(countResult);
-    setLoading(false);
+    try {
+      const [notifResult, countResult] = await Promise.all([
+        fetchUserNotifications(userId, 30),
+        getUnreadCount(userId),
+      ]);
+      setNotifications(notifResult.data);
+      setUnreadCount(countResult);
+    } catch (err) {
+      console.warn('Error loading notifications:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Setup / teardown realtime subscription
+  // Setup / teardown realtime subscription for events, announcements & user inbox
   useEffect(() => {
-    // Cleanup previous subscription if user changes
+    const currentKey = user?.id || 'guest_all';
+
+    // Avoid duplicate subscriptions if key hasn't changed
+    if (activeSubKeyRef.current === currentKey && unsubscribeRef.current) {
+      return;
+    }
+
+    // Cleanup previous subscription
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
 
-    if (!user?.id) {
-      // No user — reset state
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-      userIdRef.current = null;
-      return;
-    }
-
-    // Prevent duplicate subscriptions for the same user
-    if (userIdRef.current === user.id) return;
-    userIdRef.current = user.id;
+    activeSubKeyRef.current = currentKey;
 
     // Load initial notifications
-    loadNotifications(user.id);
+    loadNotifications(user?.id);
 
-    // Subscribe to realtime
-    const cleanup = subscribeToRealtimeNotifications(user.id, (newNotif) => {
-      // Add to the top of the list
+    // Subscribe to realtime hub (events, announcements, user notifications)
+    const cleanup = subscribeToRealtimeNotifications(user?.id, (newNotif) => {
       setNotifications((prev) => {
-        // Prevent duplicates
-        if (prev.some((n) => n.id === newNotif.id)) return prev;
+        // Deduplicate
+        if (
+          prev.some(
+            (n) =>
+              n.id === newNotif.id ||
+              (n.notification?.id && n.notification.id === newNotif.notification?.id)
+          )
+        ) {
+          return prev;
+        }
         return [newNotif, ...prev];
       });
+
       setUnreadCount((prev) => prev + 1);
-      // Trigger toast
+
+      // Trigger instant toast notification popup
       setLatestToast(newNotif);
     });
 
@@ -93,34 +105,45 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
-      userIdRef.current = null;
+      activeSubKeyRef.current = null;
     };
   }, [user?.id, loadNotifications]);
 
   const markAsRead = useCallback(async (userNotificationId: string) => {
-    // Optimistic update
+    // 1. Mark in localStorage
+    markLocalNotificationAsRead(userNotificationId);
+
+    // 2. Optimistic local update
     setNotifications((prev) =>
       prev.map((n) => (n.id === userNotificationId ? { ...n, isRead: true } : n))
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
-    await markNotificationAsRead(userNotificationId);
-  }, []);
+    // 3. If signed in and valid DB notification, mark in Supabase
+    if (
+      user?.id &&
+      !userNotificationId.startsWith('event-notif-') &&
+      !userNotificationId.startsWith('announcement-')
+    ) {
+      await markNotificationAsRead(userNotificationId);
+    }
+  }, [user?.id]);
 
   const markAllAsRead = useCallback(async () => {
-    if (!user?.id) return;
+    const allIds = notifications.map((n) => n.id);
+    markAllLocalNotificationsAsRead(allIds);
 
     // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
 
-    await markAllNotificationsAsRead(user.id);
-  }, [user?.id]);
+    if (user?.id) {
+      await markAllNotificationsAsRead(user.id);
+    }
+  }, [user?.id, notifications]);
 
   const refreshNotifications = useCallback(async () => {
-    if (user?.id) {
-      await loadNotifications(user.id);
-    }
+    await loadNotifications(user?.id);
   }, [user?.id, loadNotifications]);
 
   const dismissToast = useCallback(() => {

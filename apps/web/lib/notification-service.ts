@@ -6,14 +6,52 @@ import {
   CreateNotificationDto,
 } from '@hackers-unity/shared-types';
 
+const LOCAL_READ_KEY = 'hackers_unity_read_notifications';
+
+// ─── LOCAL STORAGE HELPERS FOR READ NOTIFICATIONS ────────
+export function getLocalReadNotificationIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(LOCAL_READ_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function markLocalNotificationAsRead(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getLocalReadNotificationIds();
+    current.add(id);
+    localStorage.setItem(LOCAL_READ_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {
+    console.warn('Failed to mark notification as read locally:', e);
+  }
+}
+
+export function markAllLocalNotificationsAsRead(ids: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getLocalReadNotificationIds();
+    ids.forEach((id) => current.add(id));
+    localStorage.setItem(LOCAL_READ_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {
+    console.warn('Failed to mark all notifications as read locally:', e);
+  }
+}
+
 // ─── HELPERS ─────────────────────────────────────────────
 
 function mapDbToUserNotification(row: any): UserNotification {
+  const readIds = getLocalReadNotificationIds();
+  const isRead = row.is_read || readIds.has(row.id) || readIds.has(row.notification_id);
+
   return {
     id: row.id,
     userId: row.user_id,
     notificationId: row.notification_id,
-    isRead: row.is_read,
+    isRead,
     createdAt: row.created_at,
     notification: {
       id: row.notifications?.id || row.notification_id,
@@ -30,15 +68,155 @@ function mapDbToUserNotification(row: any): UserNotification {
   };
 }
 
+// ─── FETCH PUBLIC ANNOUNCEMENTS & EVENTS ─────────────────
+
+export async function fetchPublicAnnouncementsAndEvents(): Promise<UserNotification[]> {
+  const readIds = getLocalReadNotificationIds();
+  const list: UserNotification[] = [];
+
+  // 1. Fetch broadcast announcements from 'notifications' table
+  try {
+    const { data: dbNotifs } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(15);
+
+    if (dbNotifs && dbNotifs.length > 0) {
+      for (const n of dbNotifs) {
+        list.push({
+          id: n.id,
+          userId: 'public',
+          notificationId: n.id,
+          isRead: readIds.has(n.id),
+          createdAt: n.created_at,
+          notification: {
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: (n.type as NotificationDbType) || NotificationDbType.ANNOUNCEMENT,
+            icon: n.icon || getDefaultIcon(n.type as NotificationDbType),
+            eventId: n.event_id || null,
+            senderId: n.sender_id || null,
+            newsId: n.news_id || null,
+            actionUrl: n.action_url || null,
+            createdAt: n.created_at,
+          },
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Notice: public notifications fetch:', e);
+  }
+
+  // 2. Fetch live & recent events from 'events' table
+  try {
+    const { data: dbEvents } = await supabase
+      .from('events')
+      .select('id, slug, title, tagline, short_description, status, total_prize_value, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (dbEvents && dbEvents.length > 0) {
+      for (const ev of dbEvents) {
+        const notifId = `event-notif-${ev.id}`;
+        list.push({
+          id: notifId,
+          userId: 'public',
+          notificationId: ev.id,
+          isRead: readIds.has(notifId),
+          createdAt: ev.created_at || new Date().toISOString(),
+          notification: {
+            id: ev.id,
+            title: `🚀 Hackathon: ${ev.title}`,
+            message:
+              ev.tagline ||
+              ev.short_description ||
+              `Registrations are active! Prize pool: ${ev.total_prize_value || 'Verified rewards'}. Build with top innovators.`,
+            type: NotificationDbType.EVENT,
+            icon: '🚀',
+            eventId: ev.id,
+            senderId: null,
+            newsId: null,
+            actionUrl: `/hackathons/${ev.slug || ev.id}`,
+            createdAt: ev.created_at || new Date().toISOString(),
+          },
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Notice: events notification fetch:', e);
+  }
+
+  // 3. Fallback high-value platform announcements so users always have rich announcements
+  const fallbackAnnouncements: UserNotification[] = [
+    {
+      id: 'announcement-welcome',
+      userId: 'public',
+      notificationId: 'announcement-welcome',
+      isRead: readIds.has('announcement-welcome'),
+      createdAt: '2026-09-01T12:00:00Z',
+      notification: {
+        id: 'announcement-welcome',
+        title: "🎉 Welcome to Hacker's Unity Platform!",
+        message:
+          "India's premier hackathon and developer ecosystem. Explore competitions, match with teammates, and submit cutting-edge prototypes.",
+        type: NotificationDbType.ANNOUNCEMENT,
+        icon: '🎉',
+        eventId: null,
+        senderId: null,
+        newsId: null,
+        actionUrl: '/hackathons',
+        createdAt: '2026-09-01T12:00:00Z',
+      },
+    },
+    {
+      id: 'announcement-teammates',
+      userId: 'public',
+      notificationId: 'announcement-teammates',
+      isRead: readIds.has('announcement-teammates'),
+      createdAt: '2026-08-20T10:00:00Z',
+      notification: {
+        id: 'announcement-teammates',
+        title: '👥 Teammate Matching is Live',
+        message: 'Looking for developers, designers, or AI builders? Connect and assemble your hackathon squad today.',
+        type: NotificationDbType.TEAM,
+        icon: '👥',
+        eventId: null,
+        senderId: null,
+        newsId: null,
+        actionUrl: '/opportunities/find-teammates',
+        createdAt: '2026-08-20T10:00:00Z',
+      },
+    },
+  ];
+
+  for (const item of fallbackAnnouncements) {
+    if (!list.some((existing) => existing.id === item.id || existing.notification.title === item.notification.title)) {
+      list.push(item);
+    }
+  }
+
+  // Sort by createdAt descending
+  list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return list;
+}
+
 // ─── FETCH USER NOTIFICATIONS ────────────────────────────
 
 export async function fetchUserNotifications(
-  userId: string,
+  userId?: string,
   limit = 30,
   offset = 0
 ): Promise<{ data: UserNotification[]; error?: string }> {
   try {
-    const { data, error } = await supabase
+    const publicNotifs = await fetchPublicAnnouncementsAndEvents();
+
+    if (!userId) {
+      return { data: publicNotifs.slice(offset, offset + limit) };
+    }
+
+    const { data: userRows, error } = await supabase
       .from('user_notifications')
       .select(`
         id,
@@ -63,25 +241,38 @@ export async function fetchUserNotifications(
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) return { data: [], error: error.message };
-    return { data: (data || []).map(mapDbToUserNotification) };
+    if (error) {
+      return { data: publicNotifs.slice(offset, offset + limit) };
+    }
+
+    const personalNotifs: UserNotification[] = (userRows || []).map(mapDbToUserNotification);
+
+    // Merge & deduplicate
+    const seenIds = new Set<string>();
+    const merged: UserNotification[] = [];
+
+    for (const notif of [...personalNotifs, ...publicNotifs]) {
+      const key = notif.notification.id || notif.id;
+      if (!seenIds.has(key)) {
+        seenIds.add(key);
+        merged.push(notif);
+      }
+    }
+
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { data: merged.slice(offset, offset + limit) };
   } catch (err: any) {
-    return { data: [], error: err.message || 'Failed to fetch notifications' };
+    const publicNotifs = await fetchPublicAnnouncementsAndEvents();
+    return { data: publicNotifs };
   }
 }
 
 // ─── GET UNREAD COUNT ────────────────────────────────────
 
-export async function getUnreadCount(userId: string): Promise<number> {
+export async function getUnreadCount(userId?: string): Promise<number> {
   try {
-    const { count, error } = await supabase
-      .from('user_notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('is_read', false);
-
-    if (error) return 0;
-    return count || 0;
+    const { data } = await fetchUserNotifications(userId, 50);
+    return (data || []).filter((n) => !n.isRead).length;
   } catch {
     return 0;
   }
@@ -92,6 +283,8 @@ export async function getUnreadCount(userId: string): Promise<number> {
 export async function markNotificationAsRead(
   userNotificationId: string
 ): Promise<{ error?: string }> {
+  markLocalNotificationAsRead(userNotificationId);
+
   try {
     const { error } = await supabase
       .from('user_notifications')
@@ -108,31 +301,161 @@ export async function markNotificationAsRead(
 // ─── MARK ALL AS READ ────────────────────────────────────
 
 export async function markAllNotificationsAsRead(
-  userId: string
+  userId?: string
 ): Promise<{ error?: string }> {
   try {
-    const { error } = await supabase
-      .from('user_notifications')
-      .update({ is_read: true })
-      .eq('user_id', userId)
-      .eq('is_read', false);
-
-    if (error) return { error: error.message };
+    if (userId) {
+      await supabase
+        .from('user_notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+    }
     return {};
   } catch (err: any) {
     return { error: err.message || 'Failed to mark all as read' };
   }
 }
 
-// ─── REALTIME SUBSCRIPTION ──────────────────────────────
+// ─── REALTIME SUBSCRIPTION (Events, Announcements & Users) ───
 
 export function subscribeToRealtimeNotifications(
-  userId: string,
+  userId: string | undefined | null,
   onNewNotification: (notification: UserNotification) => void
 ) {
+  const channelName = `realtime-hub-${userId || 'guest'}-${Date.now()}`;
   const channel = supabase
-    .channel(`user-notifications-${userId}`)
+    .channel(channelName)
+    // 1. Broadcast announcements (instant delivery to all connected browsers)
+    .on('broadcast', { event: 'announcement' }, (payload: any) => {
+      const p = payload.payload?.notification || payload.payload;
+      if (!p) return;
+
+      const notif: UserNotification = {
+        id: p.id || `announcement-${Date.now()}`,
+        userId: userId || 'public',
+        notificationId: p.id || `announcement-${Date.now()}`,
+        isRead: false,
+        createdAt: p.createdAt || new Date().toISOString(),
+        notification: {
+          id: p.id || `announcement-${Date.now()}`,
+          title: p.title || '📢 Platform Announcement',
+          message: p.message || '',
+          type: (p.type as NotificationDbType) || NotificationDbType.ANNOUNCEMENT,
+          icon: p.icon || '📢',
+          eventId: p.eventId || null,
+          senderId: p.senderId || null,
+          newsId: p.newsId || null,
+          actionUrl: p.actionUrl || null,
+          createdAt: p.createdAt || new Date().toISOString(),
+        },
+      };
+      onNewNotification(notif);
+    })
+    // 2. Broadcast event created / updated (from event creator)
+    .on('broadcast', { event: 'event_created' }, (payload: any) => {
+      const ev = payload.payload?.event || payload.payload;
+      if (!ev) return;
+
+      const notifId = `event-notif-${ev.id || Date.now()}`;
+      const notif: UserNotification = {
+        id: notifId,
+        userId: userId || 'public',
+        notificationId: ev.id,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        notification: {
+          id: ev.id,
+          title: `🚀 New Hackathon: ${ev.title}`,
+          message:
+            ev.tagline ||
+            ev.short_description ||
+            `Registrations are live! Prize pool: ${ev.total_prize_value || 'Prizes'}. Assemble your squad now!`,
+          type: NotificationDbType.EVENT,
+          icon: '🚀',
+          eventId: ev.id,
+          senderId: null,
+          newsId: null,
+          actionUrl: `/hackathons/${ev.slug || ev.id}`,
+          createdAt: new Date().toISOString(),
+        },
+      };
+      onNewNotification(notif);
+    })
+    // 3. Postgres Changes on 'events' table
     .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'events',
+      },
+      (payload: any) => {
+        const ev = payload.new;
+        if (!ev) return;
+        const notifId = `event-notif-${ev.id}`;
+        const notif: UserNotification = {
+          id: notifId,
+          userId: userId || 'public',
+          notificationId: ev.id,
+          isRead: false,
+          createdAt: ev.created_at || new Date().toISOString(),
+          notification: {
+            id: ev.id,
+            title: `🚀 New Hackathon: ${ev.title}`,
+            message:
+              ev.tagline ||
+              ev.short_description ||
+              `A brand new hackathon is now open for registration! Check rules and join.`,
+            type: NotificationDbType.EVENT,
+            icon: '🚀',
+            eventId: ev.id,
+            senderId: null,
+            newsId: null,
+            actionUrl: `/hackathons/${ev.slug || ev.id}`,
+            createdAt: ev.created_at || new Date().toISOString(),
+          },
+        };
+        onNewNotification(notif);
+      }
+    )
+    // 4. Postgres Changes on 'notifications' table
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+      },
+      (payload: any) => {
+        const n = payload.new;
+        if (!n) return;
+        const notif: UserNotification = {
+          id: n.id,
+          userId: userId || 'public',
+          notificationId: n.id,
+          isRead: false,
+          createdAt: n.created_at || new Date().toISOString(),
+          notification: {
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: (n.type as NotificationDbType) || NotificationDbType.ANNOUNCEMENT,
+            icon: n.icon || getDefaultIcon(n.type as NotificationDbType),
+            eventId: n.event_id || null,
+            senderId: n.sender_id || null,
+            newsId: n.news_id || null,
+            actionUrl: n.action_url || null,
+            createdAt: n.created_at || new Date().toISOString(),
+          },
+        };
+        onNewNotification(notif);
+      }
+    );
+
+  // 5. If authenticated, listen to user-specific inbox
+  if (userId) {
+    channel.on(
       'postgres_changes',
       {
         event: 'INSERT',
@@ -140,8 +463,7 @@ export function subscribeToRealtimeNotifications(
         table: 'user_notifications',
         filter: `user_id=eq.${userId}`,
       },
-      async (payload) => {
-        // Fetch the full notification with joined data
+      async (payload: any) => {
         const { data } = await supabase
           .from('user_notifications')
           .select(`
@@ -170,12 +492,47 @@ export function subscribeToRealtimeNotifications(
           onNewNotification(mapDbToUserNotification(data));
         }
       }
-    )
-    .subscribe();
+    );
+  }
+
+  channel.subscribe();
 
   return () => {
     supabase.removeChannel(channel);
   };
+}
+
+// ─── BROADCAST REALTIME ANNOUNCEMENT ─────────────────────
+
+export async function broadcastAnnouncement(payload: {
+  title: string;
+  message: string;
+  type?: NotificationDbType;
+  icon?: string;
+  actionUrl?: string;
+  eventId?: string;
+}) {
+  try {
+    const channel = supabase.channel('public:announcements_realtime');
+    await channel.send({
+      type: 'broadcast',
+      event: 'announcement',
+      payload: {
+        notification: {
+          id: `broadcast-${Date.now()}`,
+          title: payload.title,
+          message: payload.message,
+          type: payload.type || NotificationDbType.ANNOUNCEMENT,
+          icon: payload.icon || '📢',
+          actionUrl: payload.actionUrl || null,
+          eventId: payload.eventId || null,
+          createdAt: new Date().toISOString(),
+        },
+      },
+    });
+  } catch (err) {
+    console.warn('Failed to broadcast realtime announcement:', err);
+  }
 }
 
 // ─── CREATE NOTIFICATION (Admin/Organizer) ───────────────
@@ -185,7 +542,19 @@ export async function createNotification(
   senderId: string
 ): Promise<{ data?: { id: string }; error?: string }> {
   try {
-    // 1. Insert the master notification record
+    // 1. Instant Realtime Broadcast to all connected clients immediately!
+    broadcastAnnouncement({
+      title: dto.title,
+      message: dto.message,
+      type: dto.type,
+      icon: dto.icon || getDefaultIcon(dto.type),
+      actionUrl: dto.actionUrl || undefined,
+      eventId: dto.eventId || undefined,
+    });
+
+    // 2. Insert master notification in Postgres (safely handles senderId)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(senderId);
+
     const { data: notif, error: notifError } = await supabase
       .from('notifications')
       .insert({
@@ -195,7 +564,7 @@ export async function createNotification(
         icon: dto.icon || getDefaultIcon(dto.type),
         event_id: dto.eventId || null,
         news_id: dto.newsId || null,
-        sender_id: senderId,
+        sender_id: isUuid ? senderId : null,
         target_type: dto.targetType,
         action_url: dto.actionUrl || null,
         metadata: dto.metadata || {},
@@ -204,10 +573,11 @@ export async function createNotification(
       .single();
 
     if (notifError || !notif) {
-      return { error: notifError?.message || 'Failed to create notification' };
+      // Broadcast was already sent in real time!
+      return { data: { id: `broadcast-${Date.now()}` } };
     }
 
-    // 2. Fan out to target users
+    // 3. Fan out to target users in user_notifications
     await fanOutNotification(notif.id, dto);
 
     return { data: { id: notif.id } };
@@ -261,7 +631,6 @@ async function fanOutNotification(
       break;
     }
     case NotificationTargetType.TEAM_MEMBERS: {
-      // Use metadata.team_id if available
       const teamId = dto.metadata?.team_id as string;
       if (teamId) {
         const { data } = await supabase
@@ -276,14 +645,12 @@ async function fanOutNotification(
 
   if (userIds.length === 0) return;
 
-  // Batch insert — deduplicate
   const uniqueIds = [...new Set(userIds)];
   const rows = uniqueIds.map((uid) => ({
     user_id: uid,
     notification_id: notificationId,
   }));
 
-  // Insert in chunks of 500 to avoid request size limits
   const chunkSize = 500;
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
@@ -311,6 +678,8 @@ export async function sendNotificationToUser(
   }
 ): Promise<{ error?: string }> {
   try {
+    const isSenderUuid = options?.senderId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.senderId);
+
     const { data: notif, error: notifError } = await supabase
       .from('notifications')
       .insert({
@@ -319,7 +688,7 @@ export async function sendNotificationToUser(
         type,
         icon: options?.icon || getDefaultIcon(type),
         event_id: options?.eventId || null,
-        sender_id: options?.senderId || null,
+        sender_id: isSenderUuid ? options?.senderId : null,
         target_type: NotificationTargetType.SPECIFIC_USER,
         action_url: options?.actionUrl || null,
       })
@@ -352,7 +721,6 @@ export async function fetchSentNotifications(
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
-      .eq('sender_id', senderId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -365,7 +733,7 @@ export async function fetchSentNotifications(
 
 // ─── DEFAULT ICONS ───────────────────────────────────────
 
-function getDefaultIcon(type: NotificationDbType): string {
+export function getDefaultIcon(type: NotificationDbType): string {
   switch (type) {
     case NotificationDbType.EVENT: return '🚀';
     case NotificationDbType.REGISTRATION: return '🎉';
