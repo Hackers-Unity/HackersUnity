@@ -111,9 +111,26 @@ export async function POST(req: Request) {
         }
       }
 
+      let targetSubmitterId = submission.submittedBy;
+      const isSubmitterUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submission.submittedBy);
+      if (!isSubmitterUuid) {
+        if (submission.submittedByEmail) {
+          const { data: prof } = await serverSupabase
+            .from('profiles')
+            .select('id')
+            .eq('email', submission.submittedByEmail)
+            .maybeSingle();
+          if (prof?.id) targetSubmitterId = prof.id;
+        }
+        if (!targetSubmitterId || targetSubmitterId === submission.submittedBy) {
+          const { data: fallbackProf } = await serverSupabase.from('profiles').select('id').limit(1).maybeSingle();
+          if (fallbackProf?.id) targetSubmitterId = fallbackProf.id;
+        }
+      }
+
       const { data, error } = await serverSupabase.from('submissions').upsert({
         event_id: targetEventId,
-        submitter_id: submission.submittedBy,
+        submitter_id: targetSubmitterId,
         project_name: submission.projectTitle,
         tagline: submission.tagline || '',
         description: submission.projectDescription,
@@ -123,12 +140,22 @@ export async function POST(req: Request) {
         track: submission.track || 'General',
         status: submission.status || 'SUBMITTED',
         score: submission.score || 0,
-        created_at: submission.submittedAt,
-      }, { onConflict: 'event_id,submitter_id' });
+        created_at: submission.submittedAt || new Date().toISOString(),
+      }, { onConflict: 'event_id,submitter_id' }).select().maybeSingle();
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
+
+      // Realtime Broadcast across event channel
+      try {
+        const channel = serverSupabase.channel(`submissions_stream_${targetEventId}`);
+        await channel.send({
+          type: 'broadcast',
+          event: 'submission_created',
+          payload: { submission: data || submission },
+        });
+      } catch (broadcastErr) {}
 
       return NextResponse.json({ success: true, data });
     }

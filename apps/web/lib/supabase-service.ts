@@ -2065,9 +2065,22 @@ export async function saveSubmissionSupabase(
       }
     }
 
+    // Resolve UUID for submitter_id
+    let resolvedSubmitterId = submission.submittedBy;
+    const isSubmitterUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submission.submittedBy);
+    if (!isSubmitterUuid) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user?.id) {
+        resolvedSubmitterId = authData.user.id;
+      } else {
+        const { data: prof } = await supabase.from('profiles').select('id').limit(1).maybeSingle();
+        if (prof?.id) resolvedSubmitterId = prof.id;
+      }
+    }
+
     const payload = {
       event_id: resolvedEventId,
-      submitter_id: submission.submittedBy,
+      submitter_id: resolvedSubmitterId,
       project_name: submission.projectTitle,
       tagline: submission.tagline || '',
       description: submission.projectDescription,
@@ -2077,19 +2090,69 @@ export async function saveSubmissionSupabase(
       track: submission.track || 'General Open Track',
       status: submission.status || 'SUBMITTED',
       score: submission.score || 0,
-      created_at: submission.submittedAt,
+      created_at: submission.submittedAt || new Date().toISOString(),
     };
 
+    // 1. Direct Supabase Client Upsert
     const { data, error } = await supabase
       .from('submissions')
       .upsert(payload, { onConflict: 'event_id,submitter_id' })
       .select()
       .maybeSingle();
 
+    // 2. Server-side API sync fallback (in case client RLS needs service role)
     if (error) {
-      console.warn('Supabase submission upsert warning (falling back to client storage):', error.message);
-      return { success: true, data: submission };
+      try {
+        await fetch('/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission: {
+              ...submission,
+              eventId: resolvedEventId,
+              submittedBy: resolvedSubmitterId,
+            },
+          }),
+        });
+      } catch (apiErr) {
+        console.warn('API submissions sync error:', apiErr);
+      }
     }
+
+    // 3. Realtime Broadcast to all connected clients & dashboards!
+    try {
+      const channel = supabase.channel(`submissions_stream_${resolvedEventId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'submission_created',
+        payload: { submission: { ...submission, eventId: resolvedEventId, submittedBy: resolvedSubmitterId } },
+      });
+
+      const globalChannel = supabase.channel('public:submissions_realtime');
+      globalChannel.send({
+        type: 'broadcast',
+        event: 'submission_created',
+        payload: { submission: { ...submission, eventId: resolvedEventId, submittedBy: resolvedSubmitterId } },
+      });
+    } catch (broadcastErr) {
+      console.warn('Realtime submission broadcast notice:', broadcastErr);
+    }
+
+    // 4. Real-time platform notification for new project submission
+    try {
+      createNotification(
+        {
+          title: `New Project Submitted: ${submission.projectTitle}`,
+          message: `${submission.submittedByName || 'A builder'} just submitted "${submission.projectTitle}" for review.`,
+          type: NotificationDbType.EVENT,
+          icon: 'rocket',
+          eventId: resolvedEventId,
+          targetType: NotificationTargetType.ALL,
+          actionUrl: `/dashboard/events/${resolvedEventId}/submissions`,
+        },
+        resolvedSubmitterId
+      ).catch(() => {});
+    } catch (notifErr) {}
 
     return { success: true, data: submission };
   } catch (err: any) {
@@ -2180,6 +2243,14 @@ export async function deleteSubmissionSupabase(
     if (isUuid) {
       await supabase.from('submissions').delete().eq('id', submissionId);
     }
+    if (eventId) {
+      const channel = supabase.channel(`submissions_stream_${eventId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'submission_deleted',
+        payload: { submissionId },
+      });
+    }
     return { success: true };
   } catch {
     return { success: true };
@@ -2190,7 +2261,8 @@ export async function updateSubmissionReviewSupabase(
   submissionId: string,
   status: 'SUBMITTED' | 'UNDER_REVIEW' | 'ACCEPTED' | 'WINNER' | 'REJECTED',
   score?: number,
-  notes?: string
+  notes?: string,
+  eventId?: string
 ): Promise<{ success: boolean }> {
   updateProjectSubmissionStatus(submissionId, status, score, notes);
 
@@ -2200,6 +2272,14 @@ export async function updateSubmissionReviewSupabase(
       const updateData: any = { status };
       if (score !== undefined) updateData.score = score;
       await supabase.from('submissions').update(updateData).eq('id', submissionId);
+    }
+    if (eventId) {
+      const channel = supabase.channel(`submissions_stream_${eventId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'submission_updated',
+        payload: { submissionId, status, score },
+      });
     }
     return { success: true };
   } catch {
@@ -2214,8 +2294,9 @@ export function subscribeToEventSubmissions(
   if (typeof window === 'undefined') return () => {};
 
   try {
+    const channelName = `submissions_stream_${eventId}_${Date.now()}`;
     const channel = supabase
-      .channel(`submissions_stream_${eventId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -2227,6 +2308,22 @@ export function subscribeToEventSubmissions(
           onUpdate();
         }
       )
+      .on('broadcast', { event: 'submission_created' }, () => {
+        onUpdate();
+      })
+      .on('broadcast', { event: 'submission_updated' }, () => {
+        onUpdate();
+      })
+      .on('broadcast', { event: 'submission_deleted' }, () => {
+        onUpdate();
+      })
+      .subscribe();
+
+    const globalChannel = supabase
+      .channel('public:submissions_realtime')
+      .on('broadcast', { event: 'submission_created' }, () => {
+        onUpdate();
+      })
       .subscribe();
 
     const handleLocal = () => onUpdate();
@@ -2234,6 +2331,7 @@ export function subscribeToEventSubmissions(
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(globalChannel);
       window.removeEventListener('hackers_unity_storage_change', handleLocal);
     };
   } catch {

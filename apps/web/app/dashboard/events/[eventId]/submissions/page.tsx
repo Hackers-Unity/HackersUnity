@@ -163,7 +163,7 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
     subId: string,
     newStatus: 'SUBMITTED' | 'UNDER_REVIEW' | 'ACCEPTED' | 'WINNER' | 'REJECTED'
   ) => {
-    await updateSubmissionReviewSupabase(subId, newStatus);
+    await updateSubmissionReviewSupabase(subId, newStatus, undefined, undefined, event?.id || resolvedParams.eventId);
     loadData();
   };
 
@@ -175,7 +175,8 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
       selectedSubmission.id,
       evalStatus,
       evalScore,
-      evalNotes
+      evalNotes,
+      event?.id || resolvedParams.eventId
     );
     setIsSavingEval(false);
     setSelectedSubmission(null);
