@@ -128,13 +128,13 @@ export async function fetchPublicAnnouncementsAndEvents(): Promise<UserNotificat
           createdAt: ev.created_at || new Date().toISOString(),
           notification: {
             id: ev.id,
-            title: `🚀 Hackathon: ${ev.title}`,
+            title: `Hackathon: ${ev.title}`,
             message:
               ev.tagline ||
               ev.short_description ||
               `Registrations are active! Prize pool: ${ev.total_prize_value || 'Verified rewards'}. Build with top innovators.`,
             type: NotificationDbType.EVENT,
-            icon: '🚀',
+            icon: 'rocket',
             eventId: ev.id,
             senderId: null,
             newsId: null,
@@ -158,11 +158,11 @@ export async function fetchPublicAnnouncementsAndEvents(): Promise<UserNotificat
       createdAt: '2026-09-01T12:00:00Z',
       notification: {
         id: 'announcement-welcome',
-        title: "🎉 Welcome to Hacker's Unity Platform!",
+        title: "Welcome to Hacker's Unity Platform",
         message:
           "India's premier hackathon and developer ecosystem. Explore competitions, match with teammates, and submit cutting-edge prototypes.",
         type: NotificationDbType.ANNOUNCEMENT,
-        icon: '🎉',
+        icon: 'megaphone',
         eventId: null,
         senderId: null,
         newsId: null,
@@ -178,10 +178,10 @@ export async function fetchPublicAnnouncementsAndEvents(): Promise<UserNotificat
       createdAt: '2026-08-20T10:00:00Z',
       notification: {
         id: 'announcement-teammates',
-        title: '👥 Teammate Matching is Live',
+        title: 'Teammate Matching is Live',
         message: 'Looking for developers, designers, or AI builders? Connect and assemble your hackathon squad today.',
         type: NotificationDbType.TEAM,
-        icon: '👥',
+        icon: 'users',
         eventId: null,
         senderId: null,
         newsId: null,
@@ -339,10 +339,10 @@ export function subscribeToRealtimeNotifications(
         createdAt: p.createdAt || new Date().toISOString(),
         notification: {
           id: p.id || `announcement-${Date.now()}`,
-          title: p.title || '📢 Platform Announcement',
+          title: p.title || 'Platform Announcement',
           message: p.message || '',
           type: (p.type as NotificationDbType) || NotificationDbType.ANNOUNCEMENT,
-          icon: p.icon || '📢',
+          icon: p.icon || 'megaphone',
           eventId: p.eventId || null,
           senderId: p.senderId || null,
           newsId: p.newsId || null,
@@ -366,13 +366,13 @@ export function subscribeToRealtimeNotifications(
         createdAt: new Date().toISOString(),
         notification: {
           id: ev.id,
-          title: `🚀 New Hackathon: ${ev.title}`,
+          title: `New Hackathon: ${ev.title}`,
           message:
             ev.tagline ||
             ev.short_description ||
             `Registrations are live! Prize pool: ${ev.total_prize_value || 'Prizes'}. Assemble your squad now!`,
           type: NotificationDbType.EVENT,
-          icon: '🚀',
+          icon: 'rocket',
           eventId: ev.id,
           senderId: null,
           newsId: null,
@@ -402,13 +402,13 @@ export function subscribeToRealtimeNotifications(
           createdAt: ev.created_at || new Date().toISOString(),
           notification: {
             id: ev.id,
-            title: `🚀 New Hackathon: ${ev.title}`,
+            title: `New Hackathon: ${ev.title}`,
             message:
               ev.tagline ||
               ev.short_description ||
               `A brand new hackathon is now open for registration! Check rules and join.`,
             type: NotificationDbType.EVENT,
-            icon: '🚀',
+            icon: 'rocket',
             eventId: ev.id,
             senderId: null,
             newsId: null,
@@ -735,15 +735,15 @@ export async function fetchSentNotifications(
 
 export function getDefaultIcon(type: NotificationDbType): string {
   switch (type) {
-    case NotificationDbType.EVENT: return '🚀';
-    case NotificationDbType.REGISTRATION: return '🎉';
-    case NotificationDbType.REMINDER: return '⏰';
-    case NotificationDbType.ANNOUNCEMENT: return '📢';
-    case NotificationDbType.TEAM: return '👥';
-    case NotificationDbType.RESULT: return '🏆';
-    case NotificationDbType.NEWS: return '📰';
-    case NotificationDbType.SYSTEM: return '🔔';
-    default: return '🔔';
+    case NotificationDbType.EVENT: return 'rocket';
+    case NotificationDbType.REGISTRATION: return 'sparkles';
+    case NotificationDbType.REMINDER: return 'calendar';
+    case NotificationDbType.ANNOUNCEMENT: return 'megaphone';
+    case NotificationDbType.TEAM: return 'users';
+    case NotificationDbType.RESULT: return 'trophy';
+    case NotificationDbType.NEWS: return 'newspaper';
+    case NotificationDbType.SYSTEM: return 'bell';
+    default: return 'bell';
   }
 }
 

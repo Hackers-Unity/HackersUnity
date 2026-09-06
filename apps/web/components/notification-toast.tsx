@@ -2,8 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { X, Bell, Rocket, Megaphone, Users, Sparkles } from 'lucide-react';
 import { useNotifications } from '@/lib/notification-context';
+import { NotificationDbType } from '@hackers-unity/shared-types';
+
+function stripEmojis(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getToastIcon(type: NotificationDbType) {
+  const iconClass = 'w-4 h-4';
+  switch (type) {
+    case NotificationDbType.EVENT:
+      return <Rocket className={`${iconClass} text-[#0099e6]`} />;
+    case NotificationDbType.REGISTRATION:
+      return <Sparkles className={`${iconClass} text-emerald-500`} />;
+    case NotificationDbType.ANNOUNCEMENT:
+      return <Megaphone className={`${iconClass} text-[#0099e6]`} />;
+    case NotificationDbType.TEAM:
+      return <Users className={`${iconClass} text-violet-500`} />;
+    default:
+      return <Bell className={`${iconClass} text-[#0099e6]`} />;
+  }
+}
 
 export function NotificationToast() {
   const router = useRouter();
@@ -65,17 +90,17 @@ export function NotificationToast() {
       >
         <div className="flex items-start gap-3">
           {/* Icon */}
-          <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0">
-            <span className="text-base">{latestToast.notification.icon || '🔔'}</span>
+          <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200/80 flex items-center justify-center shrink-0">
+            {getToastIcon(latestToast.notification.type)}
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="text-xs font-extrabold text-slate-900 line-clamp-1">
-              {latestToast.notification.title}
+              {stripEmojis(latestToast.notification.title)}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-snug">
-              {latestToast.notification.message}
+              {stripEmojis(latestToast.notification.message)}
             </p>
           </div>
 
@@ -98,13 +123,6 @@ export function NotificationToast() {
           />
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes toast-progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-      `}</style>
     </div>
   );
 }

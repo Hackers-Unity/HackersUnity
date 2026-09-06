@@ -27,15 +27,19 @@ interface NotificationPanelProps {
 
 type TabType = 'all' | 'events' | 'announcements';
 
-function getNotificationIcon(type: NotificationDbType, icon?: string) {
-  if (icon && /\p{Emoji}/u.test(icon)) {
-    return <span className="text-sm">{icon}</span>;
-  }
+function stripEmojis(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
+function getNotificationIcon(type: NotificationDbType) {
   const iconClass = 'w-4 h-4';
   switch (type) {
     case NotificationDbType.EVENT:
-      return <Rocket className={`${iconClass} text-cyan-500`} />;
+      return <Rocket className={`${iconClass} text-[#0099e6]`} />;
     case NotificationDbType.REGISTRATION:
       return <Sparkles className={`${iconClass} text-emerald-500`} />;
     case NotificationDbType.REMINDER:
@@ -176,7 +180,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-extrabold text-slate-900">Notifications</span>
             {unreadCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-[#0099e6] text-white text-[10px] font-bold min-w-[18px] text-center">
+              <span className="px-1.5 py-0.2 rounded-full bg-[#f97316] text-white text-[10px] font-bold min-w-[18px] text-center">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -197,7 +201,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         )}
       </div>
 
-      {/* Filter Tabs: All, Events, Announcements */}
+      {/* Clean Filter Tabs (No Emojis) */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-100 bg-white">
         <button
           onClick={() => setActiveTab('all')}
@@ -217,7 +221,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          🚀 Events ({eventsCount})
+          Events ({eventsCount})
         </button>
         <button
           onClick={() => setActiveTab('announcements')}
@@ -227,7 +231,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          📢 Updates ({announcementsCount})
+          Updates ({announcementsCount})
         </button>
       </div>
 
@@ -247,7 +251,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
             <span className="text-[11px] text-slate-400 mt-1 max-w-[220px]">
               {activeTab === 'events'
                 ? 'Upcoming hackathons & challenges will appear here in real time.'
-                : 'Stay tuned! Live announcements and community updates appear here.'}
+                : 'Live announcements and community updates appear here.'}
             </span>
           </div>
         ) : (
@@ -261,9 +265,9 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                   notif.isRead
                 )}`}
               >
-                {/* Icon */}
+                {/* SVG Icon Box (Clean Vector) */}
                 <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center shrink-0 shadow-2xs mt-0.5 group-hover:scale-105 transition-transform">
-                  {getNotificationIcon(notif.notification.type, notif.notification.icon)}
+                  {getNotificationIcon(notif.notification.type)}
                 </div>
 
                 {/* Content */}
@@ -274,7 +278,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                         notif.isRead ? 'font-semibold text-slate-700' : 'font-extrabold text-slate-900'
                       }`}
                     >
-                      {notif.notification.title}
+                      {stripEmojis(notif.notification.title)}
                     </span>
                     {!notif.isRead && (
                       <span className="w-2 h-2 rounded-full bg-[#0099e6] shrink-0 mt-1" />
@@ -285,7 +289,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                       notif.isRead ? 'text-slate-500' : 'text-slate-600'
                     }`}
                   >
-                    {notif.notification.message}
+                    {stripEmojis(notif.notification.message)}
                   </p>
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-[10px] text-slate-400">
