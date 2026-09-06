@@ -264,12 +264,6 @@ export default function AboutPage() {
                 {member.name}
               </h3>
 
-              {member.handle && (
-                <span className="text-xs font-semibold text-slate-400 mt-0.5">
-                  {member.handle}
-                </span>
-              )}
-
               {/* Bio */}
               <p className="text-xs sm:text-sm text-slate-600 mt-3 leading-relaxed font-medium flex-1">
                 {member.bio}
