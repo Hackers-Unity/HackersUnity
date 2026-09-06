@@ -1,8 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qbidqpbtivgmsxlitbxx.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_ESfBQ9lmjlHsSP3eDWJpwg_sOO9QmN5';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qifwhjfisipxkytsqxez.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_VEbLNd33E-R6hlSsmvMXhA_k_xrQnX8';
 
 export const updateSession = async (request: NextRequest) => {
   // Create an unmodified response
