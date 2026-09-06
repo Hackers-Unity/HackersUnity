@@ -11,6 +11,7 @@
     "SUPABASE_JWKS_URL",
     "SUPABASE_JWT_SECRET",
     "RESEND_API_KEY",
+    "VITE_CLERK_PUBLISHABLE_KEY",
     "NODE_ENV"
   ],
   "tasks": {

@@ -3,7 +3,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { UserPublic, UserRole } from '@hackers-unity/shared-types';
-import { getStoredUser, saveStoredUser, clearStoredUser, syncBookmarksWithSupabase } from './storage';
+import {
+  getStoredUser,
+  saveStoredUser,
+  clearStoredUser,
+  getPermanentProfile,
+  syncBookmarksWithSupabase,
+} from './storage';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { formatAndValidatePhone, isValidE164Phone } from './phone-utils';
 
@@ -31,42 +37,48 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserPublic | null>(null);
+  // Synchronously initialize user from storage to eliminate page load login flicker
+  const [user, setUser] = useState<UserPublic | null>(() => getStoredUser());
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper to build user from metadata
+  // Helper to build user from metadata and permanent storage
   const buildUserFromMeta = (sbUser: SupabaseUser): UserPublic => {
     const meta = sbUser.user_metadata || {};
+    const saved = getPermanentProfile(sbUser.id) || (sbUser.email ? getPermanentProfile(sbUser.email) : null);
     return {
       id: sbUser.id,
-      name: meta.name || meta.full_name || sbUser.email?.split('@')[0] || 'Hacker',
-      email: sbUser.email || '',
-      phone: meta.phone || sbUser.phone || null,
-      role: (meta.role as UserRole) || UserRole.PARTICIPANT,
-      college: meta.college || 'Developer Guild',
-      organization: meta.organization || meta.company || 'Developer Community',
-      graduationYear: meta.graduation_year || 2026,
-      bio: meta.bio || 'Passionate builder & hackathon enthusiast.',
-      avatarUrl: meta.avatar_url || '⚡',
-      bannerUrl: meta.banner_url || null,
-      skills: meta.skills || ['Next.js', 'TypeScript', 'PostgreSQL'],
-      resumeUrl: null,
+      name: meta.name || meta.full_name || saved?.name || sbUser.email?.split('@')[0] || 'Hacker',
+      email: sbUser.email || saved?.email || '',
+      phone: meta.phone || sbUser.phone || saved?.phone || null,
+      role: (meta.role as UserRole) || saved?.role || UserRole.PARTICIPANT,
+      college: meta.college || saved?.college || '',
+      organization: meta.organization || meta.company || saved?.organization || '',
+      graduationYear: meta.graduation_year || saved?.graduationYear || 2026,
+      bio: meta.bio || saved?.bio || '',
+      avatarUrl: meta.avatar_url || saved?.avatarUrl || '⚡',
+      bannerUrl: meta.banner_url || saved?.bannerUrl || null,
+      skills: (meta.skills && meta.skills.length > 0)
+        ? meta.skills
+        : (saved?.skills && saved.skills.length > 0)
+        ? saved.skills
+        : ['Next.js', 'TypeScript', 'PostgreSQL'],
+      resumeUrl: saved?.resumeUrl || null,
       socialLinks: {
-        github: meta.github_url || '',
-        linkedin: meta.linkedin_url || '',
-        portfolio: meta.portfolio_url || '',
+        github: meta.github_url || saved?.socialLinks?.github || '',
+        linkedin: meta.linkedin_url || saved?.socialLinks?.linkedin || '',
+        portfolio: meta.portfolio_url || saved?.socialLinks?.portfolio || '',
       },
-      professionType: meta.profession_type || 'STUDENT',
-      degree: meta.degree || 'B.Tech / B.E (Engineering)',
-      branch: meta.branch || 'Computer Science & Engineering (CSE)',
-      company: meta.company || meta.organization || '',
-      jobTitle: meta.job_title || 'Software Engineer',
-      experienceYears: meta.experience_years || '1-3 years',
-      industry: meta.industry || 'AI/ML, GenAI & Autonomous Systems',
+      professionType: meta.profession_type || saved?.professionType || 'STUDENT',
+      degree: meta.degree || saved?.degree || 'B.Tech / B.E (Engineering)',
+      branch: meta.branch || saved?.branch || 'Computer Science & Engineering (CSE)',
+      company: meta.company || meta.organization || saved?.company || '',
+      jobTitle: meta.job_title || saved?.jobTitle || 'Software Engineer',
+      experienceYears: meta.experience_years || saved?.experienceYears || '1-3 years',
+      industry: meta.industry || saved?.industry || 'AI/ML, GenAI & Autonomous Systems',
       emailVerified: !!sbUser.email_confirmed_at,
-      createdAt: sbUser.created_at,
+      createdAt: sbUser.created_at || saved?.createdAt || new Date().toISOString(),
     };
   };
 
@@ -89,8 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setSupabaseUser(session.user);
         const tempUser = buildUserFromMeta(session.user);
-        setUser(tempUser);
-        saveStoredUser(tempUser);
+        setUser((prev) => prev || tempUser);
         await syncProfileFromSupabaseUser(session.user);
       } else {
         const stored = getStoredUser();
@@ -108,8 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setSupabaseUser(session.user);
         const tempUser = buildUserFromMeta(session.user);
-        setUser(tempUser);
-        saveStoredUser(tempUser);
+        setUser((prev) => prev || tempUser);
         await syncProfileFromSupabaseUser(session.user);
       } else if (event === 'SIGNED_OUT') {
         setSupabaseUser(null);
@@ -135,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const syncProfileFromSupabaseUser = async (sbUser: SupabaseUser) => {
     try {
+      const saved = getPermanentProfile(sbUser.id) || (sbUser.email ? getPermanentProfile(sbUser.email) : null);
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -144,34 +155,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const meta = sbUser.user_metadata || {};
       const fullUser: UserPublic = {
         id: sbUser.id,
-        name: profile?.name || meta.name || meta.full_name || sbUser.email?.split('@')[0] || 'Hacker',
-        email: profile?.email || sbUser.email || '',
-        phone: meta.phone || sbUser.phone || null,
-        role: (profile?.role as UserRole) || (meta.role as UserRole) || UserRole.PARTICIPANT,
-        college: profile?.college || meta.college || '',
-        organization: profile?.organization || meta.organization || meta.company || '',
-        graduationYear: meta.graduation_year || 2026,
-        bio: profile?.bio || meta.bio || '',
-        avatarUrl: profile?.avatar_url || meta.avatar_url || '⚡',
-        bannerUrl: meta.banner_url || null,
+        name: profile?.name || meta.name || meta.full_name || saved?.name || sbUser.email?.split('@')[0] || 'Hacker',
+        email: profile?.email || sbUser.email || saved?.email || '',
+        phone: meta.phone || sbUser.phone || saved?.phone || null,
+        role: (profile?.role as UserRole) || (meta.role as UserRole) || saved?.role || UserRole.PARTICIPANT,
+        college: profile?.college || meta.college || saved?.college || '',
+        organization: profile?.organization || meta.organization || meta.company || saved?.organization || '',
+        graduationYear: meta.graduation_year || saved?.graduationYear || 2026,
+        bio: profile?.bio || meta.bio || saved?.bio || '',
+        avatarUrl: profile?.avatar_url || meta.avatar_url || saved?.avatarUrl || '⚡',
+        bannerUrl: meta.banner_url || saved?.bannerUrl || null,
         skills: (profile?.skills && profile.skills.length > 0)
           ? profile.skills
-          : (meta.skills && meta.skills.length > 0 ? meta.skills : ['Next.js', 'TypeScript', 'PostgreSQL']),
-        resumeUrl: null,
+          : (meta.skills && meta.skills.length > 0)
+          ? meta.skills
+          : (saved?.skills && saved.skills.length > 0)
+          ? saved.skills
+          : ['Next.js', 'TypeScript', 'PostgreSQL'],
+        resumeUrl: saved?.resumeUrl || null,
         socialLinks: {
-          github: profile?.github_url || meta.github_url || '',
-          linkedin: profile?.linkedin_url || meta.linkedin_url || '',
-          portfolio: profile?.portfolio_url || meta.portfolio_url || '',
+          github: profile?.github_url || meta.github_url || saved?.socialLinks?.github || '',
+          linkedin: profile?.linkedin_url || meta.linkedin_url || saved?.socialLinks?.linkedin || '',
+          portfolio: profile?.portfolio_url || meta.portfolio_url || saved?.socialLinks?.portfolio || '',
         },
-        professionType: meta.profession_type || 'STUDENT',
-        degree: meta.degree || 'B.Tech / B.E (Engineering)',
-        branch: meta.branch || 'Computer Science & Engineering (CSE)',
-        company: meta.company || meta.organization || profile?.organization || '',
-        jobTitle: meta.job_title || 'Software Engineer',
-        experienceYears: meta.experience_years || '1-3 years',
-        industry: meta.industry || 'AI/ML, GenAI & Autonomous Systems',
+        professionType: meta.profession_type || saved?.professionType || 'STUDENT',
+        degree: meta.degree || saved?.degree || 'B.Tech / B.E (Engineering)',
+        branch: meta.branch || saved?.branch || 'Computer Science & Engineering (CSE)',
+        company: meta.company || meta.organization || profile?.organization || saved?.company || '',
+        jobTitle: meta.job_title || saved?.jobTitle || 'Software Engineer',
+        experienceYears: meta.experience_years || saved?.experienceYears || '1-3 years',
+        industry: meta.industry || saved?.industry || 'AI/ML, GenAI & Autonomous Systems',
         emailVerified: !!sbUser.email_confirmed_at,
-        createdAt: profile?.created_at || sbUser.created_at,
+        createdAt: profile?.created_at || sbUser.created_at || saved?.createdAt || new Date().toISOString(),
       };
 
       setUser(fullUser);
@@ -182,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (err) {
       console.warn('Error syncing profile:', err);
-      const stored = getStoredUser();
+      const stored = getStoredUser() || getPermanentProfile(sbUser.id);
       if (stored) setUser(stored);
     }
   };
@@ -424,17 +439,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       };
 
-      // 1. Instant local optimistic update
+      // 1. Instant local optimistic update & permanent storage
       setUser(updatedUser);
       saveStoredUser(updatedUser);
 
-      // 2. Fast background cloud sync with Supabase via server API
+      // 2. Client-side session metadata sync on Supabase Auth
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            name: updatedUser.name,
+            full_name: updatedUser.name,
+            phone: updatedUser.phone,
+            bio: updatedUser.bio,
+            college: updatedUser.college,
+            organization: updatedUser.organization,
+            company: updatedUser.company,
+            graduation_year: updatedUser.graduationYear,
+            degree: updatedUser.degree,
+            branch: updatedUser.branch,
+            profession_type: updatedUser.professionType,
+            job_title: updatedUser.jobTitle,
+            experience_years: updatedUser.experienceYears,
+            industry: updatedUser.industry,
+            skills: updatedUser.skills,
+            avatar_url: updatedUser.avatarUrl,
+            banner_url: updatedUser.bannerUrl,
+            github_url: updatedUser.socialLinks?.github,
+            linkedin_url: updatedUser.socialLinks?.linkedin,
+            portfolio_url: updatedUser.socialLinks?.portfolio,
+          },
+        });
+      } catch (clientMetaErr) {
+        console.warn('[Profile Update] Client auth metadata sync notice:', clientMetaErr);
+      }
+
+      // 3. Cloud sync with Supabase PostgreSQL database via server API
       try {
         const res = await fetch('/api/profile/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user.id,
+            email: user.email,
             name: updatedUser.name,
             phone: updatedUser.phone,
             bio: updatedUser.bio,

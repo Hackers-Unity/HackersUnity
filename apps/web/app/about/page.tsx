@@ -87,6 +87,28 @@ export default function AboutPage() {
       ],
     },
     {
+      name: 'Amit Kumar',
+      role: 'Chief Operating Officer',
+      roleBadge: 'Chief Operating Officer',
+      badgeColor: 'bg-emerald-50 text-emerald-600 border-emerald-200/80',
+      image: '/team/AmitKumar.png',
+      bio: "Chief Operating Officer overseeing platform operations, nationwide hackathon execution, community initiatives, and strategic partnerships across colleges and tech hubs.",
+      socials: [
+        {
+          icon: FaLinkedin,
+          label: 'LinkedIn',
+          href: 'https://www.linkedin.com/in/amit-kumar-at2/',
+          color: 'hover:text-[#0077b5] hover:border-[#0077b5]/40 hover:bg-[#0077b5]/5',
+        },
+        {
+          icon: FaXTwitter,
+          label: 'X (Twitter)',
+          href: 'https://x.com/AK_Sharma02',
+          color: 'hover:text-black hover:border-black/40 hover:bg-black/5',
+        },
+      ],
+    },
+    {
       name: 'Pranjal Jain',
       role: 'Chief Marketing Officer',
       roleBadge: 'Chief Marketing Officer',
@@ -230,7 +252,7 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {team.map((member) => (
             <div
               key={member.name}

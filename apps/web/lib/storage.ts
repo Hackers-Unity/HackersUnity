@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   REGISTRATIONS: 'hackers_unity_registrations',
   HOSTED_EVENTS: 'hackers_unity_hosted_events',
   USER_PROFILE: 'hackers_unity_user_profile',
+  SAVED_PROFILES: 'hackers_unity_saved_profiles',
   INVITES: 'hackers_unity_invites',
   SUBMISSIONS: 'hackers_unity_project_submissions',
 };
@@ -268,37 +269,73 @@ export function getEventBySlug(slug: string): ExtendedEvent | undefined {
   return all.find((e) => e.slug === slug || e.id === slug);
 }
 
-// User Profile
+// User Profile Permanent & Session Storage
+export function getSavedProfiles(): Record<string, UserPublic> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SAVED_PROFILES);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function savePermanentProfile(user: UserPublic): void {
+  if (typeof window === 'undefined' || !user) return;
+  try {
+    const profiles = getSavedProfiles();
+    if (user.id) profiles[user.id] = user;
+    if (user.email) profiles[user.email.toLowerCase()] = user;
+    localStorage.setItem(STORAGE_KEYS.SAVED_PROFILES, JSON.stringify(profiles));
+  } catch (e) {
+    console.warn('[Storage] Permanent profile save warning:', e);
+  }
+}
+
+export function getPermanentProfile(identifier?: string | null): UserPublic | null {
+  if (typeof window === 'undefined' || !identifier) return null;
+  try {
+    const profiles = getSavedProfiles();
+    const cleanId = String(identifier).trim();
+    if (profiles[cleanId]) return profiles[cleanId];
+    const lower = cleanId.toLowerCase();
+    if (profiles[lower]) return profiles[lower];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function getStoredUser(): UserPublic | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) return JSON.parse(raw);
+    return null;
   } catch {
     return null;
   }
 }
 
 export function saveStoredUser(user: UserPublic): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !user) return;
   try {
     localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(user));
+    savePermanentProfile(user);
     window.dispatchEvent(new Event('hackers_unity_storage_change'));
   } catch (e) {
-    console.error(e);
+    console.error('[Storage] saveStoredUser error:', e);
   }
 }
 
 export function clearStoredUser(): void {
   if (typeof window === 'undefined') return;
   try {
+    // Clear active session pointer, while keeping permanent profiles intact
     localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
-    localStorage.removeItem(STORAGE_KEYS.REGISTRATIONS);
-    localStorage.removeItem(STORAGE_KEYS.BOOKMARKS);
-    localStorage.removeItem(STORAGE_KEYS.HOSTED_EVENTS);
     window.dispatchEvent(new Event('hackers_unity_storage_change'));
   } catch (e) {
-    console.error(e);
+    console.error('[Storage] clearStoredUser error:', e);
   }
 }
 

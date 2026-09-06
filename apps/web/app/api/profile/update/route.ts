@@ -124,11 +124,26 @@ export async function POST(req: Request) {
     const cleanLinkedin = socialLinks?.linkedin ? String(socialLinks.linkedin).trim() : null;
     const cleanPortfolio = socialLinks?.portfolio ? String(socialLinks.portfolio).trim() : null;
 
-    // 3. Upsert to Postgres `profiles` table (ONLY columns that exist in DB schema)
+    // 3. Fetch user info from Supabase Auth to guarantee email and base metadata
+    let userEmail = body.email ? String(body.email).trim().toLowerCase() : '';
+    let existingMeta: Record<string, any> = {};
+
+    try {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (userRes?.user) {
+        if (!userEmail) userEmail = userRes.user.email || '';
+        existingMeta = userRes.user.user_metadata || {};
+      }
+    } catch (authFetchErr) {
+      console.warn('[Profile Update] Auth fetch warning:', authFetchErr);
+    }
+
+    // 4. Upsert to Postgres `profiles` table (MUST include email since it is NOT NULL)
     const profileUpdateData: Record<string, any> = {
       id: userId,
       updated_at: new Date().toISOString(),
     };
+    if (userEmail) profileUpdateData.email = userEmail;
     if (cleanName !== undefined) profileUpdateData.name = cleanName;
     if (cleanCollege !== undefined) profileUpdateData.college = cleanCollege;
     if (cleanOrg !== undefined) profileUpdateData.organization = cleanOrg;
@@ -146,16 +161,15 @@ export async function POST(req: Request) {
 
       if (profileDbError) {
         console.warn('[Profile Update] Database profiles upsert warning:', profileDbError);
+      } else {
+        console.log('[Profile Update] Database profiles upsert success for:', userId);
       }
     } catch (dbErr) {
       console.warn('[Profile Update] DB upsert exception:', dbErr);
     }
 
-    // 4. Update Supabase Auth user_metadata (holds all comprehensive fields across all devices)
+    // 5. Update Supabase Auth user_metadata (holds all comprehensive fields across all devices)
     try {
-      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(userId);
-      const existingMeta = userRes?.user?.user_metadata || {};
-
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
           ...existingMeta,
