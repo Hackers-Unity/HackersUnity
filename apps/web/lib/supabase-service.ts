@@ -2217,11 +2217,12 @@ export async function fetchEventSubmissions(
       status: row.status || 'SUBMITTED',
     }));
 
-    // Deduplicate with local list
+    // Deduplicate with local list & sync any un-synced participant submissions to Supabase
     const combined = [...remoteMapped];
     localList.forEach((local) => {
       if (!combined.some((c) => c.submittedBy === local.submittedBy || c.id === local.id)) {
         combined.push(local);
+        saveSubmissionSupabase(local).catch(() => {});
       }
     });
 

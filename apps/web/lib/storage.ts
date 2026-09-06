@@ -597,7 +597,12 @@ export function saveProjectSubmission(submission: ProjectSubmission): void {
       updated = [{ ...submission, updatedAt: new Date().toISOString() }, ...all];
     }
     localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(updated));
-    window.dispatchEvent(new Event('hackers_unity_storage_change'));
+    // Always sync real participant submission to Supabase in real-time
+    fetch('/api/submissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission }),
+    }).catch((e) => console.warn('Supabase submission sync notice:', e));
 
     // Trigger background webhook if configured
     const webhook = getGoogleSheetsWebhook(submission.eventId);
