@@ -73,6 +73,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load initial session
   useEffect(() => {
     async function initAuth() {
+      // Catch OAuth code if redirected to root path by Supabase fallback
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (code && !window.location.pathname.startsWith('/auth/callback')) {
+          const next = urlParams.get('next') || '/dashboard';
+          window.location.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`);
+          return;
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       if (session?.user) {
@@ -263,68 +274,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const { data, error } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: pass,
-        options: {
-          data: {
-            name,
-            full_name: name,
+
+      // 1. Call server API to create user with email_confirm = true (instant zero-email verification)
+      try {
+        const apiRes = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: pass,
+            name: name.trim(),
             phone: phone || '',
             role,
-          },
-        },
-      });
+          }),
+        });
 
-      if (error) return { error: error.message };
+        const apiData = await apiRes.json();
+        if (!apiRes.ok) {
+          return { error: apiData.error || 'Failed to create account.' };
+        }
 
-      if (data.user) {
-        setSupabaseUser(data.user);
-        const createdUser: UserPublic = {
-          id: data.user.id,
-          name: name,
+        // 2. Immediately sign in with the new credentials
+        const loginRes = await supabase.auth.signInWithPassword({
           email: cleanEmail,
-          phone: phone || null,
-          role: role,
-          college: 'Developer Community',
-          organization: 'Hackers Unity',
-          graduationYear: 2026,
-          bio: 'Building future technologies.',
-          avatarUrl: '⚡',
-          skills: ['Next.js', 'TypeScript'],
-          resumeUrl: null,
-          socialLinks: {},
-          emailVerified: !!data.user.email_confirmed_at,
-          createdAt: data.user.created_at,
-        };
+          password: pass,
+        });
 
-        if (data.session) {
-          setSession(data.session);
+        if (loginRes.error) {
+          return { error: loginRes.error.message };
+        }
+
+        if (loginRes.data.user) {
+          setSupabaseUser(loginRes.data.user);
+          if (loginRes.data.session) {
+            setSession(loginRes.data.session);
+          }
+          const createdUser = buildUserFromMeta(loginRes.data.user);
           setUser(createdUser);
           saveStoredUser(createdUser);
+          await syncProfileFromSupabaseUser(loginRes.data.user);
         }
 
-        try {
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            email: cleanEmail,
-            name: name,
-            role: role,
-            phone: phone || null,
-          });
-        } catch (e) {
-          console.warn('Profile creation warning:', e);
-        }
+        return {};
+      } catch (apiErr: any) {
+        console.warn('Direct signup API unavailable, falling back to client SDK:', apiErr);
 
-        if (!data.session) {
-          return {
-            needsEmailConfirmation: true,
-            message: 'Account created! Please note: To log in without confirming email, disable "Confirm email" in Supabase Dashboard -> Authentication -> Providers -> Email.',
-          };
+        // Fallback to client SDK
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: pass,
+          options: {
+            data: {
+              name,
+              full_name: name,
+              phone: phone || '',
+              role,
+            },
+          },
+        });
+
+        if (error) return { error: error.message };
+
+        if (data.user) {
+          setSupabaseUser(data.user);
+          const createdUser = buildUserFromMeta(data.user);
+          if (data.session) {
+            setSession(data.session);
+            setUser(createdUser);
+            saveStoredUser(createdUser);
+          }
+          await syncProfileFromSupabaseUser(data.user);
+
+          if (!data.session) {
+            return {
+              needsEmailConfirmation: true,
+              message: 'Account created! Please check your email to confirm or sign in.',
+            };
+          }
         }
+        return {};
       }
-
-      return {};
     } catch (err: any) {
       return { error: err.message || 'Sign up failed' };
     }
@@ -332,11 +361,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOAuth = async (provider: 'google' | 'github' = 'google') => {
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hackersunity.com';
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: origin ? `${origin}/auth/callback?next=/dashboard` : undefined,
+          redirectTo: `${origin}/auth/callback?next=/dashboard`,
         },
       });
       if (error) return { error: error.message };

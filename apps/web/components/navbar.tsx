@@ -264,6 +264,7 @@ export function Navbar() {
                     <div className="py-1 space-y-1 text-xs font-medium">
                       <Link
                         href="/settings"
+                        prefetch={false}
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition-colors"
                       >
@@ -272,6 +273,7 @@ export function Navbar() {
                       </Link>
                       <Link
                         href="/dashboard"
+                        prefetch={false}
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition-colors"
                       >

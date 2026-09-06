@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.hackersunity.com'),
+  metadataBase: new URL('https://hackersunity.com'),
   title: {
     default: "Hacker's Unity | India's Fastest Growing Hackathon Community, Uniting Developers, Innovators",
     template: "%s | Hacker's Unity",
@@ -54,14 +54,14 @@ export const metadata: Metadata = {
     "build projects",
   ],
   authors: [
-    { name: "Hacker's Unity", url: 'https://www.hackersunity.com' },
+    { name: "Hacker's Unity", url: 'https://hackersunity.com' },
     { name: 'Jha Suraj Kumar' },
     { name: 'Chinmay Bhatt' },
   ],
   creator: "Hacker's Unity",
   publisher: "Hacker's Unity",
   alternates: {
-    canonical: 'https://www.hackersunity.com',
+    canonical: 'https://hackersunity.com',
   },
   icons: {
     icon: [
@@ -79,14 +79,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://www.hackersunity.com',
+    url: 'https://hackersunity.com',
     siteName: "Hacker's Unity",
     title: "Hacker's Unity – India's Fastest Growing Community",
     description:
       "Hacker’s Unity is India’s Fastest Growing Hackathon Community, founded by Jha Suraj Kumar & co-founded by Chinmay Bhatt. Join us to build, learn & innovate! Top 1 India's fastest growing hackathon community.",
     images: [
       {
-        url: 'https://www.hackersunity.com/logo.png',
+        url: 'https://hackersunity.com/logo.png',
         width: 500,
         height: 500,
         alt: "Hacker's Unity Logo",
@@ -98,7 +98,7 @@ export const metadata: Metadata = {
     title: "Hacker's Unity – India's Fastest Growing Community",
     description:
       "Hacker's Unity is a national-level student-driven tech community founded by Jha Suraj Kumar & co-founded by Chinmay Bhatt. Join us to build, learn & innovate!",
-    images: ['https://www.hackersunity.com/logo.png'],
+    images: ['https://hackersunity.com/logo.png'],
     creator: '@hackersunity',
   },
   verification: {
@@ -116,8 +116,8 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: "Hacker's Unity",
-  url: 'https://www.hackersunity.com',
-  logo: 'https://www.hackersunity.com/logo.png',
+  url: 'https://hackersunity.com',
+  logo: 'https://hackersunity.com/logo.png',
   description:
     "India's Fastest Growing Hackathon Community, uniting developers, innovators, founded by Jha Suraj Kumar and Chinmay Bhatt.",
   founders: [

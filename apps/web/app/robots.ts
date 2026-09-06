@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/admin/', '/api/'],
       },
     ],
-    sitemap: 'https://www.hackersunity.com/sitemap.xml',
+    sitemap: 'https://hackersunity.com/sitemap.xml',
   };
 }
