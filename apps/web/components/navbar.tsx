@@ -223,12 +223,12 @@ export function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="relative flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                 aria-label="Open notifications"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-5 h-5 text-slate-700" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#f97316] text-white text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center ring-2 ring-white shadow-xs pointer-events-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
