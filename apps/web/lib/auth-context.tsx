@@ -142,83 +142,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       const meta = sbUser.user_metadata || {};
-      if (profile) {
-        const fullUser: UserPublic = {
-          id: profile.id,
-          name: profile.name || meta.name || meta.full_name || sbUser.email?.split('@')[0] || 'Hacker',
-          email: profile.email || sbUser.email || '',
-          phone: profile.phone || meta.phone || sbUser.phone || null,
-          role: (profile.role as UserRole) || (meta.role as UserRole) || UserRole.PARTICIPANT,
-          college: profile.college || meta.college || 'Developer Guild',
-          organization: profile.organization || meta.organization || profile.company || meta.company || 'Developer Community',
-          graduationYear: profile.graduation_year || meta.graduation_year || 2026,
-          bio: profile.bio || meta.bio || 'Passionate builder & hackathon enthusiast.',
-          avatarUrl: profile.avatar_url || meta.avatar_url || '⚡',
-          bannerUrl: profile.banner_url || meta.banner_url || null,
-          skills: (profile.skills && profile.skills.length > 0) ? profile.skills : (meta.skills || ['Next.js', 'TypeScript', 'PostgreSQL']),
-          resumeUrl: null,
-          socialLinks: {
-            github: profile.github_url || meta.github_url || '',
-            linkedin: profile.linkedin_url || meta.linkedin_url || '',
-            portfolio: profile.portfolio_url || meta.portfolio_url || '',
-          },
-          professionType: profile.profession_type || meta.profession_type || 'STUDENT',
-          degree: profile.degree || meta.degree || 'B.Tech / B.E (Engineering)',
-          branch: profile.branch || meta.branch || 'Computer Science & Engineering (CSE)',
-          company: profile.company || meta.company || profile.organization || meta.organization || '',
-          jobTitle: profile.job_title || meta.job_title || 'Software Engineer',
-          experienceYears: profile.experience_years || meta.experience_years || '1-3 years',
-          industry: profile.industry || meta.industry || 'AI/ML, GenAI & Autonomous Systems',
-          emailVerified: !!sbUser.email_confirmed_at,
-          createdAt: profile.created_at || sbUser.created_at,
-        };
-        setUser(fullUser);
-        saveStoredUser(fullUser);
-      } else {
-        const initialUser: UserPublic = {
-          id: sbUser.id,
-          name: meta.name || meta.full_name || sbUser.email?.split('@')[0] || 'Hacker',
-          email: sbUser.email || '',
-          phone: meta.phone || sbUser.phone || null,
-          role: (meta.role as UserRole) || UserRole.PARTICIPANT,
-          college: meta.college || 'Developer Community',
-          organization: meta.organization || meta.company || 'Hackers Unity',
-          graduationYear: meta.graduation_year || 2026,
-          bio: meta.bio || 'Building future technologies.',
-          avatarUrl: meta.avatar_url || '⚡',
-          bannerUrl: meta.banner_url || null,
-          skills: meta.skills || ['Next.js', 'TypeScript'],
-          resumeUrl: null,
-          socialLinks: {
-            github: meta.github_url || '',
-            linkedin: meta.linkedin_url || '',
-            portfolio: meta.portfolio_url || '',
-          },
-          professionType: meta.profession_type || 'STUDENT',
-          degree: meta.degree || 'B.Tech / B.E (Engineering)',
-          branch: meta.branch || 'Computer Science & Engineering (CSE)',
-          company: meta.company || meta.organization || '',
-          jobTitle: meta.job_title || 'Software Engineer',
-          experienceYears: meta.experience_years || '1-3 years',
-          industry: meta.industry || 'AI/ML, GenAI & Autonomous Systems',
-          emailVerified: !!sbUser.email_confirmed_at,
-          createdAt: sbUser.created_at,
-        };
-        setUser(initialUser);
-        saveStoredUser(initialUser);
+      const fullUser: UserPublic = {
+        id: sbUser.id,
+        name: profile?.name || meta.name || meta.full_name || sbUser.email?.split('@')[0] || 'Hacker',
+        email: profile?.email || sbUser.email || '',
+        phone: meta.phone || sbUser.phone || null,
+        role: (profile?.role as UserRole) || (meta.role as UserRole) || UserRole.PARTICIPANT,
+        college: profile?.college || meta.college || '',
+        organization: profile?.organization || meta.organization || meta.company || '',
+        graduationYear: meta.graduation_year || 2026,
+        bio: profile?.bio || meta.bio || '',
+        avatarUrl: profile?.avatar_url || meta.avatar_url || '⚡',
+        bannerUrl: meta.banner_url || null,
+        skills: (profile?.skills && profile.skills.length > 0)
+          ? profile.skills
+          : (meta.skills && meta.skills.length > 0 ? meta.skills : ['Next.js', 'TypeScript', 'PostgreSQL']),
+        resumeUrl: null,
+        socialLinks: {
+          github: profile?.github_url || meta.github_url || '',
+          linkedin: profile?.linkedin_url || meta.linkedin_url || '',
+          portfolio: profile?.portfolio_url || meta.portfolio_url || '',
+        },
+        professionType: meta.profession_type || 'STUDENT',
+        degree: meta.degree || 'B.Tech / B.E (Engineering)',
+        branch: meta.branch || 'Computer Science & Engineering (CSE)',
+        company: meta.company || meta.organization || profile?.organization || '',
+        jobTitle: meta.job_title || 'Software Engineer',
+        experienceYears: meta.experience_years || '1-3 years',
+        industry: meta.industry || 'AI/ML, GenAI & Autonomous Systems',
+        emailVerified: !!sbUser.email_confirmed_at,
+        createdAt: profile?.created_at || sbUser.created_at,
+      };
 
-        try {
-          await supabase.from('profiles').upsert({
-            id: initialUser.id,
-            email: initialUser.email,
-            name: initialUser.name,
-            role: initialUser.role,
-          });
-        } catch {
-          // ignore error
-        }
-      }
-
+      setUser(fullUser);
+      saveStoredUser(fullUser);
       // Sync bookmarks from Supabase for this user
       syncBookmarksWithSupabase(sbUser.id).catch((e) => {
         console.warn('Bookmarks sync warning on signin:', e);
@@ -471,57 +428,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(updatedUser);
       saveStoredUser(updatedUser);
 
-      // 2. Fast background cloud sync with Supabase
-      if (supabaseUser) {
-        Promise.allSettled([
-          supabase.auth.updateUser({
-            data: {
-              name: updatedUser.name,
-              full_name: updatedUser.name,
-              phone: updatedUser.phone,
-              avatar_url: updatedUser.avatarUrl,
-              banner_url: updatedUser.bannerUrl,
-              profession_type: updatedUser.professionType,
-              degree: updatedUser.degree,
-              branch: updatedUser.branch,
-              college: updatedUser.college,
-              company: updatedUser.company,
-              job_title: updatedUser.jobTitle,
-              experience_years: updatedUser.experienceYears,
-              industry: updatedUser.industry,
-              graduation_year: updatedUser.graduationYear,
-              bio: updatedUser.bio,
-              skills: updatedUser.skills,
-              github_url: updatedUser.socialLinks?.github,
-              linkedin_url: updatedUser.socialLinks?.linkedin,
-              portfolio_url: updatedUser.socialLinks?.portfolio,
-            },
-          }),
-          supabase.from('profiles').upsert({
-            id: user.id,
+      // 2. Fast background cloud sync with Supabase via server API
+      try {
+        const res = await fetch('/api/profile/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
             name: updatedUser.name,
+            phone: updatedUser.phone,
+            bio: updatedUser.bio,
             college: updatedUser.college,
             organization: updatedUser.organization,
-            graduation_year: updatedUser.graduationYear,
-            bio: updatedUser.bio,
-            skills: updatedUser.skills,
-            avatar_url: updatedUser.avatarUrl,
-            banner_url: updatedUser.bannerUrl,
-            phone: updatedUser.phone,
-            github_url: updatedUser.socialLinks?.github,
-            linkedin_url: updatedUser.socialLinks?.linkedin,
-            portfolio_url: updatedUser.socialLinks?.portfolio,
-            profession_type: updatedUser.professionType,
+            company: updatedUser.company,
+            graduationYear: updatedUser.graduationYear,
             degree: updatedUser.degree,
             branch: updatedUser.branch,
-            company: updatedUser.company,
-            job_title: updatedUser.jobTitle,
-            experience_years: updatedUser.experienceYears,
+            professionType: updatedUser.professionType,
+            jobTitle: updatedUser.jobTitle,
+            experienceYears: updatedUser.experienceYears,
             industry: updatedUser.industry,
-            updated_at: new Date().toISOString(),
+            skills: updatedUser.skills,
+            avatarUrl: updatedUser.avatarUrl,
+            bannerUrl: updatedUser.bannerUrl,
+            socialLinks: updatedUser.socialLinks,
           }),
-        ]).catch((e) => console.warn('Supabase profile sync warning:', e));
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          // If public URLs were generated for avatar/banner, update state with clean URLs
+          if (data.avatarUrl || data.bannerUrl) {
+            const finalUser: UserPublic = {
+              ...updatedUser,
+              avatarUrl: data.avatarUrl || updatedUser.avatarUrl,
+              bannerUrl: data.bannerUrl !== undefined ? data.bannerUrl : updatedUser.bannerUrl,
+            };
+            setUser(finalUser);
+            saveStoredUser(finalUser);
+          }
+        } else {
+          console.warn('[Profile Sync] Server API error:', data.error);
+        }
+      } catch (cloudErr) {
+        console.warn('[Profile Sync] Background cloud sync warning:', cloudErr);
       }
+
       return {};
     } catch (err: any) {
       return { error: err.message || 'Profile update failed' };
