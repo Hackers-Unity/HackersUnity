@@ -106,6 +106,12 @@ export default function AboutPage() {
           href: 'https://x.com/AK_Sharma02',
           color: 'hover:text-black hover:border-black/40 hover:bg-black/5',
         },
+        {
+          icon: FaInstagram,
+          label: 'Instagram',
+          href: 'https://instagram.com/ak.sharma02/',
+          color: 'hover:text-[#e4405f] hover:border-[#e4405f]/40 hover:bg-[#e4405f]/5',
+        },
       ],
     },
     {
@@ -132,7 +138,7 @@ export default function AboutPage() {
         {
           icon: FaInstagram,
           label: 'Instagram',
-          href: 'https://instagram.com/hackerunity',
+          href: 'https://instagram.com/its_pranjal_jain/',
           color: 'hover:text-[#e4405f] hover:border-[#e4405f]/40 hover:bg-[#e4405f]/5',
         },
       ],
