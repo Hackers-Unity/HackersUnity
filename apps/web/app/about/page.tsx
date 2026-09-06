@@ -34,7 +34,7 @@ export default function AboutPage() {
       role: 'Founder',
       roleBadge: 'Founder',
       badgeColor: 'bg-orange-50 text-[#ea580c] border-orange-200/80',
-      image: '/team/jhasurajkumar.png',
+      image: '/team/suraj_stage.jpg',
       bio: "Visionary founder who established Hacker's Unity in 2022. Driven by a mission to unite student innovators, scale nationwide hackathons, and bridge the gap between young builders and real-world tech impact.",
       socials: [
         {
