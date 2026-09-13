@@ -125,7 +125,7 @@ export default function WriteBlogPage() {
   const [bannerUrl, setBannerUrl] = useState(PRESET_BANNERS[0].url);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [uploadedBannerName, setUploadedBannerName] = useState<string | null>(null);
-  const [bannerMode, setBannerMode] = useState<'upload' | 'preset' | 'url'>('upload');
+  const [bannerMode, setBannerMode] = useState<'upload' | 'url'>('upload');
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   const [content, setContent] = useState(
@@ -471,12 +471,12 @@ export default function WriteBlogPage() {
                       <span>Banner Cover Image</span>
                     </label>
 
-                    {/* Mode Switcher Tabs */}
+                    {/* Mode Switcher: Upload Photo vs Paste URL */}
                     <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/[0.05] p-1 rounded-xl">
                       <button
                         type="button"
                         onClick={() => setBannerMode('upload')}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                           bannerMode === 'upload'
                             ? 'bg-white dark:bg-[#0c1017] text-[#0099e6] shadow-xs'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -488,21 +488,8 @@ export default function WriteBlogPage() {
 
                       <button
                         type="button"
-                        onClick={() => setBannerMode('preset')}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                          bannerMode === 'preset'
-                            ? 'bg-white dark:bg-[#0c1017] text-[#0099e6] shadow-xs'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                        }`}
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        <span>Presets</span>
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => setBannerMode('url')}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                           bannerMode === 'url'
                             ? 'bg-white dark:bg-[#0c1017] text-[#0099e6] shadow-xs'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -518,7 +505,7 @@ export default function WriteBlogPage() {
                   {bannerMode === 'upload' && (
                     <div
                       onClick={() => bannerFileInputRef.current?.click()}
-                      className="border-2 border-dashed border-sky-400/40 dark:border-sky-500/30 hover:border-[#0099e6] bg-sky-50/40 dark:bg-sky-500/05 hover:bg-sky-50/70 dark:hover:bg-sky-500/10 rounded-2xl p-4 text-center cursor-pointer transition-all group"
+                      className="border-2 border-dashed border-sky-400/40 dark:border-sky-500/30 hover:border-[#0099e6] bg-sky-50/40 dark:bg-sky-500/05 hover:bg-sky-50/70 dark:hover:bg-sky-500/10 rounded-2xl p-4 text-center cursor-pointer transition-all group min-h-[92px] flex flex-col items-center justify-center"
                     >
                       <input
                         ref={bannerFileInputRef}
@@ -530,65 +517,37 @@ export default function WriteBlogPage() {
 
                       {isUploadingBanner ? (
                         <div className="flex flex-col items-center justify-center py-2 space-y-2">
-                          <Loader2 className="w-6 h-6 text-[#0099e6] animate-spin" />
+                          <Loader2 className="w-5 h-5 text-[#0099e6] animate-spin" />
                           <span className="text-xs font-bold text-[#0099e6]">
                             Optimizing &amp; Uploading Banner...
                           </span>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center py-1 space-y-1.5">
-                          <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-500/20 text-[#0099e6] flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Upload className="w-5 h-5" />
+                        <div className="flex flex-col items-center justify-center space-y-1">
+                          <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-sky-500/20 text-[#0099e6] flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Upload className="w-4 h-4" />
                           </div>
                           <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                             {uploadedBannerName ? (
                               <span className="text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Uploaded: {uploadedBannerName} (Click to change)</span>
+                                <span className="line-clamp-1">Uploaded: {uploadedBannerName} (Click to change)</span>
                               </span>
                             ) : (
                               <span>Click to upload banner photo from your device</span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                            PNG, JPG, WebP up to 10MB • High resolution (recommended 16:9)
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            PNG, JPG, WebP up to 10MB • Recommended 16:9 ratio
                           </p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* 2. Presets Option */}
-                  {bannerMode === 'preset' && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                        {PRESET_BANNERS.map((preset) => (
-                          <button
-                            key={preset.label}
-                            type="button"
-                            onClick={() => {
-                              setBannerUrl(preset.url);
-                              setUploadedBannerName(null);
-                            }}
-                            className={`text-[11px] px-2.5 py-1.5 rounded-xl shrink-0 font-bold border cursor-pointer transition-all ${
-                              bannerUrl === preset.url
-                                ? 'bg-sky-50 dark:bg-sky-500/15 border-[#0099e6] text-[#0099e6] shadow-xs'
-                                : 'bg-slate-100 dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                            }`}
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-medium">
-                        Select a curated domain wallpaper for instant high-resolution design.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 3. URL Option */}
+                  {/* 2. URL Option */}
                   {bannerMode === 'url' && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2 min-h-[92px] flex flex-col justify-center">
                       <input
                         type="url"
                         placeholder="Paste image link: https://images.unsplash.com/..."
@@ -597,7 +556,7 @@ export default function WriteBlogPage() {
                           setBannerUrl(e.target.value);
                           setUploadedBannerName(null);
                         }}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-[#0099e6] transition-colors"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-[#0099e6] transition-colors"
                       />
                       <p className="text-[11px] text-slate-500 font-medium">
                         Paste any public HTTPS image link from Unsplash, Imgur, or your CDN.
@@ -607,28 +566,31 @@ export default function WriteBlogPage() {
                 </div>
               </div>
 
-              {/* Banner Visual Preview */}
+              {/* Banner Visual Preview with clear spacing */}
               {bannerUrl && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-semibold">Banner Live Preview</span>
+                <div className="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06] space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 text-[#0099e6]" />
+                      <span>Banner Live Preview</span>
+                    </span>
+
                     {uploadedBannerName && (
                       <button
                         type="button"
                         onClick={() => {
-                          setBannerUrl(PRESET_BANNERS[0].url);
+                          setBannerUrl('/blogs/agentic-ai.jpg');
                           setUploadedBannerName(null);
-                          setBannerMode('preset');
                         }}
-                        className="text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        className="text-rose-500 hover:text-rose-600 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-3 h-3" />
-                        <span>Reset to preset</span>
+                        <span>Remove Photo</span>
                       </button>
                     )}
                   </div>
 
-                  <div className="relative h-44 sm:h-52 w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] bg-slate-950 shadow-inner">
+                  <div className="relative h-48 sm:h-56 w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] bg-slate-950 shadow-inner">
                     <Image
                       src={bannerUrl}
                       alt="Banner preview"
@@ -638,10 +600,10 @@ export default function WriteBlogPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#0099e6] text-white">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#0099e6] text-white shadow-xs">
                         {category}
                       </span>
-                      <h3 className="text-base sm:text-lg font-bold text-white mt-1 line-clamp-1">
+                      <h3 className="text-base sm:text-xl font-bold text-white mt-1.5 line-clamp-1 drop-shadow-sm">
                         {title || 'Your headline will look like this'}
                       </h3>
                     </div>
