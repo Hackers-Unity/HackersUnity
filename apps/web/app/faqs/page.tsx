@@ -231,32 +231,32 @@ export default function FAQsPage() {
   };
 
   return (
-    <div className="flex-1 bg-[#05070d] text-slate-100 min-h-screen selection:bg-[#0099e6] selection:text-white relative overflow-hidden">
+    <div className="flex-1 min-h-screen bg-slate-50/70 dark:bg-[#05070d] text-slate-900 dark:text-slate-100 selection:bg-[#0099e6] selection:text-white relative overflow-hidden transition-colors duration-300">
       {/* ─── Hero Section ────────────────────────────────────────── */}
-      <div className="relative pt-12 pb-16 lg:pb-24 border-b border-slate-800/80 bg-gradient-to-b from-[#0c1220] via-[#070a13] to-[#05070d]">
+      <div className="relative pt-12 pb-16 lg:pb-24 border-b border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-white/70 via-transparent to-transparent dark:from-[#0c1220] dark:via-[#070a13] dark:to-[#05070d] backdrop-blur-xs">
         {/* Ambient Glows */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#0099e6]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 right-10 w-96 h-96 bg-[#f97316]/06 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -top-10 -left-10 select-none pointer-events-none text-[120px] sm:text-[180px] font-black tracking-tighter text-white/[0.02] uppercase leading-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#0099e6]/12 dark:bg-[#0099e6]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 right-10 w-96 h-96 bg-[#f97316]/10 dark:bg-[#f97316]/06 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -left-10 select-none pointer-events-none text-[120px] sm:text-[180px] font-black tracking-tighter text-slate-900/[0.02] dark:text-white/[0.02] uppercase leading-none">
           FAQS
         </div>
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-6">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs font-bold text-slate-300 backdrop-blur-md mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl mx-auto shadow-xs">
             <HelpCircle className="w-3.5 h-3.5 text-[#0099e6]" />
             <span className="tracking-wider uppercase text-[11px]">Help &amp; Knowledge Base</span>
           </div>
 
           {/* Heading */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.15]">
             Frequently Asked{' '}
-            <span className="bg-gradient-to-r from-[#0099e6] via-sky-300 to-[#f97316] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316] bg-clip-text text-transparent">
               Questions.
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed font-normal">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed font-normal">
             Everything you need to know about Hacker&apos;s Unity hackathons, team formation, cash prizes, podcast episodes, and community guidelines.
           </p>
 
@@ -269,13 +269,13 @@ export default function FAQsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by topic, e.g., 'prizes', 'squad invite', 'certificate'..."
-                className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/[0.05] border border-white/10 text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-[#0099e6] focus:ring-1 focus:ring-[#0099e6] transition-all shadow-xl shadow-black/40"
+                className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/80 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-[#0099e6] focus:ring-1 focus:ring-[#0099e6] transition-all shadow-lg shadow-slate-200/40 dark:shadow-xl dark:shadow-black/40 backdrop-blur-xl"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -297,10 +297,10 @@ export default function FAQsPage() {
                 key={cat.id}
                 type="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer backdrop-blur-xl ${
                   isActive
                     ? 'bg-[#0099e6] text-white shadow-md shadow-sky-500/30 border border-sky-400/40'
-                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.06]'
+                    : 'bg-white/60 dark:bg-white/[0.04] hover:bg-white dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/[0.06] shadow-xs'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -311,9 +311,9 @@ export default function FAQsPage() {
         </div>
 
         {/* Counter Info */}
-        <div className="flex items-center justify-between text-xs text-slate-400 border-b border-white/[0.08] pb-3">
+        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-white/[0.08] pb-3">
           <span>
-            Showing <strong className="text-white">{filteredFAQs.length}</strong> questions
+            Showing <strong className="text-slate-900 dark:text-white">{filteredFAQs.length}</strong> questions
             {activeCategory !== 'ALL' && ` in ${FAQ_CATEGORIES.find((c) => c.id === activeCategory)?.label}`}
           </span>
           {searchQuery && (
@@ -332,12 +332,12 @@ export default function FAQsPage() {
 
         {/* FAQs Accordion List */}
         {filteredFAQs.length === 0 ? (
-          <div className="py-20 text-center rounded-3xl bg-white/[0.02] border border-white/[0.08] p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/[0.06] flex items-center justify-center mx-auto text-slate-400">
+          <div className="py-20 text-center rounded-3xl bg-white/60 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] p-8 space-y-4 backdrop-blur-xl">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center mx-auto text-slate-400">
               <Search className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-white">No matching questions found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">No matching questions found</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
               We couldn&apos;t find any answer for &quot;{searchQuery}&quot;. Feel free to reach out directly to our support team.
             </p>
             <button
@@ -358,10 +358,10 @@ export default function FAQsPage() {
               return (
                 <div
                   key={faq.id}
-                  className={`rounded-2xl transition-all duration-200 border overflow-hidden ${
+                  className={`rounded-2xl transition-all duration-200 border overflow-hidden backdrop-blur-xl ${
                     isOpen
-                      ? 'bg-gradient-to-b from-[#0f172a]/90 to-[#090d16] border-[#0099e6]/40 shadow-lg shadow-[#0099e6]/05'
-                      : 'bg-[#090d16]/80 hover:bg-[#0d131f] border-white/[0.08]'
+                      ? 'bg-white dark:bg-gradient-to-b dark:from-[#0f172a]/90 dark:to-[#090d16] border-[#0099e6]/50 shadow-lg shadow-sky-500/10 dark:shadow-[#0099e6]/05'
+                      : 'bg-white/70 dark:bg-[#090d16]/80 hover:bg-white dark:hover:bg-[#0d131f] border-slate-200/80 dark:border-white/[0.08] shadow-xs'
                   }`}
                 >
                   <button
@@ -370,14 +370,14 @@ export default function FAQsPage() {
                     className="w-full p-5 sm:p-6 flex items-center justify-between text-left gap-4 cursor-pointer group"
                     aria-expanded={isOpen}
                   >
-                    <span className="text-sm sm:text-base font-bold text-white group-hover:text-[#0099e6] transition-colors">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white group-hover:text-[#0099e6] transition-colors">
                       {faq.question}
                     </span>
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                         isOpen
                           ? 'bg-[#0099e6] text-white rotate-180 shadow-md shadow-sky-500/20'
-                          : 'bg-white/[0.05] text-slate-400 group-hover:text-white'
+                          : 'bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
                       }`}
                     >
                       <ChevronDown className="w-4 h-4" />
@@ -385,14 +385,14 @@ export default function FAQsPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 sm:px-6 pb-6 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed font-normal border-t border-white/[0.06] mt-1 space-y-3">
+                    <div className="px-5 sm:px-6 pb-6 pt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal border-t border-slate-100 dark:border-white/[0.06] mt-1 space-y-3">
                       <p>{faq.answer}</p>
                       {faq.tags && faq.tags.length > 0 && (
                         <div className="flex items-center gap-1.5 pt-2 flex-wrap">
                           {faq.tags.slice(0, 4).map((tag) => (
                             <span
                               key={tag}
-                              className="px-2 py-0.5 rounded-md bg-white/[0.04] text-slate-400 text-[10px] font-mono"
+                              className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-white/10 text-[10px] font-mono"
                             >
                               #{tag}
                             </span>
@@ -407,30 +407,30 @@ export default function FAQsPage() {
           </div>
         )}
 
-        {/* ─── Bottom Metallic Black Hacker's Unity CTA Banner ────────── */}
+        {/* ─── Bottom Metallic Black / Glass Hacker's Unity CTA Banner ────────── */}
         <div className="pt-8">
-          <div className="rounded-3xl p-8 sm:p-12 bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#06080f] border border-white/[0.1] shadow-2xl shadow-black/80 text-center space-y-6 relative overflow-hidden group">
+          <div className="rounded-3xl p-8 sm:p-12 bg-white/70 dark:bg-gradient-to-b dark:from-[#111827] dark:via-[#0b0f19] dark:to-[#06080f] border border-slate-200/90 dark:border-white/[0.1] shadow-xl shadow-slate-200/60 dark:shadow-2xl dark:shadow-black/80 text-center space-y-6 relative overflow-hidden group backdrop-blur-xl">
             {/* Top Cyan Glowing Line */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0099e6] to-transparent opacity-80" />
 
             {/* Ambient Glows */}
-            <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-[#0099e6]/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -right-16 -top-16 w-72 h-72 bg-[#f97316]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-[#0099e6]/12 dark:bg-[#0099e6]/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -right-16 -top-16 w-72 h-72 bg-[#f97316]/10 dark:bg-[#f97316]/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Brand Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-bold text-slate-300 backdrop-blur-md relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-[11px] font-bold text-slate-700 dark:text-slate-300 backdrop-blur-md relative z-10 shadow-xs">
               <MessageSquare className="w-3.5 h-3.5 text-[#0099e6]" />
               <span>Still Have Questions?</span>
             </div>
 
-            <h3 className="text-2xl sm:text-3xl font-black text-white max-w-xl mx-auto leading-tight relative z-10">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white max-w-xl mx-auto leading-tight relative z-10">
               We&apos;re here to help you{' '}
-              <span className="bg-gradient-to-r from-[#0099e6] via-sky-300 to-[#f97316] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316] bg-clip-text text-transparent">
                 build without limits.
               </span>
             </h3>
 
-            <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed relative z-10">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed relative z-10">
               Can&apos;t find what you&apos;re looking for? Reach out to our team directly or join our community of 50K+ developers.
             </p>
 
@@ -447,7 +447,7 @@ export default function FAQsPage() {
                 href="https://discord.gg/wtem5P5e"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] text-white font-bold text-xs sm:text-sm border border-white/10 hover:scale-105 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-800 dark:text-white font-bold text-xs sm:text-sm border border-slate-200 dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
               >
                 <FaDiscord className="w-4 h-4 text-[#5865F2]" />
                 <span>Join Discord Community</span>
