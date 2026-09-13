@@ -180,6 +180,14 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/podcasts" className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 group">
+                  <span>Podcasts</span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#1ed760]/15 text-[#1ed760] border border-[#1ed760]/30 tracking-tight">
+                    Latest
+                  </span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/host" className="text-slate-400 hover:text-white transition-colors">
                   Host Hackathon Free
                 </Link>

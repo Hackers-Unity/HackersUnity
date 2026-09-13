@@ -29,20 +29,25 @@ import {
   Loader2,
   Trash2,
   Lock,
+  UserMinus,
+  Search,
 } from 'lucide-react';
 import { useEvent } from '@/lib/hooks/use-events';
 import { useAuth } from '@/lib/auth-context';
 import { useEventTeams } from '@/lib/hooks/use-registration';
 import {
   registerForEventSupabase,
-  sendTeamInvite,
-  fetchTeamInvites,
   fetchTeamWithMembers,
   checkUserRegistration,
   fetchUserTeamForEvent,
   deleteTeamSupabase,
+  removeTeamMemberSupabase,
+  fetchTeamByInviteCode,
 } from '@/lib/supabase-service';
 import { formatCurrency, formatDate, formatDateTime, getDaysLeft } from '@/lib/utils';
+import { EventStatus } from '@hackers-unity/shared-types';
+import { removeRegistrationForEvent } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 interface RegisterPageProps {
   params: Promise<{ slug: string }>;
@@ -65,15 +70,19 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
   const [teamDescription, setTeamDescription] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
+  // Join by Invitation Link state
+  const [joinInviteLink, setJoinInviteLink] = useState('');
+  const [resolvingLink, setResolvingLink] = useState(false);
+  const [resolvedSquadFromLink, setResolvedSquadFromLink] = useState<any | null>(null);
+  const [linkResolveError, setLinkResolveError] = useState<string | null>(null);
+
   // Step 3: Squad Invitation State
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(null);
   const [createdTeamData, setCreatedTeamData] = useState<any | null>(null);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [sendingInvite, setSendingInvite] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
   const [inviteErrorMsg, setInviteErrorMsg] = useState<string | null>(null);
-  const [copiedInvite, setCopiedInvite] = useState(false);
-  const [teamInvitesList, setTeamInvitesList] = useState<any[]>([]);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [showDeleteSquadModal, setShowDeleteSquadModal] = useState(false);
   const [deletingSquad, setDeletingSquad] = useState(false);
 
@@ -136,7 +145,6 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     setCreatedTeamId(null);
     setCreatedTeamData(null);
     setTeamName('');
-    setTeamInvitesList([]);
     setRegisteredRole('');
     setCurrentStep(1);
 
@@ -158,7 +166,6 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
             squad.leader_id === userId ? `Squad Leader (${squad.name})` : `Squad Member (${squad.name})`
           );
           setMode(squad.leader_id === userId ? 'CREATE_TEAM' : 'JOIN_TEAM');
-          fetchTeamInvites(squad.id).then((invs) => setTeamInvitesList(invs));
           setCurrentStep(3);
           return;
         }
@@ -166,10 +173,26 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
         // 2. Check registration record
         const reg = await checkUserRegistration(currentEvent.id, userId, userEmail);
         if (reg.isRegistered && reg.registration) {
+          // If the registration was marked as a team, but the team no longer exists (squad was deleted):
+          if (reg.registration.is_team) {
+            // Delete orphaned registration record so it never continues showing deleted team!
+            try {
+              await supabase.from('registrations').delete().eq('id', reg.registration.id);
+            } catch {}
+            removeRegistrationForEvent(currentEvent.id);
+            setIsAlreadyRegistered(false);
+            setCreatedTeamId(null);
+            setCreatedTeamData(null);
+            setTeamName('');
+            setRegisteredRole('');
+            setCurrentStep(1);
+            return;
+          }
+
           setIsAlreadyRegistered(true);
           if (reg.registration.user_name) setFullName(reg.registration.user_name);
           setRegisteredRole(
-            reg.registration.role || (reg.registration.is_team ? `Squad (${reg.registration.team_name || 'Team'})` : 'Individual Hacker')
+            reg.registration.role || 'Individual Hacker'
           );
           setCurrentStep(3);
           return;
@@ -180,7 +203,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
         setCreatedTeamId(null);
         setCreatedTeamData(null);
         setTeamName('');
-        setTeamInvitesList([]);
+        setRegisteredRole('');
         setCurrentStep(1);
       } catch (e) {
         console.warn('Error checking existing registration:', e);
@@ -222,6 +245,36 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
         >
           Explore All Hackathons
         </Link>
+      </div>
+    );
+  }
+ 
+  if (!isAlreadyRegistered && (event.status === EventStatus.COMPLETED || event.status === EventStatus.REGISTRATION_CLOSED)) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.1] flex items-center justify-center mx-auto mb-4 text-slate-500">
+          <Clock className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white">Registration Closed</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
+          {event.status === EventStatus.COMPLETED
+            ? 'This hackathon has concluded and registrations are no longer being accepted.'
+            : 'Registrations for this hackathon have closed.'}
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Link
+            href={`/hackathons/${event.slug}`}
+            className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs font-bold transition-all"
+          >
+            View Hackathon Overview
+          </Link>
+          <Link
+            href="/hackathons"
+            className="px-5 py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-md shadow-sky-500/20"
+          >
+            Explore Other Hackathons
+          </Link>
+        </div>
       </div>
     );
   }
@@ -298,7 +351,6 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
         if (teamRes.team?.id) {
           setCreatedTeamId(teamRes.team.id);
           fetchTeamWithMembers(teamRes.team.id).then((t) => setCreatedTeamData(t));
-          fetchTeamInvites(teamRes.team.id).then((invs) => setTeamInvitesList(invs));
         }
 
         // 2. Register leader
@@ -346,7 +398,11 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           return;
         }
 
-        const teamObj = teams.find((t) => t.id === selectedTeamId);
+        const teamObj = teams.find((t) => t.id === selectedTeamId) || resolvedSquadFromLink;
+        if (selectedTeamId) {
+          setCreatedTeamId(selectedTeamId);
+          setCreatedTeamData(teamObj);
+        }
 
         // 2. Register member
         const regRes = await registerForEventSupabase({
@@ -413,50 +469,15 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     }
   };
 
-  const handleSendInviteSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInviteErrorMsg(null);
-    setInviteSuccessMsg(null);
-
-    if (!createdTeamId) {
-      setInviteErrorMsg('Squad ID not found. Please refresh.');
-      return;
-    }
-    if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
-      setInviteErrorMsg('Please enter a valid email address.');
-      return;
-    }
-
-    setSendingInvite(true);
-    try {
-      const userId = supabaseUser?.id || user?.id || '';
-      const res = await sendTeamInvite(createdTeamId, event.id, userId, inviteEmail.trim());
-
-      if (!res.success) {
-        setInviteErrorMsg(res.error || 'Failed to send invite.');
-      } else {
-        setInviteSuccessMsg(`Invite sent to ${inviteEmail.trim()}!`);
-        setInviteEmail('');
-        const updatedInvites = await fetchTeamInvites(createdTeamId);
-        setTeamInvitesList(updatedInvites);
-        const updatedTeam = await fetchTeamWithMembers(createdTeamId);
-        setCreatedTeamData(updatedTeam);
-      }
-    } catch (err: any) {
-      setInviteErrorMsg(err.message || 'An error occurred.');
-    } finally {
-      setSendingInvite(false);
-    }
-  };
-
   const getShareableInviteLink = () => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    // If we have an existing pending invite with a token, use it, or link to the hackathon invite page
-    const latestInvite = teamInvitesList.find((i) => i.status === 'PENDING');
-    if (latestInvite?.invite_token) {
-      return `${origin}/hackathons/${event.slug}/invite?token=${latestInvite.invite_token}`;
-    }
-    return `${origin}/hackathons/${event.slug}/register`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hackersunity.com';
+    const teamCode =
+      createdTeamData?.invite_token ||
+      (createdTeamData?.name || teamName)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    return `${origin}/hackathons/${event.slug}/register/${teamCode}/`;
   };
 
   const handleCopyLink = () => {
@@ -471,13 +492,16 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     if (!createdTeamId || !userId) return;
     setDeletingSquad(true);
     try {
-      const res = await deleteTeamSupabase(createdTeamId, userId);
+      const res = await deleteTeamSupabase(createdTeamId, userId, event.id);
       if (res.success) {
         setCreatedTeamId(null);
         setCreatedTeamData(null);
         setTeamName('');
         setShowDeleteSquadModal(false);
         setIsAlreadyRegistered(false);
+        setSelectedTeamId(null);
+        setResolvedSquadFromLink(null);
+        setJoinInviteLink('');
         setCurrentStep(1);
       } else {
         setInviteErrorMsg(res.error || 'Failed to delete squad');
@@ -486,6 +510,71 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       setInviteErrorMsg(e.message || 'Failed to delete squad');
     } finally {
       setDeletingSquad(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberUserId: string) => {
+    const userId = supabaseUser?.id || user?.id;
+    if (!createdTeamId || !userId || !memberUserId) return;
+    if (confirm('Are you sure you want to remove this member from your squad?')) {
+      setRemovingMemberId(memberUserId);
+      setInviteErrorMsg(null);
+      setInviteSuccessMsg(null);
+      try {
+        const res = await removeTeamMemberSupabase(createdTeamId, memberUserId, userId);
+        if (res.success) {
+          setInviteSuccessMsg('Member removed successfully.');
+          const updatedTeam = await fetchUserTeamForEvent(event.id, userId);
+          setCreatedTeamData(updatedTeam);
+        } else {
+          setInviteErrorMsg(res.error || 'Failed to remove member');
+        }
+      } catch (err: any) {
+        setInviteErrorMsg(err.message || 'Failed to remove member');
+      } finally {
+        setRemovingMemberId(null);
+      }
+    }
+  };
+
+  const handleResolveInviteLink = async () => {
+    if (!joinInviteLink.trim()) {
+      setLinkResolveError('Please enter an invitation link or team code.');
+      return;
+    }
+    setResolvingLink(true);
+    setLinkResolveError(null);
+    setResolvedSquadFromLink(null);
+    setSelectedTeamId(null);
+    try {
+      let code = joinInviteLink.trim();
+      try {
+        if (code.includes('http://') || code.includes('https://')) {
+          const urlObj = new URL(code);
+          const parts = urlObj.pathname.split('/').filter(Boolean);
+          const regIndex = parts.indexOf('register');
+          if (regIndex !== -1 && parts[regIndex + 1]) {
+            code = parts[regIndex + 1];
+          } else {
+            code = parts[parts.length - 1];
+          }
+        }
+      } catch (e) {
+        // Not a URL, use raw string
+      }
+      code = code.replace(/^\/+|\/+$/g, '');
+
+      const res = await fetchTeamByInviteCode(event.slug || event.id, code);
+      if (res.success && res.team) {
+        setResolvedSquadFromLink(res.team);
+        setSelectedTeamId(res.team.id);
+      } else {
+        setLinkResolveError(res.error || 'Squad not found with this invitation link. Please check and try again.');
+      }
+    } catch (err: any) {
+      setLinkResolveError(err.message || 'Failed to resolve invitation link.');
+    } finally {
+      setResolvingLink(false);
     }
   };
 
@@ -744,63 +833,122 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                     </div>
 
                     {mode === 'JOIN_TEAM' && (
-                      <div className="mt-5 pt-4 border-t border-purple-100 dark:border-purple-800/30 space-y-3 animate-in fade-in" onClick={(e) => e.stopPropagation()}>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Select Squad to Join *</label>
-                        {teamsLoading ? (
-                          <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">Loading open squads...</div>
-                        ) : teams.length === 0 ? (
-                          <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] text-center">
-                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No open squads created yet.</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">You can be the first to create one!</p>
+                      <div className="mt-5 pt-4 border-t border-purple-100 dark:border-purple-800/30 space-y-4 animate-in fade-in" onClick={(e) => e.stopPropagation()}>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Enter Squad Invitation Link or Team Code *
+                          </label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                value={joinInviteLink}
+                                onChange={(e) => {
+                                  setJoinInviteLink(e.target.value);
+                                  setLinkResolveError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleResolveInviteLink();
+                                  }
+                                }}
+                                placeholder={`https://hackersunity.com/hackathons/${event.slug}/register/... or team-code`}
+                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#121824] text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900 focus:border-purple-500 outline-none transition-all"
+                              />
+                            </div>
                             <button
                               type="button"
-                              onClick={() => setMode('CREATE_TEAM')}
-                              className="mt-2.5 px-3.5 py-1.5 rounded-xl bg-[#0099e6] text-white text-xs font-bold cursor-pointer"
+                              onClick={handleResolveInviteLink}
+                              disabled={resolvingLink || !joinInviteLink.trim()}
+                              className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-purple-500/20 disabled:opacity-50 transition-all cursor-pointer shrink-0"
                             >
-                              Create Squad Instead
+                              {resolvingLink ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                              <span>Verify Link</span>
                             </button>
                           </div>
-                        ) : (
-                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                            {teams.map((t) => {
-                              const memberCount = (t.team_members?.length || 0) + 1;
-                              const isFull = memberCount >= maxTeam;
-                              const isSelected = selectedTeamId === t.id;
 
-                              return (
-                                <div
-                                  key={t.id}
-                                  onClick={() => !isFull && setSelectedTeamId(t.id)}
-                                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                                    isFull
-                                      ? 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.06] opacity-60 cursor-not-allowed'
-                                      : isSelected
-                                      ? 'bg-white dark:bg-[#121824] border-[#0099e6] shadow-sm ring-1 ring-[#0099e6]'
-                                      : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15]'
-                                  }`}
-                                >
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">{t.name}</h4>
-                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 font-semibold">
-                                        {memberCount}/{maxTeam} Members
-                                      </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                      Leader: {t.profiles?.name || 'Builder'} {t.description && `• ${t.description}`}
-                                    </p>
-                                  </div>
-                                  <input
-                                    type="radio"
-                                    name="selectedSquad"
-                                    checked={isSelected}
-                                    disabled={isFull}
-                                    onChange={() => setSelectedTeamId(t.id)}
-                                    className="text-[#0099e6]"
-                                  />
+                          {linkResolveError && (
+                            <p className="mt-2 text-xs text-red-500 flex items-center gap-1 font-medium">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span>{linkResolveError}</span>
+                            </p>
+                          )}
+
+                          {resolvedSquadFromLink && (
+                            <div className="mt-3 p-3.5 rounded-xl border-2 border-emerald-500/80 bg-emerald-50/60 dark:bg-emerald-950/30 flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">{resolvedSquadFromLink.name}</h4>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Verified Squad
+                                  </span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 font-semibold">
+                                    {((resolvedSquadFromLink.team_members?.length || 0) + 1)}/{maxTeam} Members
+                                  </span>
                                 </div>
-                              );
-                            })}
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                  Leader: {resolvedSquadFromLink.profiles?.name || 'Squad Leader'} {resolvedSquadFromLink.description && `• ${resolvedSquadFromLink.description}`}
+                                </p>
+                              </div>
+                              <input
+                                type="radio"
+                                name="selectedSquad"
+                                checked={selectedTeamId === resolvedSquadFromLink.id}
+                                onChange={() => setSelectedTeamId(resolvedSquadFromLink.id)}
+                                className="text-emerald-600 w-4 h-4"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {teams.length > 0 && (
+                          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/[0.06]">
+                            <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                              Or choose from open squads:
+                            </label>
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                              {teams.map((t) => {
+                                const memberCount = (t.team_members?.length || 0) + 1;
+                                const isFull = memberCount >= maxTeam;
+                                const isSelected = selectedTeamId === t.id;
+
+                                return (
+                                  <div
+                                    key={t.id}
+                                    onClick={() => !isFull && setSelectedTeamId(t.id)}
+                                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                                      isFull
+                                        ? 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.06] opacity-60 cursor-not-allowed'
+                                        : isSelected
+                                        ? 'bg-white dark:bg-[#121824] border-[#0099e6] shadow-sm ring-1 ring-[#0099e6]'
+                                        : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15]'
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">{t.name}</h4>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 font-semibold">
+                                          {memberCount}/{maxTeam} Members
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                        Leader: {t.profiles?.name || 'Builder'} {t.description && `• ${t.description}`}
+                                      </p>
+                                    </div>
+                                    <input
+                                      type="radio"
+                                      name="selectedSquad"
+                                      checked={isSelected}
+                                      disabled={isFull}
+                                      onChange={() => setSelectedTeamId(t.id)}
+                                      className="text-[#0099e6]"
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1326,13 +1474,32 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                               </div>
                               <span className="font-bold text-slate-800 dark:text-slate-200">{m.profiles?.name || 'Teammate'}</span>
                             </div>
-                            <span
-                              className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                                m.role === 'LEADER' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300' : 'bg-slate-200 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300'
-                              }`}
-                            >
-                              {m.role || 'Member'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                                  m.role === 'LEADER' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300' : 'bg-slate-200 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300'
+                                }`}
+                              >
+                                {m.role || 'Member'}
+                              </span>
+                              {(mode === 'CREATE_TEAM' || createdTeamData?.leader_id === (supabaseUser?.id || user?.id)) &&
+                                m.role !== 'LEADER' &&
+                                (m.user_id || m.id) !== (supabaseUser?.id || user?.id) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveMember(m.user_id || m.id)}
+                                    disabled={removingMemberId === (m.user_id || m.id)}
+                                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                                    title="Remove from squad"
+                                  >
+                                    {removingMemberId === (m.user_id || m.id) ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                                    ) : (
+                                      <UserMinus className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1373,76 +1540,59 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                       <UserPlus className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Invite Your Teammates</h3>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Send invite links via email or direct share — they'll join your squad instantly.</p>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Squad Invitation Link</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Share this link with your teammates. When they open it, they can review squad details and immediately accept & join.
+                      </p>
                     </div>
                   </div>
 
-                  {/* Email Invite Form */}
-                  <form onSubmit={handleSendInviteSubmit} className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                      <input
-                        type="email"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="teammate@email.com"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50 dark:bg-[#121824] text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-800 focus:border-[#0099e6] outline-none transition-all"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={sendingInvite}
-                      className="px-4 py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-sky-500/20 disabled:opacity-50 transition-all cursor-pointer"
-                    >
-                      {sendingInvite ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                      Send
-                    </button>
-                  </form>
-
-                  {/* Direct Sharing Buttons */}
+                  {/* Invitation Link & Actions */}
                   {(() => {
                     const currentInviteUrl = getShareableInviteLink();
-                    const mailtoSubject = encodeURIComponent(`Join squad "${createdTeamData?.name || teamName}" for ${event.title}!`);
-                    const mailtoBody = encodeURIComponent(`Hey!\n\nJoin our squad "${createdTeamData?.name || teamName}" for ${event.title} on Hacker's Unity.\n\nClick the link to accept and join:\n${currentInviteUrl}\n\nLet's hack together!`);
-                    const whatsappText = encodeURIComponent(`Hey! Join our squad "${createdTeamData?.name || teamName}" for ${event.title} on Hacker's Unity: ${currentInviteUrl}`);
+                    const whatsappText = encodeURIComponent(
+                      `Hey! Join our squad "${createdTeamData?.name || teamName}" for ${event.title} on Hacker's Unity: ${currentInviteUrl}`
+                    );
 
                     return (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={handleCopyLink}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-                        >
-                          {copiedInvite ? (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              <span className="text-emerald-700 dark:text-emerald-400">Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy Link</span>
-                            </>
-                          )}
-                        </button>
+                      <div className="space-y-3">
+                        {/* Link Input with Quick Copy */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={currentInviteUrl}
+                            onClick={(e) => (e.target as HTMLInputElement).select()}
+                            className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50 dark:bg-[#121824] text-xs font-mono text-slate-800 dark:text-slate-200 select-all outline-none cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCopyLink}
+                            className="px-4 py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-sky-500/20 transition-all cursor-pointer shrink-0"
+                          >
+                            {copiedInvite ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy Link</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
 
-                        <a
-                          href={`mailto:?subject=${mailtoSubject}&body=${mailtoBody}`}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors"
-                        >
-                          <Mail className="w-3.5 h-3.5 text-rose-500" />
-                          <span>Email App</span>
-                        </a>
-
+                        {/* WhatsApp Share Button */}
                         <a
                           href={`https://api.whatsapp.com/send?text=${whatsappText}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 text-xs font-bold text-emerald-700 dark:text-emerald-300 transition-colors"
                         >
                           <Share2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>WhatsApp</span>
+                          <span>Share on WhatsApp</span>
                         </a>
                       </div>
                     );
@@ -1459,35 +1609,6 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 text-xs text-red-700 dark:text-red-400 font-medium">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>{inviteErrorMsg}</span>
-                    </div>
-                  )}
-
-                  {/* Sent Invites List */}
-                  {teamInvitesList.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Sent Invites</p>
-                      {teamInvitesList.map((inv: any) => (
-                        <div
-                          key={inv.id}
-                          className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.08] text-xs"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                            <span className="font-medium text-slate-700 dark:text-slate-300">{inv.invited_email}</span>
-                          </div>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              inv.status === 'ACCEPTED'
-                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                                : inv.status === 'DECLINED'
-                                ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
-                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                            }`}
-                          >
-                            {inv.status === 'ACCEPTED' ? '✓ Joined' : inv.status === 'DECLINED' ? '✗ Declined' : '⏳ Pending'}
-                          </span>
-                        </div>
-                      ))}
                     </div>
                   )}
                 </div>

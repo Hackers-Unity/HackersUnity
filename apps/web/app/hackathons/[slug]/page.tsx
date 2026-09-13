@@ -1015,6 +1015,16 @@ function HackathonDetailContent({ params }: PageProps) {
                     <span>{userSubmission ? '✓ View / Edit Submission' : 'Submit Project 🚀'}</span>
                   </button>
                 </div>
+              ) : event.status === EventStatus.COMPLETED ? (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] text-center space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                    <span>Hackathon Completed</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Registrations for this hackathon have closed. Explore the event timeline, tracks, and details above.
+                  </p>
+                </div>
               ) : event.registrationLink && event.registrationLink.startsWith('http') ? (
                 <div className="space-y-2.5">
                   <a

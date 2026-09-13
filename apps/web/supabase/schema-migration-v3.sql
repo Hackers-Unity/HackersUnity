@@ -167,7 +167,7 @@ INSERT INTO public.events (
   '[{"name":"Hacker''s Unity","tier":"Title Partner","logoText":"HU"},{"name":"ACEIT","tier":"Host Partner","logoText":"ACEIT"}]'::jsonb,
   ARRAY['AI/ML', 'Blockchain', 'Web3', 'IoT', 'FinTech', 'Open Innovation'],
   2, 4, true, true,
-  500, 500, 'PUBLISHED', 'from-amber-900/60 via-orange-950/80 to-black', '2026-08-01T00:00:00Z'
+  500, 500, 'COMPLETED', 'from-amber-900/60 via-orange-950/80 to-black', '2026-08-01T00:00:00Z'
 ),
 (
   'clash-of-coders',

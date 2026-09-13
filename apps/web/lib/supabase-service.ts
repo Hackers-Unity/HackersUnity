@@ -26,6 +26,8 @@ import {
   getLocalTeamWithMembers,
   deleteLocalTeam,
   joinLocalEventTeam,
+  removeMemberFromLocalTeam,
+  removeRegistrationForEvent,
   getLocalTeamInvites,
   saveLocalTeamInvite,
   getLocalInviteByToken,
@@ -1979,10 +1981,15 @@ export async function leaveTeam(
  */
 export async function deleteTeamSupabase(
   teamId: string,
-  userId: string
+  userId: string,
+  eventId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  deleteLocalTeam(teamId);
+  if (eventId) {
+    removeRegistrationForEvent(eventId);
+  }
+
   if (teamId.startsWith('team_')) {
-    deleteLocalTeam(teamId);
     return { success: true };
   }
 
@@ -2001,6 +2008,8 @@ export async function deleteTeamSupabase(
         if (response.ok) {
           const resData = await response.json();
           if (resData.success) {
+            deleteLocalTeam(teamId);
+            if (eventId) removeRegistrationForEvent(eventId);
             return { success: true };
           }
         }
@@ -2010,36 +2019,37 @@ export async function deleteTeamSupabase(
     }
 
     // 2. Direct client fallback
-    // Fetch team to verify user is leader and get event_id
     const { data: team, error: fetchErr } = await supabase
       .from('teams')
-      .select('id, leader_id, event_id')
+      .select('id, name, leader_id, event_id')
       .eq('id', teamId)
       .maybeSingle();
 
     if (fetchErr || !team) {
-      return { success: false, error: 'Team not found' };
+      deleteLocalTeam(teamId);
+      if (eventId) removeRegistrationForEvent(eventId);
+      return { success: true };
     }
 
     if (team.leader_id !== userId) {
       return { success: false, error: 'Only the squad leader can delete this team.' };
     }
 
-    // 2. Delete team_invitations for this team
+    // Delete team_invitations for this team
     try {
       await supabase.from('team_invitations').delete().eq('team_id', teamId);
     } catch (e) {
       console.warn('team_invitations delete error:', e);
     }
 
-    // 3. Delete team_members for this team
+    // Delete team_members for this team
     try {
       await supabase.from('team_members').delete().eq('team_id', teamId);
     } catch (e) {
       console.warn('team_members delete error:', e);
     }
 
-    // 4. Delete the team itself
+    // Delete the team itself
     const { error: deleteErr } = await supabase
       .from('teams')
       .delete()
@@ -2049,24 +2059,171 @@ export async function deleteTeamSupabase(
       return { success: false, error: deleteErr.message };
     }
 
-    // 5. Update leader's registration record if exists
+    // Clean up leader's and team's registrations
     try {
-      await supabase
-        .from('registrations')
-        .update({
-          is_team: false,
-          team_name: null,
-          role: 'Solo Builder',
-        })
-        .eq('event_id', team.event_id)
-        .eq('user_id', userId);
+      if (team.event_id) {
+        await supabase
+          .from('registrations')
+          .delete()
+          .eq('event_id', team.event_id)
+          .eq('user_id', userId);
+
+        if (team.name) {
+          await supabase
+            .from('registrations')
+            .delete()
+            .eq('event_id', team.event_id)
+            .eq('team_name', team.name);
+        }
+        removeRegistrationForEvent(team.event_id);
+      }
     } catch (e) {
-      console.warn('registrations update error:', e);
+      console.warn('registrations delete error:', e);
     }
 
+    deleteLocalTeam(teamId);
+    if (eventId) removeRegistrationForEvent(eventId);
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to delete squad' };
+  }
+}
+
+/**
+ * Remove a member from a team (Squad Leader Only)
+ */
+export async function removeTeamMemberSupabase(
+  teamId: string,
+  memberUserId: string,
+  leaderUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (teamId.startsWith('team_')) {
+    removeMemberFromLocalTeam(teamId, memberUserId);
+    return { success: true };
+  }
+
+  try {
+    if (typeof window !== 'undefined') {
+      try {
+        const response = await fetch('/api/teams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'remove_member',
+            teamId,
+            memberUserId,
+          }),
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success) {
+            removeMemberFromLocalTeam(teamId, memberUserId);
+            return { success: true };
+          } else if (resData.error) {
+            return { success: false, error: resData.error };
+          }
+        }
+      } catch (e) {
+        console.warn('API /api/teams remove_member notice, falling back:', e);
+      }
+    }
+
+    // Direct client fallback
+    const { data: team } = await supabase
+      .from('teams')
+      .select('id, leader_id, event_id')
+      .eq('id', teamId)
+      .single();
+
+    if (!team || team.leader_id !== leaderUserId) {
+      return { success: false, error: 'Only the squad leader can remove members.' };
+    }
+
+    await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', teamId)
+      .eq('user_id', memberUserId);
+
+    if (team.event_id) {
+      await supabase
+        .from('registrations')
+        .delete()
+        .eq('event_id', team.event_id)
+        .eq('user_id', memberUserId);
+    }
+
+    removeMemberFromLocalTeam(teamId, memberUserId);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to remove member' };
+  }
+}
+
+/**
+ * Fetch team by unique invitation code or link
+ */
+export async function fetchTeamByInviteCode(
+  eventSlugOrId: string,
+  inviteCode: string
+): Promise<{ success: boolean; team?: any; error?: string }> {
+  try {
+    const code = inviteCode.trim();
+    if (!code) {
+      return { success: false, error: 'Invitation code or link is required.' };
+    }
+
+    // 1. Try server API route first
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/teams?inviteCode=${encodeURIComponent(code)}`);
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.success && resData.team) {
+            return { success: true, team: resData.team };
+          }
+        }
+      } catch (e) {
+        console.warn('API /api/teams GET error, fallback to direct:', e);
+      }
+    }
+
+    // 2. Direct client fallback via team_invitations
+    const { data: inv } = await supabase
+      .from('team_invitations')
+      .select('invite_token, team_id, teams(*, profiles:leader_id(name, email, avatar_url), team_members(*, profiles:user_id(name, email, avatar_url)), events(id, title, slug, start_date, end_date))')
+      .ilike('invite_token', code)
+      .maybeSingle();
+
+    if (inv?.teams) {
+      return { success: true, team: { ...inv.teams, invite_token: inv.invite_token } };
+    }
+
+    // 3. Fallback check by team name
+    const { data: teamByName } = await supabase
+      .from('teams')
+      .select('*, profiles:leader_id(name, email, avatar_url), team_members(*, profiles:user_id(name, email, avatar_url)), events(id, title, slug, start_date, end_date), team_invitations(invite_token)')
+      .ilike('name', code)
+      .maybeSingle();
+
+    if (teamByName) {
+      const token = (teamByName.team_invitations as any[])?.[0]?.invite_token || code;
+      return { success: true, team: { ...teamByName, invite_token: token } };
+    }
+
+    // 4. Local storage fallback
+    const localTeams = getLocalEventTeams(eventSlugOrId);
+    const local = localTeams.find(
+      (t) => t.name.toLowerCase() === code.toLowerCase() || t.id === code
+    );
+    if (local) {
+      return { success: true, team: local };
+    }
+
+    return { success: false, error: 'No squad found matching this invitation link or code.' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to find squad' };
   }
 }
 
@@ -2159,7 +2316,12 @@ export async function fetchUserTeamForEvent(eventId: string, userId: string): Pr
       .eq('leader_id', userId)
       .maybeSingle();
 
-    if (leaderTeam) return leaderTeam;
+    if (leaderTeam) {
+      const inviteToken =
+        leaderTeam.team_invitations?.find((i: any) => i.invite_token)?.invite_token ||
+        leaderTeam.name;
+      return { ...leaderTeam, invite_token: inviteToken };
+    }
 
     // Check if member
     const { data: memberRow } = await supabase
@@ -2176,7 +2338,12 @@ export async function fetchUserTeamForEvent(eventId: string, userId: string): Pr
         .in('id', teamIds)
         .maybeSingle();
 
-      if (memberTeam) return memberTeam;
+      if (memberTeam) {
+        const inviteToken =
+          memberTeam.team_invitations?.find((i: any) => i.invite_token)?.invite_token ||
+          memberTeam.name;
+        return { ...memberTeam, invite_token: inviteToken };
+      }
     }
 
     return null;

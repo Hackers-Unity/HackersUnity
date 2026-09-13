@@ -97,19 +97,19 @@ export function getCategoryBadge(category: EventCategory): { label: string; bg: 
 export function getStatusBadge(status: EventStatus): { label: string; color: string; dot: string } {
   switch (status) {
     case EventStatus.PENDING_APPROVAL:
-      return { label: 'Verification Pending', color: 'bg-amber-500/15 text-amber-600 border-amber-500/30', dot: 'bg-amber-500' };
+      return { label: 'Verification Pending', color: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30', dot: 'bg-amber-500' };
     case EventStatus.PUBLISHED:
-      return { label: 'Open for Registration', color: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30', dot: 'bg-emerald-500' };
+      return { label: 'Open for Registration', color: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-500' };
     case EventStatus.ONGOING:
-      return { label: 'Live Now', color: 'bg-cyan-500/15 text-cyan-700 border-cyan-500/30 animate-pulse', dot: 'bg-cyan-500' };
+      return { label: 'Live Now', color: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-500/30 animate-pulse', dot: 'bg-cyan-500' };
     case EventStatus.REGISTRATION_CLOSED:
-      return { label: 'Registration Closed', color: 'bg-amber-500/15 text-amber-700 border-amber-500/30', dot: 'bg-amber-500' };
+      return { label: 'Registration Closed', color: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30', dot: 'bg-amber-500' };
     case EventStatus.COMPLETED:
-      return { label: 'Completed', color: 'bg-zinc-700/15 text-zinc-600 border-zinc-700/30', dot: 'bg-zinc-500' };
+      return { label: 'Completed', color: 'bg-zinc-500/10 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 border-zinc-400/30 dark:border-zinc-700/60', dot: 'bg-zinc-500 dark:bg-zinc-400' };
     case EventStatus.DRAFT:
-      return { label: 'Draft', color: 'bg-slate-500/15 text-slate-600 border-slate-500/30', dot: 'bg-slate-400' };
+      return { label: 'Draft', color: 'bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/30', dot: 'bg-slate-400' };
     default:
-      return { label: 'Upcoming', color: 'bg-violet-500/15 text-violet-700 border-violet-500/30', dot: 'bg-violet-500' };
+      return { label: 'Upcoming', color: 'bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/30', dot: 'bg-violet-500' };
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Play,
   X,
@@ -10,6 +11,7 @@ import {
   Radio,
   ChevronLeft,
   ChevronRight,
+  ArrowRight,
 } from 'lucide-react';
 import { FaAmazon, FaMicrosoft, FaYoutube } from 'react-icons/fa6';
 import { SiIeee } from 'react-icons/si';
@@ -244,24 +246,34 @@ export function PodcastSection() {
           </p>
         </div>
 
-        {/* Carousel Prev / Next Controls */}
-        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => scroll('left')}
-            aria-label="Previous podcast"
-            className="w-10 h-10 rounded-2xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6]/50 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xs flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95"
+        {/* Carousel Controls & View All Podcasts Link */}
+        <div className="flex items-center gap-3 self-end sm:self-auto shrink-0 flex-wrap">
+          <Link
+            href="/podcasts"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6] hover:bg-sky-50/60 dark:hover:bg-sky-950/30 text-slate-800 dark:text-slate-200 hover:text-[#0099e6] text-xs font-bold shadow-xs transition-all duration-200 group"
           >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scroll('right')}
-            aria-label="Next podcast"
-            className="w-10 h-10 rounded-2xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6]/50 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xs flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+            <span>View All Podcasts</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 text-[#0099e6] transition-transform" />
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scroll('left')}
+              aria-label="Previous podcast"
+              className="w-10 h-10 rounded-2xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6]/50 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xs flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scroll('right')}
+              aria-label="Next podcast"
+              className="w-10 h-10 rounded-2xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6]/50 hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xs flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 

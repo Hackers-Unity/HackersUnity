@@ -123,6 +123,18 @@ export function registerForEventStorage(reg: UserRegistrationItem): void {
   }
 }
 
+export function removeRegistrationForEvent(eventId: string): void {
+  if (typeof window === 'undefined') return;
+  const current = getMyRegistrations();
+  const filtered = current.filter((item) => item.eventId !== eventId);
+  try {
+    localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(filtered));
+    window.dispatchEvent(new Event('hackers_unity_storage_change'));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 // Custom Hosted & Managed Events
 const STORAGE_KEYS_EVENTS_OVERRIDE = 'hackers_unity_events_overrides';
 const STORAGE_KEYS_DELETED_EVENTS = 'hackers_unity_deleted_events';
@@ -850,6 +862,34 @@ export function joinLocalEventTeam(eventId: string, teamId: string, member: any)
             const members = team.team_members || [];
             if (members.length >= (team.max_members || 4)) return false;
             team.team_members = [...members, member];
+            teams[teamIdx] = team;
+            localStorage.setItem(key, JSON.stringify(teams));
+            window.dispatchEvent(new Event('hackers_unity_storage_change'));
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export function removeMemberFromLocalTeam(teamId: string, userId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(LOCAL_TEAMS_PREFIX)) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const teams: any[] = JSON.parse(raw);
+          const teamIdx = teams.findIndex((t) => t.id === teamId);
+          if (teamIdx !== -1) {
+            const team = teams[teamIdx];
+            const members = team.team_members || [];
+            team.team_members = members.filter((m: any) => m.user_id !== userId);
             teams[teamIdx] = team;
             localStorage.setItem(key, JSON.stringify(teams));
             window.dispatchEvent(new Event('hackers_unity_storage_change'));
