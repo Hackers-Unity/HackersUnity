@@ -208,7 +208,7 @@ export function Navbar() {
               {/* Contact Us */}
               <Link
                 href="/contact"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 xl:px-4 py-1.5 rounded-full text-xs xl:text-sm font-semibold transition-all duration-200 ${
                   isContactActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -220,7 +220,7 @@ export function Navbar() {
               {/* Blogs */}
               <Link
                 href="/blogs"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 xl:px-4 py-1.5 rounded-full text-xs xl:text-sm font-semibold transition-all duration-200 ${
                   isBlogsActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -232,7 +232,7 @@ export function Navbar() {
               {/* My Dashboard */}
               <Link
                 href="/dashboard"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 xl:px-4 py-1.5 rounded-full text-xs xl:text-sm font-semibold transition-all duration-200 ${
                   isDashboardActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -245,26 +245,15 @@ export function Navbar() {
 
           {/* Right: Action Bar */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 z-20">
-            {/* Quick Search Button (⌘K) - Full pill on xl, sleek icon on lg and mobile */}
+            {/* Quick Search Button (⌘K) */}
             <button
+              type="button"
               onClick={() => setSearchOpen(true)}
-              className="hidden xl:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/[0.08] text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer shadow-2xs group"
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-600 dark:text-slate-300 transition-all cursor-pointer group shadow-2xs"
+              aria-label="Open search"
               title="Search hackathons & builders (⌘K)"
             >
-              <Search className="w-3.5 h-3.5 text-[#0099e6] group-hover:scale-110 transition-transform" />
-              <span className="text-slate-400 text-xs font-medium">Search...</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/[0.12] text-[10px] font-mono font-bold text-slate-400 shadow-2xs">
-                ⌘K
-              </kbd>
-            </button>
-
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="xl:hidden flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
-              aria-label="Open search"
-              title="Search (⌘K)"
-            >
-              <Search className="w-4 h-4 text-[#0099e6]" />
+              <Search className="w-4 h-4 text-[#0099e6] group-hover:scale-110 transition-transform" />
             </button>
 
             {/* Notifications Menu Trigger */}
@@ -272,12 +261,12 @@ export function Navbar() {
               <button
                 data-notification-trigger="true"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
-                className="relative flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                className="relative flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
                 aria-label="Open notifications"
               >
-                <Bell className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                <Bell className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                 {mounted && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#f97316] text-white text-[10px] font-black flex items-center justify-center ring-2 ring-white dark:ring-[#05070c] shadow-xs pointer-events-none">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#f97316] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-[#05070c] shadow-xs pointer-events-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -293,7 +282,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer group"
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer group"
               aria-label="Toggle theme"
               title="Toggle theme (Light / Dark)"
             >
