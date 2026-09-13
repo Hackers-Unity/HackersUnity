@@ -121,25 +121,25 @@ export default function BlogsPage() {
       </div>
 
       {/* ─── Hero Section ─────────────────────────────────────────── */}
-      <div className="relative pt-12 pb-16 lg:pb-20 border-b border-slate-200/80 dark:border-white/[0.08] bg-gradient-to-b from-white/70 via-transparent to-transparent dark:from-[#0c1220]/80 dark:via-[#070a13]/60 dark:to-transparent backdrop-blur-xs">
+      <div className="relative pt-10 pb-14 lg:pb-16 border-b border-slate-200/80 dark:border-white/[0.08] bg-gradient-to-b from-white/70 via-transparent to-transparent dark:from-[#0c1220]/80 dark:via-[#070a13]/60 dark:to-transparent backdrop-blur-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-3xl mx-auto space-y-5">
-            {/* Glass Pill Badge & Write Blog Action */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl shadow-xs">
-                <BookOpen className="w-3.5 h-3.5 text-[#0099e6]" />
-                <span className="tracking-wider uppercase text-[11px]">Domain Tech Chronicles</span>
-              </div>
-
-              <Link
-                href="/blogs/write"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs font-bold shadow-md shadow-sky-500/25 transition-all cursor-pointer group"
-              >
-                <PenTool className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
-                <span>Write Blog</span>
-              </Link>
+          {/* Top Bar with Badge (Left) and Write Blog button (Top Right Corner) */}
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl shadow-xs">
+              <BookOpen className="w-3.5 h-3.5 text-[#0099e6]" />
+              <span className="tracking-wider uppercase text-[11px]">Domain Tech Chronicles</span>
             </div>
 
+            <Link
+              href="/blogs/write"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-500/25 transition-all cursor-pointer group hover:scale-[1.03] active:scale-95"
+            >
+              <PenTool className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+              <span>Write Blog</span>
+            </Link>
+          </div>
+
+          <div className="text-center max-w-3xl mx-auto space-y-4">
             {/* Headline */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
               Frontier Tech &amp;{' '}
@@ -152,29 +152,6 @@ export default function BlogsPage() {
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
               Deep dives across Agentic AI, SpaceTech, Web3, Internet of Things, Cybersecurity, and Hyperscale Cloud Architecture.
             </p>
-
-            {/* Frosted Glass Search Bar */}
-            <div className="pt-2 max-w-xl mx-auto">
-              <div className="relative group">
-                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-[#0099e6] transition-colors" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by domain e.g., 'Agentic AI', 'Space', 'Web3', 'IoT', 'Cybersecurity'..."
-                  className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/80 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm backdrop-blur-xl focus:outline-none focus:border-[#0099e6] focus:ring-2 focus:ring-[#0099e6]/20 transition-all shadow-lg shadow-slate-200/40 dark:shadow-black/60"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
