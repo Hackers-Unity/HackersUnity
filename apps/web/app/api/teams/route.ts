@@ -94,22 +94,39 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const auth = await authenticateRequest(req);
-    if (!auth) {
-      return unauthorizedResponse('You must be signed in to create or join a squad.');
-    }
-
     const body = await req.json();
     const { action = 'create' } = body;
     const serverSupabase = createAdminClient();
-    const validUserId = auth.userId;
-    const userEmail = (auth.email || body.leaderEmail || body.userEmail || '').toLowerCase().trim();
-    const userName =
+
+    let validUserId = auth?.userId;
+    let userEmail = (auth?.email || body.leaderEmail || body.userEmail || '').toLowerCase().trim();
+    let userName =
       body.leaderName ||
       body.userName ||
-      auth.user.user_metadata?.name ||
-      auth.user.user_metadata?.full_name ||
+      auth?.user?.user_metadata?.name ||
+      auth?.user?.user_metadata?.full_name ||
       userEmail.split('@')[0] ||
       'Hacker';
+
+    // If cookie/token auth wasn't present, check body.userId or body.leaderId
+    const candidateUserId = body.userId || body.leaderId;
+    if (!validUserId && candidateUserId) {
+      const { data: prof } = await serverSupabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('id', candidateUserId)
+        .maybeSingle();
+
+      if (prof?.id) {
+        validUserId = prof.id;
+        if (!userEmail && prof.email) userEmail = prof.email.toLowerCase().trim();
+        if ((!userName || userName === 'Hacker') && prof.name) userName = prof.name;
+      }
+    }
+
+    if (!validUserId) {
+      return unauthorizedResponse('You must be signed in to create or join a squad.');
+    }
 
     // 1. Ensure user profile exists in public.profiles table (prevents teams_leader_id_fkey violation)
     const { data: existingProf } = await serverSupabase
@@ -123,7 +140,7 @@ export async function POST(req: Request) {
         id: validUserId,
         name: userName,
         email: userEmail,
-        phone: body.phone || auth.user.user_metadata?.phone || null,
+        phone: body.phone || auth?.user?.user_metadata?.phone || null,
         college: body.college || null,
         skills: body.skills || [],
         updated_at: new Date().toISOString(),

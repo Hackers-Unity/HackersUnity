@@ -1290,12 +1290,20 @@ export async function joinTeamSupabase(
   }
 
   try {
-    // 1. Try server API route first
+    // 1. Try server API route first (runs with admin client and bypasses RLS)
     if (typeof window !== 'undefined') {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch('/api/teams', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
+          credentials: 'include',
           body: JSON.stringify({
             action: 'join',
             teamId,
@@ -1306,15 +1314,23 @@ export async function joinTeamSupabase(
           }),
         });
 
-        if (response.ok) {
-          const resData = await response.json();
-          if (resData.success) {
-            return { success: true };
-          } else if (resData.error) {
-            return { success: false, error: resData.error };
-          }
+        let resData: any = {};
+        try {
+          resData = await response.json();
+        } catch {
+          // ignore json parse error
         }
-      } catch (apiErr) {
+
+        if (response.ok && resData.success) {
+          return { success: true };
+        }
+        if (resData.error || resData.message || !response.ok) {
+          return {
+            success: false,
+            error: resData.error || resData.message || `Server error (${response.status}) joining squad`,
+          };
+        }
+      } catch (apiErr: any) {
         console.warn('API /api/teams join error, falling back:', apiErr);
       }
     }

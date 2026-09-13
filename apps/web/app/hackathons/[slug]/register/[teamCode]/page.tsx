@@ -120,16 +120,44 @@ export default function TeamInvitePage({ params }: TeamInvitePageProps) {
     try {
       const maxMembers = team.max_members || 4;
 
-      // 1. Join squad in database
+      // 1. Join squad in database via API route / joinTeamSupabase
+      let joinSuccess = false;
       const joinRes = await joinTeamSupabase(team.id, userId, maxMembers, {
         name: userName,
         email: userEmail,
       });
 
-      if (!joinRes.success) {
-        setActionError(joinRes.error || 'Failed to join squad.');
-        setJoining(false);
-        return;
+      if (joinRes.success) {
+        joinSuccess = true;
+      } else {
+        // Direct server API call fallback (runs with service role to bypass RLS)
+        try {
+          const res = await fetch('/api/teams', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              action: 'join',
+              teamId: team.id,
+              userId,
+              maxMembers,
+              userName,
+              userEmail,
+            }),
+          });
+          const resJson = await res.json().catch(() => ({}));
+          if (res.ok && resJson.success) {
+            joinSuccess = true;
+          } else {
+            setActionError(resJson.error || joinRes.error || 'Failed to join squad.');
+            setJoining(false);
+            return;
+          }
+        } catch (e: any) {
+          setActionError(joinRes.error || e.message || 'Failed to join squad.');
+          setJoining(false);
+          return;
+        }
       }
 
       // 2. Ensure user registration is recorded
