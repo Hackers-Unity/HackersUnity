@@ -84,7 +84,8 @@ export default function PodcastsPage() {
       <div className="relative pt-10 pb-16 lg:pb-24 border-b border-slate-800/80 bg-gradient-to-b from-[#0c1220] via-[#070a13] to-[#05070d]">
         {/* Background Ambient Glows & Watermark */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#0099e6]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 right-10 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 right-10 w-96 h-96 bg-[#0099e6]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 right-1/4 w-80 h-80 bg-[#f97316]/05 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -top-10 -left-10 select-none pointer-events-none text-[120px] sm:text-[180px] font-black tracking-tighter text-white/[0.02] uppercase leading-none">
           PODCASTS
         </div>
@@ -117,7 +118,7 @@ export default function PodcastsPage() {
                 <button
                   type="button"
                   onClick={handleScrollToEpisodes}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-[#0099e6] hover:from-purple-500 hover:to-[#0284c7] text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-3.5 rounded-2xl bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 border border-sky-400/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <span>Discover podcasts</span>
                   <ArrowDown className="w-4 h-4" />
@@ -273,7 +274,7 @@ export default function PodcastsPage() {
               onClick={() => setActiveCategory(cat.id)}
               className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeCategory === cat.id
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                  ? 'bg-[#0099e6] text-white shadow-md shadow-sky-500/30 border border-sky-400/40'
                   : 'bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 border border-white/5'
               }`}
             >
@@ -298,7 +299,7 @@ export default function PodcastsPage() {
                 setSearchQuery('');
                 setActiveCategory('ALL');
               }}
-              className="px-5 py-2 rounded-full bg-purple-600 text-white text-xs font-bold cursor-pointer"
+              className="px-5 py-2 rounded-full bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs font-bold cursor-pointer transition-colors shadow-md shadow-sky-500/20"
             >
               Reset Filters
             </button>
@@ -377,24 +378,43 @@ export default function PodcastsPage() {
           Showing {filteredEpisodes.length} of {PODCAST_EPISODES.length} Episodes
         </div>
 
-        {/* ─── Bottom Purple CTA Banner (Exact match from Screenshot 3) ── */}
+        {/* ─── Bottom Metallic Black Hacker's Unity CTA Banner ── */}
         <div className="pt-6">
-          <div className="rounded-3xl p-8 sm:p-12 lg:p-14 bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 border border-purple-400/20 shadow-2xl text-center space-y-6 relative overflow-hidden">
-            <div className="absolute -left-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -right-10 -top-10 w-60 h-60 bg-sky-400/20 rounded-full blur-2xl pointer-events-none" />
+          <div className="rounded-3xl p-8 sm:p-12 lg:p-14 bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#06080f] border border-white/[0.1] shadow-2xl shadow-black/80 text-center space-y-6 relative overflow-hidden group">
+            {/* Top Cyan Glowing Line */}
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0099e6] to-transparent opacity-80" />
+
+            {/* Ambient Glows */}
+            <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-[#0099e6]/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -right-16 -top-16 w-72 h-72 bg-[#f97316]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/15 via-transparent to-transparent pointer-events-none" />
+
+            {/* Brand Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-bold text-slate-300 backdrop-blur-md relative z-10">
+              <span className="text-[#f97316] font-black tracking-wider">UNITE.</span>
+              <span className="text-[#0099e6] font-black tracking-wider">CODE.</span>
+              <span className="text-white font-black tracking-wider">CREATE.</span>
+            </div>
 
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white max-w-2xl mx-auto leading-tight relative z-10">
-              Hacker&apos;s Unity brings together people who educate, inspire and build.
+              Hacker&apos;s Unity brings together people who{' '}
+              <span className="bg-gradient-to-r from-[#0099e6] via-sky-300 to-[#f97316] bg-clip-text text-transparent">
+                educate, inspire and build.
+              </span>
             </h3>
+
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed relative z-10">
+              Catch the latest episodes, deep-dive interviews, and engineering insights directly on our official YouTube channel.
+            </p>
 
             <div className="pt-2 relative z-10">
               <a
                 href="https://youtube.com/@hackerunity"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-purple-900 font-black text-xs sm:text-sm shadow-xl hover:scale-105 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-[#ea3323] hover:bg-[#d92215] text-white font-black text-xs sm:text-sm shadow-xl shadow-red-600/25 hover:scale-105 active:scale-95 transition-all border border-red-400/30 cursor-pointer"
               >
-                <FaYoutube className="w-4 h-4 text-[#ea3323]" />
+                <FaYoutube className="w-4 h-4" />
                 <span>Watch on YouTube →</span>
               </a>
             </div>
