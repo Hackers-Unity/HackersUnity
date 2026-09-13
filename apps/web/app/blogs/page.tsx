@@ -25,11 +25,14 @@ import { BLOG_POSTS, BlogPost } from '@/lib/blogs-data';
 const CATEGORIES = [
   'ALL',
   'Agentic AI',
-  'Space Domain',
+  'Space',
   'Web3',
   'IoT',
   'Cybersecurity',
   'Cloud',
+  'Robotics',
+  'Open Source',
+  'AR / VR & Spatial',
 ] as const;
 
 export default function BlogsPage() {
@@ -76,9 +79,14 @@ export default function BlogsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const featuredBlog = useMemo(() => {
-    return blogsList.find((b) => b.featured) || blogsList[0];
-  }, [blogsList]);
+  const currentFeaturedBlog = useMemo(() => {
+    if (!blogsList.length) return null;
+    if (activeCategory === 'ALL') {
+      return blogsList.find((b) => b.featured) || blogsList[0];
+    }
+    const inCat = blogsList.filter((b) => b.category === activeCategory);
+    return inCat.find((b) => b.featured) || inCat[0] || blogsList.find((b) => b.featured) || blogsList[0];
+  }, [blogsList, activeCategory]);
 
   const filteredBlogs = useMemo(() => {
     return blogsList.filter((post) => {
@@ -145,18 +153,18 @@ export default function BlogsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-end">
             <div className="lg:col-span-7 space-y-2">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.12]">
-                Stories, guides &amp;{' '}
+                Hackathons, playbooks &amp;{' '}
                 <span className="font-serif italic font-normal text-[#0099e6] dark:text-sky-400">
                   field notes
                 </span>
                 <br />
-                from builders.
+                from hackers.
               </h1>
             </div>
 
             <div className="lg:col-span-5 lg:pb-1">
               <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                Case studies, success stories and deep technical guides on AI, Web3, Space, IoT, and cloud architecture — straight from the community that ships.
+                Winning hackathon case studies, frontier tech playbooks and engineering notes across AI, Space, Web3, Robotics, and Cloud — straight from the Hacker&apos;s Unity builder community.
               </p>
             </div>
           </div>
@@ -165,18 +173,18 @@ export default function BlogsPage() {
 
       {/* ─── Main Content Area ─────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 space-y-12">
-        {/* ─── Featured Hero Article Card (Reference Style: Image on Left, Content on Right) ── */}
-        {!searchQuery && activeCategory === 'ALL' && featuredBlog && (
+        {/* ─── Featured Hero Article Card (Persists across category filters) ── */}
+        {!searchQuery && currentFeaturedBlog && (
           <div
-            onClick={() => setSelectedBlog(featuredBlog)}
+            onClick={() => setSelectedBlog(currentFeaturedBlog)}
             className="group relative rounded-[28px] sm:rounded-[36px] overflow-hidden bg-white dark:bg-[#0b101b] border border-slate-200/90 dark:border-white/[0.08] shadow-2xl shadow-slate-200/60 dark:shadow-black/80 transition-all duration-300 hover:border-[#0099e6]/50 cursor-pointer"
           >
             <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[420px] lg:min-h-[460px]">
               {/* Left Column: Visual Image Container (approx 50%) */}
               <div className="lg:col-span-6 relative overflow-hidden bg-slate-950 min-h-[300px] sm:min-h-[380px] lg:min-h-full">
                 <Image
-                  src={featuredBlog.image}
-                  alt={featuredBlog.title}
+                  src={currentFeaturedBlog.image}
+                  alt={currentFeaturedBlog.title}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-700"
                   sizes="(max-width: 1024px) 100vw, 50vw"
@@ -187,7 +195,7 @@ export default function BlogsPage() {
                 {/* Mobile overlay pill badge */}
                 <div className="absolute top-4 left-4 lg:hidden">
                   <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/20">
-                    {featuredBlog.category}
+                    {currentFeaturedBlog.category}
                   </span>
                 </div>
               </div>
@@ -201,27 +209,27 @@ export default function BlogsPage() {
                       FEATURED
                     </span>
                     <span className="text-xs uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
-                      {featuredBlog.category}
+                      {currentFeaturedBlog.category}
                     </span>
                     <span className="text-slate-300 dark:text-slate-700">•</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      {featuredBlog.publishedAt}
+                      {currentFeaturedBlog.publishedAt}
                     </span>
                     <span className="text-slate-300 dark:text-slate-700">•</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
                       <Clock className="w-3 h-3 text-[#0099e6]" />
-                      <span>{featuredBlog.readTime}</span>
+                      <span>{currentFeaturedBlog.readTime}</span>
                     </span>
                   </div>
 
                   {/* Headline */}
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-[1.22] group-hover:text-[#0099e6] transition-colors">
-                    {featuredBlog.title}
+                    {currentFeaturedBlog.title}
                   </h2>
 
                   {/* Subtitle / Excerpt */}
                   <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal line-clamp-3">
-                    {featuredBlog.subtitle || featuredBlog.excerpt}
+                    {currentFeaturedBlog.subtitle || currentFeaturedBlog.excerpt}
                   </p>
                 </div>
 
@@ -236,7 +244,7 @@ export default function BlogsPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleShare(featuredBlog);
+                      handleShare(currentFeaturedBlog);
                     }}
                     className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
                     title="Share article"

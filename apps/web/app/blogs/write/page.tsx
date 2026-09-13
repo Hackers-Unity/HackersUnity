@@ -79,6 +79,9 @@ const DOMAINS = [
   'IoT',
   'Cybersecurity',
   'Cloud',
+  'Robotics',
+  'Open Source',
+  'AR / VR & Spatial',
 ] as const;
 
 const PRESET_BANNERS = [
@@ -111,6 +114,21 @@ const PRESET_BANNERS = [
     label: 'Cloud Resilience',
     url: '/blogs/cloud.jpg',
     category: 'Cloud',
+  },
+  {
+    label: 'Robotics & Embodied AI',
+    url: '/blogs/iot.jpg',
+    category: 'Robotics',
+  },
+  {
+    label: 'Open Source Community',
+    url: '/blogs/cloud.jpg',
+    category: 'Open Source',
+  },
+  {
+    label: 'Spatial & WebXR',
+    url: '/blogs/web3.jpg',
+    category: 'AR / VR & Spatial',
   },
 ];
 
