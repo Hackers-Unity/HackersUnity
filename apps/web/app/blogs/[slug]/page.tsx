@@ -9,7 +9,9 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import { BLOG_POSTS } from '@/lib/blogs-data';
+import { BLOG_POSTS, BlogPost } from '@/lib/blogs-data';
+import { createAdminClient } from '@/lib/api-auth';
+import { User } from 'lucide-react';
 
 interface BlogSlugPageProps {
   params: Promise<{ slug: string }> | { slug: string };
@@ -17,13 +19,68 @@ interface BlogSlugPageProps {
 
 export default async function BlogSlugPage({ params }: BlogSlugPageProps) {
   const resolvedParams = await Promise.resolve(params);
-  const post = BLOG_POSTS.find((b) => b.slug === resolvedParams.slug);
+  const slug = resolvedParams.slug;
+
+  let post: BlogPost | undefined = undefined;
+
+  // 1. Try fetching from Supabase
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('blogs')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (!error && data) {
+      post = {
+        id: data.id,
+        slug: data.slug,
+        title: data.title,
+        subtitle: data.subtitle || '',
+        excerpt: data.excerpt || data.subtitle || '',
+        category: data.category,
+        image: data.image || '/blogs/agentic-ai.jpg',
+        coverGradient: data.cover_gradient || 'from-sky-600/30 via-cyan-600/20 to-blue-950/40',
+        publishedAt: data.created_at
+          ? new Date(data.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : 'Recent',
+        readTime: data.read_time || '5 min read',
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        featured: Boolean(data.featured),
+        content: Array.isArray(data.content)
+          ? data.content
+          : typeof data.content === 'string'
+          ? [data.content]
+          : data.raw_markdown
+          ? data.raw_markdown.split('\n\n')
+          : [],
+        raw_markdown: data.raw_markdown || '',
+        author_name: data.author_name || 'Community Builder',
+        author_email: data.author_email || '',
+        author_avatar: data.author_avatar || '',
+        status: data.status,
+        created_at: data.created_at,
+      };
+    }
+  } catch {
+    // Fallback smoothly
+  }
+
+  // 2. Fallback to static seed
+  if (!post) {
+    post = BLOG_POSTS.find((b) => b.slug === slug);
+  }
 
   if (!post) {
     notFound();
   }
 
-  const otherPosts = BLOG_POSTS.filter((b) => b.id !== post.id).slice(0, 3);
+  const otherPosts = BLOG_POSTS.filter((b) => b.id !== post?.id).slice(0, 3);
 
   return (
     <div className="flex-1 min-h-screen bg-slate-50/70 dark:bg-[#05070d] text-slate-900 dark:text-slate-100 selection:bg-[#0099e6] selection:text-white relative overflow-hidden py-12">
@@ -70,6 +127,12 @@ export default async function BlogSlugPage({ params }: BlogSlugPageProps) {
                   <Calendar className="w-3 h-3 text-[#0099e6]" />
                   <span>{post.publishedAt}</span>
                 </span>
+                {post.author_name && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-white/90 bg-black/50 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/10">
+                    <User className="w-3 h-3 text-[#0099e6]" />
+                    <span>{post.author_name}</span>
+                  </span>
+                )}
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">

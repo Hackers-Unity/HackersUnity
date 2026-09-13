@@ -41,10 +41,12 @@ import {
   HelpCircle,
   Award,
   SlidersHorizontal,
+  PenTool,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { Logo } from '@/components/logo';
+import { AdminBlogsModeration } from '@/components/admin-blogs-moderation';
 
 interface AdminEvent {
   id: string;
@@ -93,6 +95,9 @@ interface AdminEvent {
 }
 
 export default function AdminCsapPortal() {
+  // Navigation Section (Hackathons vs Blogs)
+  const [activeSection, setActiveSection] = useState<'hackathons' | 'blogs'>('hackathons');
+
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -515,10 +520,14 @@ export default function AdminCsapPortal() {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Hackathon Moderation &amp; Approval Engine
+            {activeSection === 'hackathons'
+              ? 'Hackathon Moderation & Approval Engine'
+              : 'Community Blogs & Playbooks Moderation'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl">
-            Review host requests submitted by colleges and organizations in real-time. Approved hackathons instantly become public across the main website.
+            {activeSection === 'hackathons'
+              ? 'Review host requests submitted by colleges and organizations in real-time. Approved hackathons instantly become public across the main website.'
+              : 'Review tech blogs, tutorials, and ecosystem playbooks submitted by community builders. Approved posts are published live immediately on /blogs.'}
           </p>
         </div>
 
@@ -573,11 +582,52 @@ export default function AdminCsapPortal() {
         </div>
       )}
 
-      {/* ─── Metric Cards (Hacker's Unity Theme) ──────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Pending Review (Primary Action Item) */}
-        <div
-          onClick={() => setStatusFilter('PENDING')}
+      {/* ─── Section Switcher: Hackathons vs Blogs ────────────────────────── */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 backdrop-blur-md rounded-2xl border border-slate-200/90 w-fit shadow-xs">
+        <button
+          type="button"
+          onClick={() => setActiveSection('hackathons')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+            activeSection === 'hackathons'
+              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#0099e6]" />
+          <span>Hackathons Review</span>
+          {stats.pending > 0 && (
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-extrabold shadow-xs">
+              {stats.pending}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('blogs')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+            activeSection === 'blogs'
+              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          }`}
+        >
+          <PenTool className="w-4 h-4 text-[#0099e6]" />
+          <span>Blogs Moderation</span>
+          <span className="ml-1 px-2 py-0.5 rounded-full bg-sky-100 text-[#0099e6] text-[10px] font-extrabold uppercase tracking-wider">
+            Supabase Live
+          </span>
+        </button>
+      </div>
+
+      {activeSection === 'blogs' ? (
+        <AdminBlogsModeration onNotification={setNotificationMsg} />
+      ) : (
+        <>
+          {/* ─── Metric Cards (Hacker's Unity Theme) ──────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {/* Pending Review (Primary Action Item) */}
+            <div
+              onClick={() => setStatusFilter('PENDING')}
           className={`p-6 rounded-3xl border transition-all cursor-pointer ${
             statusFilter === 'PENDING'
               ? 'bg-amber-50 border-amber-300 shadow-md shadow-amber-500/10'
@@ -1216,6 +1266,8 @@ export default function AdminCsapPortal() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

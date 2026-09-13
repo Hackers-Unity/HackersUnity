@@ -17,6 +17,8 @@ import {
   Tag,
   Flame,
   Layers,
+  PenTool,
+  Plus,
 } from 'lucide-react';
 import { BLOG_POSTS, BlogPost } from '@/lib/blogs-data';
 
@@ -31,10 +33,37 @@ const CATEGORIES = [
 ] as const;
 
 export default function BlogsPage() {
+  const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isLoadingBlogs, setIsLoadingBlogs] = useState(false);
+
+  // Fetch approved blogs from Supabase
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBlogs() {
+      try {
+        setIsLoadingBlogs(true);
+        const res = await fetch('/api/blogs');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.success && Array.isArray(data.blogs) && data.blogs.length > 0) {
+            setBlogsList(data.blogs);
+          }
+        }
+      } catch {
+        // Fallback to static seed
+      } finally {
+        if (isMounted) setIsLoadingBlogs(false);
+      }
+    }
+    loadBlogs();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Keyboard escape handler for modal
   useEffect(() => {
@@ -48,11 +77,11 @@ export default function BlogsPage() {
   }, []);
 
   const featuredBlog = useMemo(() => {
-    return BLOG_POSTS.find((b) => b.featured) || BLOG_POSTS[0];
-  }, []);
+    return blogsList.find((b) => b.featured) || blogsList[0];
+  }, [blogsList]);
 
   const filteredBlogs = useMemo(() => {
-    return BLOG_POSTS.filter((post) => {
+    return blogsList.filter((post) => {
       const matchesCategory =
         activeCategory === 'ALL' || post.category === activeCategory;
 
@@ -68,7 +97,7 @@ export default function BlogsPage() {
 
       return matchesCategory && matchesQuery;
     });
-  }, [searchQuery, activeCategory]);
+  }, [blogsList, searchQuery, activeCategory]);
 
   const handleShare = (post: BlogPost) => {
     if (typeof window !== 'undefined') {
@@ -95,10 +124,20 @@ export default function BlogsPage() {
       <div className="relative pt-12 pb-16 lg:pb-20 border-b border-slate-200/80 dark:border-white/[0.08] bg-gradient-to-b from-white/70 via-transparent to-transparent dark:from-[#0c1220]/80 dark:via-[#070a13]/60 dark:to-transparent backdrop-blur-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-3xl mx-auto space-y-5">
-            {/* Glass Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl shadow-xs mx-auto">
-              <BookOpen className="w-3.5 h-3.5 text-[#0099e6]" />
-              <span className="tracking-wider uppercase text-[11px]">Domain Tech Chronicles</span>
+            {/* Glass Pill Badge & Write Blog Action */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl shadow-xs">
+                <BookOpen className="w-3.5 h-3.5 text-[#0099e6]" />
+                <span className="tracking-wider uppercase text-[11px]">Domain Tech Chronicles</span>
+              </div>
+
+              <Link
+                href="/blogs/write"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs font-bold shadow-md shadow-sky-500/25 transition-all cursor-pointer group"
+              >
+                <PenTool className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
+                <span>Write Blog</span>
+              </Link>
             </div>
 
             {/* Headline */}

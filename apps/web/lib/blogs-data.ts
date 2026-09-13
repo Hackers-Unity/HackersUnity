@@ -4,14 +4,21 @@ export interface BlogPost {
   title: string;
   subtitle: string;
   excerpt: string;
-  category: 'Agentic AI' | 'Space Domain' | 'Web3' | 'IoT' | 'Cybersecurity' | 'Cloud';
+  category: 'Agentic AI' | 'Space Domain' | 'Web3' | 'IoT' | 'Cybersecurity' | 'Cloud' | string;
   image: string;
   publishedAt: string;
   readTime: string;
   tags: string[];
   featured?: boolean;
-  coverGradient: string;
+  coverGradient?: string;
   content: string[];
+  raw_markdown?: string;
+  author_name?: string;
+  author_email?: string;
+  author_avatar?: string;
+  status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'DRAFT';
+  admin_feedback?: string;
+  created_at?: string;
 }
 
 export const BLOG_POSTS: BlogPost[] = [

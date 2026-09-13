@@ -59,15 +59,64 @@ function checkCredentials(user: string, pass: string): boolean {
   return Boolean(userMatch && passMatch);
 }
 
-// ─── GET: Fetch all hackathon submissions & statistics ───────────────────────
+// ─── GET: Fetch all hackathon or blog submissions & statistics ───────────────
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!verifySessionToken(token)) {
     return NextResponse.json({ authenticated: false, error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const resource = searchParams.get('resource');
+
   try {
     const supabase = createAdminClient();
+
+    // ── Blogs Moderation Query ──
+    if (resource === 'blogs') {
+      try {
+        const { data: blogs, error } = await supabase
+          .from('blogs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          // If table doesn't exist yet, return empty list with flag
+          return NextResponse.json({
+            authenticated: true,
+            blogs: [],
+            stats: { total: 0, pending: 0, approved: 0, rejected: 0 },
+            tableReady: false,
+            message: 'Blogs table not found. Run apps/web/supabase/blogs-migration.sql in Supabase SQL editor.',
+          });
+        }
+
+        const allBlogs = blogs || [];
+        const stats = {
+          total: allBlogs.length,
+          pending: allBlogs.filter((b) => b.status === 'PENDING_APPROVAL').length,
+          approved: allBlogs.filter((b) => b.status === 'APPROVED').length,
+          rejected: allBlogs.filter((b) => b.status === 'REJECTED').length,
+        };
+
+        return NextResponse.json({
+          authenticated: true,
+          blogs: allBlogs,
+          stats,
+          tableReady: true,
+        });
+      } catch (blogErr: any) {
+        return NextResponse.json({
+          authenticated: true,
+          blogs: [],
+          stats: { total: 0, pending: 0, approved: 0, rejected: 0 },
+          tableReady: false,
+          error: blogErr.message,
+        });
+      }
+    }
+
+    // ── Events / Hackathons Query (Default) ──
     const { data: events, error } = await supabase
       .from('events')
       .select('*')
@@ -174,13 +223,69 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { action, eventId, feedback } = body;
+    const { action, eventId, blogId, feedback } = body;
 
+    const supabase = createAdminClient();
+
+    // ── Blog Approval / Rejection ──
+    if (action === 'approve_blog') {
+      const targetId = blogId || eventId;
+      if (!targetId) return NextResponse.json({ error: 'Missing blogId' }, { status: 400 });
+
+      const { data, error } = await supabase
+        .from('blogs')
+        .update({
+          status: 'APPROVED',
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetId)
+        .select('*')
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Blog "${data.title}" approved and published successfully!`,
+        blog: data,
+      });
+    }
+
+    if (action === 'reject_blog') {
+      const targetId = blogId || eventId;
+      if (!targetId) return NextResponse.json({ error: 'Missing blogId' }, { status: 400 });
+
+      const { data, error } = await supabase
+        .from('blogs')
+        .update({
+          status: 'REJECTED',
+          admin_feedback: feedback || 'Article does not meet publishing criteria.',
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetId)
+        .select('*')
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Blog "${data.title}" rejected.`,
+        blog: data,
+      });
+    }
+
+    // ── Hackathon Approval / Rejection ──
     if (!eventId) {
       return NextResponse.json({ error: 'Missing eventId' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
 
     if (action === 'approve') {
@@ -300,12 +405,23 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const eventId = searchParams.get('eventId');
+    const resource = searchParams.get('resource');
+    const eventId = searchParams.get('eventId') || searchParams.get('blogId');
+
     if (!eventId) {
-      return NextResponse.json({ error: 'Missing eventId' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     }
 
     const supabase = createAdminClient();
+
+    if (resource === 'blogs') {
+      const { error } = await supabase.from('blogs').delete().eq('id', eventId);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, message: 'Blog deleted successfully' });
+    }
+
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
 
     let query = supabase.from('events').delete();
