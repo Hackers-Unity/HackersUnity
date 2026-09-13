@@ -22,6 +22,7 @@ import {
   Sun,
   Moon,
   Headphones,
+  BookOpen,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { AuthModal } from './auth-modal';
@@ -80,6 +81,7 @@ export function Navbar() {
 
   const isAboutActive = pathname === '/about';
   const isContactActive = pathname === '/contact';
+  const isBlogsActive = pathname.startsWith('/blogs') || pathname.startsWith('/blog');
   const isOppsActive = pathname.startsWith('/hackathons') || pathname.startsWith('/events') || pathname.startsWith('/podcasts');
   const isDashboardActive = pathname.startsWith('/dashboard');
 
@@ -213,6 +215,18 @@ export function Navbar() {
                 }`}
               >
                 Contact Us
+              </Link>
+
+              {/* Blogs */}
+              <Link
+                href="/blogs"
+                className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                  isBlogsActive
+                    ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                Blogs
               </Link>
 
               {/* My Dashboard */}
@@ -485,6 +499,17 @@ export function Navbar() {
             >
               <Mail className="w-4 h-4 text-slate-500" />
               <span>Contact Us</span>
+            </Link>
+
+            <Link
+              href="/blogs"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
+                isBlogsActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-slate-500" />
+              <span>Blogs</span>
             </Link>
 
             <Link
