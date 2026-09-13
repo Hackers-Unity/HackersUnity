@@ -67,6 +67,7 @@ export function AdminBlogsModeration({ onNotification }: AdminBlogsModerationPro
   const [rejectFeedback, setRejectFeedback] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [tableReady, setTableReady] = useState(true);
+  const [dismissedNotice, setDismissedNotice] = useState(false);
 
   // Fetch blogs from API
   const fetchBlogs = useCallback(async () => {
@@ -128,17 +129,56 @@ export function AdminBlogsModeration({ onNotification }: AdminBlogsModerationPro
         setBlogs((prev) =>
           prev.map((b) =>
             b.id === blog.id
-              ? { ...b, status: 'APPROVED', reviewed_at: new Date().toISOString() }
+              ? { ...b, status: 'APPROVED', admin_feedback: undefined, reviewed_at: new Date().toISOString() }
               : b
           )
         );
         if (selectedBlog?.id === blog.id) {
-          setSelectedBlog((prev) => (prev ? { ...prev, status: 'APPROVED' } : null));
+          setSelectedBlog((prev) => (prev ? { ...prev, status: 'APPROVED', admin_feedback: undefined } : null));
         }
       } else {
         onNotification({
           type: 'error',
           text: data.error || 'Failed to approve blog',
+        });
+      }
+    } catch (err: any) {
+      onNotification({ type: 'error', text: err.message });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Move back to Pending Review
+  const handleResetToPending = async (blog: AdminBlog) => {
+    setActionLoadingId(blog.id);
+    try {
+      const res = await fetch('/api/admin-csap', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pending_blog', blogId: blog.id }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        onNotification({
+          type: 'success',
+          text: `↩ Blog "${blog.title}" moved back to Pending Review!`,
+        });
+        setBlogs((prev) =>
+          prev.map((b) =>
+            b.id === blog.id
+              ? { ...b, status: 'PENDING_APPROVAL', admin_feedback: undefined, reviewed_at: undefined }
+              : b
+          )
+        );
+        if (selectedBlog?.id === blog.id) {
+          setSelectedBlog((prev) => (prev ? { ...prev, status: 'PENDING_APPROVAL', admin_feedback: undefined } : null));
+        }
+      } else {
+        onNotification({
+          type: 'error',
+          text: data.error || 'Failed to move blog to pending',
         });
       }
     } catch (err: any) {
@@ -254,7 +294,7 @@ export function AdminBlogsModeration({ onNotification }: AdminBlogsModerationPro
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* ─── Migration Notice (If table not created yet) ─────────── */}
-      {!tableReady && (
+      {!loading && !tableReady && blogs.length === 0 && !dismissedNotice && (
         <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 font-bold text-sm">
@@ -269,13 +309,23 @@ export function AdminBlogsModeration({ onNotification }: AdminBlogsModerationPro
               in your Supabase SQL Editor to enable full database persistence for community blogs.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={fetchBlogs}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition shrink-0 cursor-pointer"
-          >
-            Check Again
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={fetchBlogs}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition cursor-pointer"
+            >
+              Check Again
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismissedNotice(true)}
+              className="p-1.5 rounded-xl hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition cursor-pointer"
+              title="Dismiss warning"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -623,6 +673,20 @@ export function AdminBlogsModeration({ onNotification }: AdminBlogsModerationPro
 
                   {/* Approve / Reject Controls */}
                   <div className="flex items-center gap-2">
+                    {/* Move to Pending (if rejected or approved) */}
+                    {blog.status !== 'PENDING_APPROVAL' && (
+                      <button
+                        type="button"
+                        disabled={isActionLoading}
+                        onClick={() => handleResetToPending(blog)}
+                        className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-300 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        title="Move back to Pending Review"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Move to Pending</span>
+                      </button>
+                    )}
+
                     {/* Reject */}
                     {blog.status !== 'REJECTED' && (
                       <button
@@ -795,6 +859,19 @@ export function AdminBlogsModeration({ onNotification }: AdminBlogsModerationPro
               </button>
 
               <div className="flex items-center gap-2">
+                {selectedBlog.status !== 'PENDING_APPROVAL' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleResetToPending(selectedBlog);
+                      setSelectedBlog(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Move to Pending</span>
+                  </button>
+                )}
                 {selectedBlog.status !== 'REJECTED' && (
                   <button
                     type="button"

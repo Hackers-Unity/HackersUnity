@@ -510,9 +510,9 @@ export default function AdminCsapPortal() {
 
   // ─── RENDER: Hacker's Unity Authenticated Dashboard ─────────────────────────
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col space-y-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-14 sm:pb-20 flex-1 flex flex-col space-y-8">
       {/* ─── Top Dashboard Header ────────────────────────────────────────── */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="mt-2 sm:mt-4 bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 relative z-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-[#0099e6] text-[11px] font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
@@ -613,9 +613,6 @@ export default function AdminCsapPortal() {
         >
           <PenTool className="w-4 h-4 text-[#0099e6]" />
           <span>Blogs Moderation</span>
-          <span className="ml-1 px-2 py-0.5 rounded-full bg-sky-100 text-[#0099e6] text-[10px] font-extrabold uppercase tracking-wider">
-            Supabase Live
-          </span>
         </button>
       </div>
 

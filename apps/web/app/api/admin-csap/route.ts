@@ -81,13 +81,20 @@ export async function GET(req: NextRequest) {
           .order('created_at', { ascending: false });
 
         if (error) {
-          // If table doesn't exist yet, return empty list with flag
+          const isTableMissing =
+            error.code === '42P01' ||
+            error.message?.toLowerCase().includes('relation "blogs" does not exist') ||
+            error.message?.toLowerCase().includes('does not exist');
+
           return NextResponse.json({
             authenticated: true,
             blogs: [],
             stats: { total: 0, pending: 0, approved: 0, rejected: 0 },
-            tableReady: false,
-            message: 'Blogs table not found. Run apps/web/supabase/blogs-migration.sql in Supabase SQL editor.',
+            tableReady: !isTableMissing,
+            error: error.message,
+            message: isTableMissing
+              ? 'Blogs table not found. Run apps/web/supabase/blogs-migration.sql in Supabase SQL editor.'
+              : error.message,
           });
         }
 
@@ -110,7 +117,7 @@ export async function GET(req: NextRequest) {
           authenticated: true,
           blogs: [],
           stats: { total: 0, pending: 0, approved: 0, rejected: 0 },
-          tableReady: false,
+          tableReady: true,
           error: blogErr.message,
         });
       }
@@ -236,6 +243,7 @@ export async function PATCH(req: NextRequest) {
         .from('blogs')
         .update({
           status: 'APPROVED',
+          admin_feedback: null,
           reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -277,6 +285,33 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({
         success: true,
         message: `Blog "${data.title}" rejected.`,
+        blog: data,
+      });
+    }
+
+    if (action === 'pending_blog' || action === 'reset_blog') {
+      const targetId = blogId || eventId;
+      if (!targetId) return NextResponse.json({ error: 'Missing blogId' }, { status: 400 });
+
+      const { data, error } = await supabase
+        .from('blogs')
+        .update({
+          status: 'PENDING_APPROVAL',
+          admin_feedback: null,
+          reviewed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetId)
+        .select('*')
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Blog "${data.title}" moved back to Pending Review.`,
         blog: data,
       });
     }
