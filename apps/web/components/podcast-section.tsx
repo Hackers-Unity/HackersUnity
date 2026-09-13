@@ -286,7 +286,7 @@ export function PodcastSection() {
           {PODCAST_EPISODES.map((ep, idx) => (
             <div
               key={ep.id}
-              className="w-[310px] sm:w-[350px] shrink-0 snap-start group rounded-3xl bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6]/50 shadow-xs hover:shadow-2xl hover:shadow-[#0099e6]/10 transition-all duration-300 flex flex-col overflow-hidden hover:-translate-y-2"
+              className="w-[82vw] max-w-[320px] sm:w-[350px] shrink-0 snap-start group rounded-3xl bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] hover:border-[#0099e6] dark:hover:border-[#0099e6]/50 shadow-xs hover:shadow-2xl hover:shadow-[#0099e6]/10 transition-all duration-300 flex flex-col overflow-hidden hover:-translate-y-2"
               style={{
                 animationDelay: `${idx * 100}ms`,
               }}

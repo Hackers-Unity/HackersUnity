@@ -201,7 +201,7 @@ export function TestimonialsSection() {
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
             aria-label="Previous testimonial"
-            className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white dark:bg-[#0c1017] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xl border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white dark:bg-[#0c1017] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xl border border-slate-200/80 dark:border-white/[0.08] items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -212,7 +212,7 @@ export function TestimonialsSection() {
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
             aria-label="Next testimonial"
-            className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white dark:bg-[#0c1017] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xl border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white dark:bg-[#0c1017] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 hover:text-[#0099e6] shadow-xl border border-slate-200/80 dark:border-white/[0.08] items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -225,9 +225,9 @@ export function TestimonialsSection() {
             {TESTIMONIALS.map((item) => (
               <div
                 key={item.id}
-                className="w-[320px] sm:w-[370px] md:w-[380px] shrink-0 snap-start flex flex-col"
+                className="w-[85vw] max-w-[340px] sm:w-[370px] md:w-[380px] shrink-0 snap-start flex flex-col"
               >
-                <div className="bg-white dark:bg-[#0c1017] rounded-3xl p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.05)] dark:shadow-black/70 border border-slate-100 dark:border-white/[0.08] hover:border-slate-200 dark:hover:border-white/[0.16] hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full min-h-[300px]">
+                <div className="bg-white dark:bg-[#0c1017] rounded-3xl p-5 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.05)] dark:shadow-black/70 border border-slate-100 dark:border-white/[0.08] hover:border-slate-200 dark:hover:border-white/[0.16] hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full min-h-[300px]">
                   {/* Top: Avatar + Name + Designation */}
                   <div>
                     <div className="flex items-center gap-4 mb-5">

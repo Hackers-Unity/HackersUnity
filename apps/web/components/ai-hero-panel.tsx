@@ -282,8 +282,8 @@ export function AiHeroPanel() {
           aiEvent.eventType === 'OFFLINE'
             ? EventType.OFFLINE
             : aiEvent.eventType === 'HYBRID'
-            ? EventType.HYBRID
-            : EventType.ONLINE,
+              ? EventType.HYBRID
+              : EventType.ONLINE,
         mode: aiEvent.mode || (aiEvent.eventType === 'OFFLINE' ? 'In-Person' : 'Online'),
         location: aiEvent.location || 'Online / Discord',
         domain: (aiEvent.tags && aiEvent.tags.join(', ')) || 'AI, Web3, Fullstack',
@@ -323,20 +323,20 @@ export function AiHeroPanel() {
         rulesText: aiEvent.rulesText || aiEvent.rules || 'Standard hackathon code of conduct applies.',
         prizes: Array.isArray(aiEvent.prizes)
           ? aiEvent.prizes.map((p: any) => ({
-              position: p.position || p.title || 'Winner',
-              amount: typeof p.amount === 'number' ? p.amount : parseInt(String(p.amount).replace(/\D/g, '')) || 50000,
-              description: p.description || '',
-            }))
+            position: p.position || p.title || 'Winner',
+            amount: typeof p.amount === 'number' ? p.amount : parseInt(String(p.amount).replace(/\D/g, '')) || 50000,
+            description: p.description || '',
+          }))
           : [
-              { position: '1st Place', amount: 50000, description: 'Grand Prize' },
-              { position: '2nd Place', amount: 30000, description: 'Runner Up' },
-            ],
+            { position: '1st Place', amount: 50000, description: 'Grand Prize' },
+            { position: '2nd Place', amount: 30000, description: 'Runner Up' },
+          ],
         tracks: Array.isArray(aiEvent.tracks)
           ? aiEvent.tracks.map((t: any) => ({
-              title: t.title || 'Open Track',
-              prize: t.prize || t.prizePool || '₹25,000',
-              description: t.description || 'Build innovative solutions',
-            }))
+            title: t.title || 'Open Track',
+            prize: t.prize || t.prizePool || '₹25,000',
+            description: t.description || 'Build innovative solutions',
+          }))
           : [{ title: 'Open Innovation', prize: '₹50,000', description: 'Any innovative software prototype' }],
         stages: [
           {
@@ -401,9 +401,8 @@ export function AiHeroPanel() {
     <div className="relative w-full max-w-3xl mb-6 z-30">
       {/* ─── COMMAND BAR CONTAINER (CLEAN ROUNDED-2XL CARD, NO BUBBLE/CIRCLE RING) ─── */}
       <div
-        className={`relative w-full bg-white dark:bg-[#0c1017]/90 transition-all duration-200 shadow-lg shadow-slate-200/60 dark:shadow-black/70 border border-slate-200/90 dark:border-white/[0.08] rounded-2xl ${
-          isExpandedBuild ? 'p-3.5 sm:p-4' : 'p-2 flex flex-col sm:flex-row sm:items-center gap-2'
-        }`}
+        className={`relative w-full bg-white dark:bg-[#0c1017]/90 transition-all duration-200 shadow-lg shadow-slate-200/60 dark:shadow-black/70 border border-slate-200/90 dark:border-white/[0.08] rounded-2xl ${isExpandedBuild ? 'p-3.5 sm:p-4' : 'p-2 flex flex-col sm:flex-row sm:items-center gap-2'
+          }`}
       >
         {isExpandedBuild ? (
           /* ─── EXPANDED BUILD VIEW (CLEAN RECTANGULAR CARD) ─── */
@@ -536,11 +535,10 @@ export function AiHeroPanel() {
                   setActiveTab('find');
                   setBuildError(null);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'find'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === 'find'
                     ? 'bg-white dark:bg-white/[0.12] text-[#0099e6] shadow-xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <Search className="w-3.5 h-3.5" />
                 <span>Find</span>
@@ -552,11 +550,10 @@ export function AiHeroPanel() {
                   setActiveTab('build');
                   setHasSearched(false);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'build'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === 'build'
                     ? 'bg-white dark:bg-white/[0.12] text-[#ea580c] shadow-xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Build</span>

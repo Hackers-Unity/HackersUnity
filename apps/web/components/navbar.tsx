@@ -88,11 +88,11 @@ export function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-[#05070c]/85 border-b border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-xs dark:shadow-black/60 transition-colors duration-200">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-22 flex items-center justify-between gap-4 relative">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 lg:h-22 flex items-center justify-between gap-2 sm:gap-4 relative">
           {/* Left: Brand Logo */}
-          <div className="flex items-center shrink-0 pl-6 sm:pl-10 lg:pl-16 xl:pl-20">
+          <div className="flex items-center shrink-0 pl-0 sm:pl-4 lg:pl-12 xl:pl-16">
             <Link href="/" className="flex items-center group py-1">
-              <Logo size={74} showText={false} />
+              <Logo size={68} showText={false} />
             </Link>
           </div>
 
@@ -102,11 +102,10 @@ export function Navbar() {
               {/* About Us */}
               <Link
                 href="/about"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                  isAboutActive
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${isAboutActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
-                }`}
+                  }`}
               >
                 About Us
               </Link>
@@ -120,17 +119,15 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setOpportunitiesOpen((prev) => !prev)}
-                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    isOppsActive
+                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${isOppsActive
                       ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
-                  }`}
+                    }`}
                 >
                   <span>Opportunities</span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      opportunitiesOpen ? 'rotate-180 text-[#0099e6]' : 'text-slate-400'
-                    }`}
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${opportunitiesOpen ? 'rotate-180 text-[#0099e6]' : 'text-slate-400'
+                      }`}
                   />
                 </button>
 
@@ -208,11 +205,10 @@ export function Navbar() {
               {/* Contact Us */}
               <Link
                 href="/contact"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                  isContactActive
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${isContactActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
-                }`}
+                  }`}
               >
                 Contact Us
               </Link>
@@ -220,11 +216,10 @@ export function Navbar() {
               {/* Blogs */}
               <Link
                 href="/blogs"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                  isBlogsActive
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${isBlogsActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
-                }`}
+                  }`}
               >
                 Blogs
               </Link>
@@ -232,11 +227,10 @@ export function Navbar() {
               {/* My Dashboard */}
               <Link
                 href="/dashboard"
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                  isDashboardActive
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${isDashboardActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
-                }`}
+                  }`}
               >
                 My Dashboard
               </Link>
@@ -245,17 +239,17 @@ export function Navbar() {
 
           {/* Right: Action Bar */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 z-20">
-            {/* Quick Search Button (⌘K) - Styled exactly as user screenshot */}
+            {/* Quick Search Button (⌘K) - Compact circular button on mobile, full pill on sm+ */}
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/80 dark:bg-[#0c1017]/90 dark:hover:bg-white/[0.06] border border-slate-200/90 dark:border-white/[0.12] transition-all cursor-pointer shadow-2xs group shrink-0"
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full sm:rounded-xl bg-slate-100/90 hover:bg-slate-200/80 dark:bg-[#0c1017]/90 dark:hover:bg-white/[0.06] border border-slate-200/90 dark:border-white/[0.12] transition-all cursor-pointer shadow-2xs group shrink-0"
               aria-label="Open search"
               title="Search hackathons & builders (⌘K)"
             >
-              <Search className="w-3.5 h-3.5 text-[#0099e6] group-hover:scale-110 transition-transform shrink-0" />
-              <span className="text-slate-400 text-xs font-normal">Search...</span>
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white/60 dark:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.12] text-[10px] font-mono font-bold text-slate-400 dark:text-slate-400 shadow-2xs">
+              <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#0099e6] group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden sm:inline text-slate-400 text-xs font-normal ml-1.5">Search...</span>
+              <kbd className="hidden sm:inline-block ml-1.5 px-1.5 py-0.5 rounded-md bg-white/60 dark:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.12] text-[10px] font-mono font-bold text-slate-400 dark:text-slate-400 shadow-2xs">
                 ⌘K
               </kbd>
             </button>
@@ -339,15 +333,15 @@ export function Navbar() {
                       {(currentUser.role === UserRole.ADMIN ||
                         currentUser.role === UserRole.SUPER_ADMIN ||
                         currentUser.role === UserRole.ORGANIZER) && (
-                        <Link
-                          href="/admin/notifications"
-                          onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[#0099e6] bg-sky-50/70 dark:bg-sky-500/10 hover:bg-sky-100/80 dark:hover:bg-sky-500/20 font-bold transition-colors"
-                        >
-                          <Megaphone className="w-3.5 h-3.5 text-[#0099e6]" />
-                          <span>Announcements Studio</span>
-                        </Link>
-                      )}
+                          <Link
+                            href="/admin/notifications"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-[#0099e6] bg-sky-50/70 dark:bg-sky-500/10 hover:bg-sky-100/80 dark:hover:bg-sky-500/20 font-bold transition-colors"
+                          >
+                            <Megaphone className="w-3.5 h-3.5 text-[#0099e6]" />
+                            <span>Announcements Studio</span>
+                          </Link>
+                        )}
                     </div>
 
                     {/* Theme Switcher in Profile Menu */}
@@ -362,11 +356,10 @@ export function Navbar() {
                         <button
                           type="button"
                           onClick={() => setTheme('light')}
-                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            theme === 'light'
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${theme === 'light'
                               ? 'bg-white text-slate-900 shadow-xs'
                               : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                          }`}
+                            }`}
                         >
                           <Sun className="w-3.5 h-3.5 text-amber-500" />
                           <span>Light</span>
@@ -374,11 +367,10 @@ export function Navbar() {
                         <button
                           type="button"
                           onClick={() => setTheme('dark')}
-                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            theme === 'dark'
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${theme === 'dark'
                               ? 'bg-[#0099e6] text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                          }`}
+                            }`}
                         >
                           <Moon className="w-3.5 h-3.5 text-sky-200" />
                           <span>Dark</span>
@@ -404,7 +396,7 @@ export function Navbar() {
             ) : (
               <Link
                 href="/signup"
-                className="px-5 py-2 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-[#0099e6] dark:hover:bg-[#0088cc] text-white font-bold text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                className="hidden sm:inline-flex px-5 py-2 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-[#0099e6] dark:hover:bg-[#0088cc] text-white font-bold text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 Get Started
               </Link>
@@ -427,9 +419,8 @@ export function Navbar() {
             <Link
               href="/about"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
-                isAboutActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-              }`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isAboutActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+                }`}
             >
               <Info className="w-4 h-4 text-slate-500" />
               <span>About Us</span>
@@ -439,18 +430,16 @@ export function Navbar() {
             <div className="space-y-1">
               <button
                 onClick={() => setMobileOppsOpen(!mobileOppsOpen)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold cursor-pointer transition-colors ${
-                  isOppsActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-                }`}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold cursor-pointer transition-colors ${isOppsActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+                  }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Trophy className="w-4 h-4 text-slate-500" />
                   <span>Opportunities</span>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    mobileOppsOpen ? 'rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 transition-transform duration-200 ${mobileOppsOpen ? 'rotate-180' : ''
+                    }`}
                 />
               </button>
 
@@ -459,11 +448,10 @@ export function Navbar() {
                   <Link
                     href="/hackathons"
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                      pathname.startsWith('/hackathons')
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${pathname.startsWith('/hackathons')
                         ? 'text-[#0099e6] font-bold bg-sky-50/70 dark:bg-sky-500/10'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-                    }`}
+                      }`}
                   >
                     <Trophy className="w-3.5 h-3.5 text-[#0099e6]" />
                     <span>Hackathons</span>
@@ -471,11 +459,10 @@ export function Navbar() {
                   <Link
                     href="/events"
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                      pathname.startsWith('/events')
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${pathname.startsWith('/events')
                         ? 'text-[#ea580c] font-bold bg-orange-50/70 dark:bg-orange-500/10'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-                    }`}
+                      }`}
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#ea580c]" />
                     <span>Tech Events</span>
@@ -487,9 +474,8 @@ export function Navbar() {
             <Link
               href="/contact"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
-                isContactActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-              }`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isContactActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+                }`}
             >
               <Mail className="w-4 h-4 text-slate-500" />
               <span>Contact Us</span>
@@ -498,9 +484,8 @@ export function Navbar() {
             <Link
               href="/blogs"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
-                isBlogsActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-              }`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isBlogsActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+                }`}
             >
               <BookOpen className="w-4 h-4 text-slate-500" />
               <span>Blogs</span>
@@ -509,9 +494,8 @@ export function Navbar() {
             <Link
               href="/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
-                isDashboardActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
-              }`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isDashboardActive ? 'bg-sky-50 dark:bg-[#0099e6]/10 text-[#0099e6]' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+                }`}
             >
               <Compass className="w-4 h-4 text-slate-500" />
               <span>My Dashboard</span>
@@ -529,11 +513,10 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setTheme('light')}
-                  className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    theme === 'light'
+                  className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${theme === 'light'
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 dark:text-slate-400'
-                  }`}
+                    }`}
                 >
                   <Sun className="w-4 h-4 text-amber-500" />
                   <span>Light</span>
@@ -541,11 +524,10 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setTheme('dark')}
-                  className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    theme === 'dark'
+                  className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${theme === 'dark'
                       ? 'bg-[#0099e6] text-white shadow-xs'
                       : 'text-slate-500 dark:text-slate-400'
-                  }`}
+                    }`}
                 >
                   <Moon className="w-4 h-4 text-sky-200" />
                   <span>Dark</span>
