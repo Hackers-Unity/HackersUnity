@@ -182,8 +182,8 @@ export function Footer() {
               <li>
                 <Link href="/podcasts" className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 group">
                   <span>Podcasts</span>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#1ed760]/15 text-[#1ed760] border border-[#1ed760]/30 tracking-tight">
-                    Latest
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#0099e6]/15 text-[#0099e6] border border-[#0099e6]/30">
+                    NEW
                   </span>
                 </Link>
               </li>
