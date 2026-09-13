@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   Search,
   BookOpen,
   Sparkles,
   Clock,
-  User,
+  Calendar,
   ArrowRight,
   ChevronRight,
   Share2,
@@ -15,18 +16,18 @@ import {
   Check,
   Tag,
   Flame,
-  Filter,
+  Layers,
 } from 'lucide-react';
 import { BLOG_POSTS, BlogPost } from '@/lib/blogs-data';
 
 const CATEGORIES = [
   'ALL',
-  'Hackathons',
-  'AI & Agents',
-  'Squad Formation',
-  'Career & Big Tech',
-  'Pitch & Judging',
-  'Web3 & DeepTech',
+  'Agentic AI',
+  'Space Domain',
+  'Web3',
+  'IoT',
+  'Cybersecurity',
+  'Cloud',
 ] as const;
 
 export default function BlogsPage() {
@@ -62,7 +63,7 @@ export default function BlogsPage() {
         post.title.toLowerCase().includes(q) ||
         post.subtitle.toLowerCase().includes(q) ||
         post.excerpt.toLowerCase().includes(q) ||
-        post.author.name.toLowerCase().includes(q) ||
+        post.category.toLowerCase().includes(q) ||
         post.tags.some((t) => t.toLowerCase().includes(q));
 
       return matchesCategory && matchesQuery;
@@ -97,20 +98,20 @@ export default function BlogsPage() {
             {/* Glass Pill Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl shadow-xs mx-auto">
               <BookOpen className="w-3.5 h-3.5 text-[#0099e6]" />
-              <span className="tracking-wider uppercase text-[11px]">Hacker&apos;s Unity Insights</span>
+              <span className="tracking-wider uppercase text-[11px]">Domain Tech Chronicles</span>
             </div>
 
             {/* Headline */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-              Stories, playbooks &amp;{' '}
+              Frontier Tech &amp;{' '}
               <span className="bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316] bg-clip-text text-transparent">
-                builder wisdom.
+                Domain Playbooks.
               </span>
             </h1>
 
             {/* Subheading */}
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-              Deep dives on winning national hackathons, architecting autonomous AI agents, assembling dream squads, and landing offers at Amazon &amp; Microsoft.
+              Deep dives across Agentic AI, SpaceTech, Web3, Internet of Things, Cybersecurity, and Hyperscale Cloud Architecture.
             </p>
 
             {/* Frosted Glass Search Bar */}
@@ -121,7 +122,7 @@ export default function BlogsPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search articles by topic, e.g. 'winning hackathons', 'squads', 'AI agents'..."
+                  placeholder="Search by domain e.g., 'Agentic AI', 'Space', 'Web3', 'IoT', 'Cybersecurity'..."
                   className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/80 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm backdrop-blur-xl focus:outline-none focus:border-[#0099e6] focus:ring-2 focus:ring-[#0099e6]/20 transition-all shadow-lg shadow-slate-200/40 dark:shadow-black/60"
                 />
                 {searchQuery && (
@@ -151,12 +152,13 @@ export default function BlogsPage() {
               {/* Left Column: Text Content */}
               <div className="lg:col-span-7 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f97316]/10 text-[#f97316] border border-[#f97316]/30 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
-                    <Flame className="w-3 h-3" />
-                    <span>FEATURED PLAYBOOK</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0099e6]/10 text-[#0099e6] border border-[#0099e6]/30 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                    <Flame className="w-3 h-3 text-[#f97316]" />
+                    <span>FEATURED DOMAIN ARTICLE</span>
                   </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {featuredBlog.readTime}
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{featuredBlog.readTime}</span>
                   </span>
                 </div>
 
@@ -168,29 +170,20 @@ export default function BlogsPage() {
                   {featuredBlog.subtitle}
                 </p>
 
-                {/* Author Info */}
-                <div className="flex items-center gap-3 pt-2">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#0099e6] to-sky-400 text-white font-black text-xs flex items-center justify-center shadow-md shadow-sky-500/20">
-                    {featuredBlog.author.initials}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
-                      {featuredBlog.author.name}
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {featuredBlog.author.role} • {featuredBlog.publishedAt}
-                    </div>
-                  </div>
+                {/* Published Date (No names) */}
+                <div className="flex items-center gap-2 pt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <Calendar className="w-4 h-4 text-[#0099e6]" />
+                  <span>Published on {featuredBlog.publishedAt}</span>
                 </div>
 
                 {/* Action CTA */}
-                <div className="pt-2 flex items-center gap-3">
+                <div className="pt-3 flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setSelectedBlog(featuredBlog)}
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 border border-sky-400/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                   >
-                    <span>Read Full Article</span>
+                    <span>Read Article</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
@@ -204,27 +197,28 @@ export default function BlogsPage() {
                 </div>
               </div>
 
-              {/* Right Column: Visual Glass Banner */}
+              {/* Right Column: Visual Image Container */}
               <div className="lg:col-span-5">
-                <div className={`relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-gradient-to-br ${featuredBlog.coverGradient} border border-slate-200/80 dark:border-white/15 p-6 flex flex-col justify-between shadow-2xl backdrop-blur-xl group-hover:scale-[1.02] transition-transform duration-500`}>
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-lg bg-black/40 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/10">
+                <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/15 shadow-2xl backdrop-blur-xl group-hover:scale-[1.02] transition-transform duration-500">
+                  <Image
+                    src={featuredBlog.image}
+                    alt={featuredBlog.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 40vw"
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                  <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                    <span className="px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/20">
                       {featuredBlog.category}
                     </span>
-                    <span className="text-[10px] font-mono text-white/80 bg-black/30 px-2 py-0.5 rounded backdrop-blur-xs">
-                      36H SPRINT
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-xl sm:text-2xl font-black text-white leading-tight">
-                      Hackathon Mastery Framework
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {featuredBlog.tags.slice(0, 3).map((tag) => (
+                    <div className="flex gap-1">
+                      {featuredBlog.tags.slice(0, 2).map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white text-[10px] font-medium"
+                          className="px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white text-[9px] font-medium"
                         >
                           #{tag}
                         </span>
@@ -308,35 +302,41 @@ export default function BlogsPage() {
                 className="group rounded-3xl overflow-hidden bg-white/70 dark:bg-[#0b101b]/80 border border-slate-200/80 dark:border-white/[0.08] hover:border-[#0099e6]/60 dark:hover:border-[#0099e6]/60 backdrop-blur-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/70 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1.5 cursor-pointer relative"
               >
                 {/* Top Glowing Hairline on Card Hover */}
-                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#0099e6] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#0099e6] to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-20" />
 
                 <div>
-                  {/* Frosted Header / Cover Preview */}
-                  <div className={`relative h-44 w-full bg-gradient-to-br ${blog.coverGradient} p-5 flex flex-col justify-between overflow-hidden border-b border-slate-200/60 dark:border-white/[0.08]`}>
-                    {/* Inner Ambient Glow */}
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
+                  {/* Real Image Container */}
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-900 border-b border-slate-200/60 dark:border-white/[0.08]">
+                    <Image
+                      src={blog.image}
+                      alt={blog.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                    <div className="flex items-center justify-between relative z-10">
-                      <span className="px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/10 shadow-xs">
-                        {blog.category}
-                      </span>
-                      <div className="inline-flex items-center gap-1 text-[11px] font-mono text-white/90 bg-black/30 backdrop-blur-xs px-2.5 py-0.5 rounded-full">
-                        <Clock className="w-3 h-3" />
-                        <span>{blog.readTime}</span>
-                      </div>
+                    {/* Category badge top-left */}
+                    <span className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/10 shadow-xs z-10">
+                      {blog.category}
+                    </span>
+
+                    {/* Read time top-right */}
+                    <div className="absolute top-3.5 right-3.5 inline-flex items-center gap-1 text-[11px] font-mono text-white/90 bg-black/60 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/10 z-10">
+                      <Clock className="w-3 h-3" />
+                      <span>{blog.readTime}</span>
                     </div>
 
-                    <div className="relative z-10">
-                      <div className="flex flex-wrap gap-1">
-                        {blog.tags.slice(0, 2).map((t) => (
-                          <span
-                            key={t}
-                            className="px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white text-[9px] font-medium"
-                          >
-                            #{t}
-                          </span>
-                        ))}
-                      </div>
+                    {/* Tags bottom-left */}
+                    <div className="absolute bottom-3 left-3.5 flex flex-wrap gap-1 z-10">
+                      {blog.tags.slice(0, 2).map((t) => (
+                        <span
+                          key={t}
+                          className="px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white text-[9px] font-medium border border-white/10"
+                        >
+                          #{t}
+                        </span>
+                      ))}
                     </div>
                   </div>
 
@@ -351,20 +351,11 @@ export default function BlogsPage() {
                   </div>
                 </div>
 
-                {/* Card Footer: Author & Read More */}
+                {/* Card Footer: Date & Read More (No personal names) */}
                 <div className="p-5 sm:p-6 pt-0 border-t border-slate-100 dark:border-white/[0.06] mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0099e6] to-sky-400 text-white font-black text-[11px] flex items-center justify-center shadow-xs">
-                      {blog.author.initials}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                        {blog.author.name}
-                      </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                        {blog.publishedAt}
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <Calendar className="w-3.5 h-3.5 text-[#0099e6]" />
+                    <span>{blog.publishedAt}</span>
                   </div>
 
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0099e6] group-hover:translate-x-1 transition-transform">
@@ -390,18 +381,18 @@ export default function BlogsPage() {
             {/* Brand Pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-[11px] font-bold text-slate-700 dark:text-slate-300 backdrop-blur-md relative z-10">
               <Sparkles className="w-3.5 h-3.5 text-[#0099e6]" />
-              <span>Contribute to Hacker&apos;s Unity</span>
+              <span>Contribute Technical Articles</span>
             </div>
 
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white max-w-2xl mx-auto leading-tight relative z-10">
-              Have a hackathon breakdown or technical playbook to share?{' '}
+              Passionate about deep tech research &amp; engineering playbooks?{' '}
               <span className="bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316] bg-clip-text text-transparent">
-                Write for our community.
+                Publish on Hacker&apos;s Unity.
               </span>
             </h3>
 
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed relative z-10 font-normal">
-              Join our network of guest contributors, mentors, and engineering leads. Get your insights read by over 50,000+ passionate developers and founders.
+              Share your research across Agentic AI, SpaceTech, Web3, IoT, and Cybersecurity with 50,000+ engineers, researchers, and founders.
             </p>
 
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3 relative z-10">
@@ -409,7 +400,7 @@ export default function BlogsPage() {
                 href="/contact"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[#0099e6] hover:bg-[#0088cc] text-white font-bold text-xs sm:text-sm shadow-xl shadow-sky-500/25 hover:scale-105 active:scale-95 transition-all border border-sky-400/30 cursor-pointer"
               >
-                <span>Submit Article Pitch</span>
+                <span>Submit Topic Proposal</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
@@ -433,49 +424,52 @@ export default function BlogsPage() {
             {/* Top Glow bar */}
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316]" />
 
-            {/* Modal Header */}
-            <div className="p-6 sm:p-8 border-b border-slate-200/80 dark:border-white/10 flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-[#0099e6]/10 text-[#0099e6] border border-[#0099e6]/30 text-[10px] font-black uppercase tracking-wider">
-                    {selectedBlog.category}
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {selectedBlog.readTime} • {selectedBlog.publishedAt}
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-snug">
-                  {selectedBlog.title}
-                </h2>
-              </div>
+            {/* Modal Header with Cover Image */}
+            <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-900 shrink-0">
+              <Image
+                src={selectedBlog.image}
+                alt={selectedBlog.title}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0c1220] via-black/40 to-transparent" />
 
               {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setSelectedBlog(null)}
-                className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-white/[0.08] hover:bg-slate-200 dark:hover:bg-white/20 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                className="absolute top-4 right-4 w-10 h-10 rounded-2xl bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer backdrop-blur-md border border-white/20 z-20"
                 title="Close"
               >
                 <X className="w-5 h-5" />
               </button>
+
+              <div className="absolute bottom-4 left-6 right-6 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-black/60 text-white border border-white/20 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                    {selectedBlog.category}
+                  </span>
+                  <span className="text-xs text-slate-200 font-medium flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#0099e6]" />
+                    <span>{selectedBlog.publishedAt}</span>
+                  </span>
+                  <span className="text-xs text-slate-200 font-medium flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-[#0099e6]" />
+                    <span>{selectedBlog.readTime}</span>
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
+                  {selectedBlog.title}
+                </h2>
+              </div>
             </div>
 
             {/* Modal Scrollable Body */}
             <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-sm sm:text-base leading-relaxed text-slate-700 dark:text-slate-300">
-              {/* Author Banner Card */}
+              {/* Share & Meta Bar */}
               <div className="p-4 rounded-2xl bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-4 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#0099e6] to-sky-400 text-white font-black text-xs flex items-center justify-center shadow-md shadow-sky-500/20">
-                    {selectedBlog.author.initials}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
-                      {selectedBlog.author.name}
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {selectedBlog.author.role}
-                    </div>
-                  </div>
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  Published in <strong>{selectedBlog.category}</strong> Domain
                 </div>
 
                 <button
@@ -547,7 +541,7 @@ export default function BlogsPage() {
             {/* Modal Footer */}
             <div className="p-4 sm:p-6 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-white/[0.02]">
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                Published on Hacker&apos;s Unity Platform
+                Hacker&apos;s Unity Research &amp; Engineering
               </span>
               <button
                 type="button"

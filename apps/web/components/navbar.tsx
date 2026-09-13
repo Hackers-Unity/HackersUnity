@@ -97,12 +97,12 @@ export function Navbar() {
           </div>
 
           {/* Center: Shekunj-style Floating Glass Panel Navigation (Centered) */}
-          <nav className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10 pointer-events-auto">
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-xs">
+          <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10 pointer-events-auto">
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-xs">
               {/* About Us */}
               <Link
                 href="/about"
-                className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                   isAboutActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -120,7 +120,7 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setOpportunitiesOpen((prev) => !prev)}
-                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
                     isOppsActive
                       ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -208,7 +208,7 @@ export function Navbar() {
               {/* Contact Us */}
               <Link
                 href="/contact"
-                className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                   isContactActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -220,7 +220,7 @@ export function Navbar() {
               {/* Blogs */}
               <Link
                 href="/blogs"
-                className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                   isBlogsActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -232,7 +232,7 @@ export function Navbar() {
               {/* My Dashboard */}
               <Link
                 href="/dashboard"
-                className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                   isDashboardActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -244,16 +244,16 @@ export function Navbar() {
           </nav>
 
           {/* Right: Action Bar */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Quick Search Button (⌘K) */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/[0.08] text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer shadow-2xs group"
+              className="hidden sm:flex items-center gap-2 p-2 xl:px-3 xl:py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/[0.08] text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer shadow-2xs group"
               title="Search hackathons & builders (⌘K)"
             >
               <Search className="w-3.5 h-3.5 text-[#0099e6] group-hover:scale-110 transition-transform" />
-              <span className="text-slate-400 text-xs font-medium">Search...</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/[0.12] text-[10px] font-mono font-bold text-slate-400 shadow-2xs">
+              <span className="hidden 2xl:inline text-slate-400 text-xs font-medium">Search...</span>
+              <kbd className="hidden 2xl:inline px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/[0.12] text-[10px] font-mono font-bold text-slate-400 shadow-2xs">
                 ⌘K
               </kbd>
             </button>

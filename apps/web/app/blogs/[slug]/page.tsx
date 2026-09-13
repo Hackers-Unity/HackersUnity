@@ -1,11 +1,10 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
   Clock,
-  User,
-  Share2,
-  BookOpen,
+  Calendar,
   Tag,
   ArrowRight,
   Sparkles,
@@ -47,42 +46,43 @@ export default async function BlogSlugPage({ params }: BlogSlugPageProps) {
           {/* Glowing Top Hairline */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316]" />
 
-          {/* Header Banner */}
-          <div className={`p-8 sm:p-12 bg-gradient-to-br ${post.coverGradient} border-b border-slate-200/60 dark:border-white/10 space-y-4`}>
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/10">
-                {post.category}
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs font-mono text-white/90 bg-black/30 backdrop-blur-xs px-2.5 py-0.5 rounded-full">
-                <Clock className="w-3 h-3" />
-                <span>{post.readTime}</span>
-              </span>
+          {/* Real Cover Image Banner */}
+          <div className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-900">
+            <Image
+              src={post.image}
+              alt={post.title}
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#090e17] via-black/40 to-transparent" />
+
+            <div className="absolute bottom-6 left-6 right-6 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/20">
+                  {post.category}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-mono text-white/90 bg-black/50 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/10">
+                  <Clock className="w-3 h-3 text-[#0099e6]" />
+                  <span>{post.readTime}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-mono text-white/90 bg-black/50 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/10">
+                  <Calendar className="w-3 h-3 text-[#0099e6]" />
+                  <span>{post.publishedAt}</span>
+                </span>
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+                {post.title}
+              </h1>
             </div>
-
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-              {post.title}
-            </h1>
-
-            <p className="text-sm sm:text-base text-slate-200 max-w-2xl leading-relaxed">
-              {post.subtitle}
-            </p>
           </div>
 
-          {/* Author Bar */}
-          <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between gap-4 bg-slate-50/50 dark:bg-white/[0.02]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#0099e6] to-sky-400 text-white font-black text-xs flex items-center justify-center shadow-md shadow-sky-500/20">
-                {post.author.initials}
-              </div>
-              <div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white">
-                  {post.author.name}
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  {post.author.role} • {post.publishedAt}
-                </div>
-              </div>
-            </div>
+          {/* Subtitle Bar */}
+          <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02]">
+            <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              💡 {post.subtitle}
+            </p>
           </div>
 
           {/* Content Body */}
@@ -130,28 +130,37 @@ export default async function BlogSlugPage({ params }: BlogSlugPageProps) {
         {/* More Articles */}
         <div className="space-y-6 pt-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-            More from Hacker&apos;s Unity
+            More Frontier Domain Articles
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {otherPosts.map((item) => (
               <Link
                 key={item.id}
                 href={`/blogs/${item.slug}`}
-                className="group p-5 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-[#0099e6]/50 transition-all flex flex-col justify-between"
+                className="group rounded-2xl overflow-hidden bg-white/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-[#0099e6]/50 transition-all flex flex-col justify-between"
               >
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black text-[#0099e6] uppercase tracking-wider">
+                <div className="relative h-28 w-full bg-slate-900 overflow-hidden">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                  <span className="absolute bottom-2 left-2 text-[10px] font-black text-white px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs">
                     {item.category}
                   </span>
+                </div>
+                <div className="p-4 space-y-2">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-[#0099e6] transition-colors">
                     {item.title}
                   </h4>
-                </div>
-                <div className="pt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>{item.readTime}</span>
-                  <span className="font-bold text-[#0099e6] group-hover:translate-x-1 transition-transform">
-                    Read →
-                  </span>
+                  <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>{item.publishedAt}</span>
+                    <span className="font-bold text-[#0099e6] group-hover:translate-x-1 transition-transform">
+                      Read →
+                    </span>
+                  </div>
                 </div>
               </Link>
             ))}
