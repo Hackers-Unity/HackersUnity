@@ -402,7 +402,7 @@ export default function AdminCsapPortal() {
     return (
       <div className="flex-1 flex items-center justify-center px-4 py-12 sm:py-20">
         <div className="w-full max-w-md">
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-10 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+          <div className="bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/50 relative overflow-hidden">
             {/* Top decorative gradient bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#ea580c]" />
 
@@ -417,20 +417,20 @@ export default function AdminCsapPortal() {
                 <span className="text-[#ea580c] font-extrabold">Unity</span>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-[#0099e6] text-[11px] font-bold uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/40 text-[#0099e6] dark:text-[#38bdf8] text-[11px] font-bold uppercase tracking-wider mb-2">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>CSAP Central Admin Portal</span>
               </div>
 
-              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto">
                 Sign in with authorized administrator credentials to review and approve hackathon requests.
               </p>
             </div>
 
             {/* Error Message */}
             {loginError && (
-              <div className="mb-6 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <div className="mb-6 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 <span>{loginError}</span>
               </div>
             )}
@@ -438,40 +438,40 @@ export default function AdminCsapPortal() {
             {/* Form */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                   Admin Username
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter admin username"
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#0099e6] focus:ring-2 focus:ring-[#0099e6]/20 rounded-2xl text-slate-900 placeholder-slate-400 text-sm font-semibold transition"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#080c14] focus:border-[#0099e6] focus:ring-2 focus:ring-[#0099e6]/20 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm font-semibold transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                   Admin Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter security password"
                     required
-                    className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#0099e6] focus:ring-2 focus:ring-[#0099e6]/20 rounded-2xl text-slate-900 placeholder-slate-400 text-sm font-semibold transition"
+                    className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#080c14] focus:border-[#0099e6] focus:ring-2 focus:ring-[#0099e6]/20 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm font-semibold transition"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -498,7 +498,7 @@ export default function AdminCsapPortal() {
               </button>
             </form>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] text-slate-500 font-semibold">
+            <div className="mt-8 pt-5 border-t border-slate-100 dark:border-white/[0.08] flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Real-time Supabase Database Connected</span>
             </div>
@@ -514,17 +514,17 @@ export default function AdminCsapPortal() {
       {/* ─── Top Dashboard Header ────────────────────────────────────────── */}
       <div className="mt-2 sm:mt-4 bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-[#0099e6] text-[11px] font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/40 text-[#0099e6] dark:text-[#38bdf8] text-[11px] font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
             <span>CSAP Super Admin • Hacker&apos;s Unity</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             {activeSection === 'hackathons'
               ? 'Hackathon Moderation & Approval Engine'
               : 'Community Blogs & Playbooks Moderation'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-2xl">
             {activeSection === 'hackathons'
               ? 'Review host requests submitted by colleges and organizations in real-time. Approved hackathons instantly become public across the main website.'
               : 'Review tech blogs, tutorials, and ecosystem playbooks submitted by community builders. Approved posts are published live immediately on /blogs.'}
@@ -533,7 +533,7 @@ export default function AdminCsapPortal() {
 
         {/* Live sync badge & controls */}
         <div className="flex items-center gap-3 relative z-10">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
             <span>Live Realtime Sync</span>
           </div>
@@ -542,7 +542,7 @@ export default function AdminCsapPortal() {
             onClick={fetchEvents}
             disabled={loadingEvents}
             title="Refresh submissions"
-            className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer disabled:opacity-50"
+            className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loadingEvents ? 'animate-spin' : ''}`} />
           </button>
@@ -550,7 +550,7 @@ export default function AdminCsapPortal() {
           <button
             onClick={handleLogout}
             title="Logout from admin panel"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 text-xs font-bold transition cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Logout</span>
@@ -583,14 +583,14 @@ export default function AdminCsapPortal() {
       )}
 
       {/* ─── Section Switcher: Hackathons vs Blogs ────────────────────────── */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 backdrop-blur-md rounded-2xl border border-slate-200/90 w-fit shadow-xs">
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 dark:bg-white/[0.04] backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-white/[0.08] w-fit shadow-xs">
         <button
           type="button"
           onClick={() => setActiveSection('hackathons')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
             activeSection === 'hackathons'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-white dark:bg-white/[0.1] text-slate-900 dark:text-white shadow-xs border border-slate-200/90 dark:border-white/[0.1]'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/[0.04]'
           }`}
         >
           <Sparkles className="w-4 h-4 text-[#0099e6]" />
@@ -607,8 +607,8 @@ export default function AdminCsapPortal() {
           onClick={() => setActiveSection('blogs')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
             activeSection === 'blogs'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-white dark:bg-white/[0.1] text-slate-900 dark:text-white shadow-xs border border-slate-200/90 dark:border-white/[0.1]'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/[0.04]'
           }`}
         >
           <PenTool className="w-4 h-4 text-[#0099e6]" />
@@ -625,168 +625,168 @@ export default function AdminCsapPortal() {
             {/* Pending Review (Primary Action Item) */}
             <div
               onClick={() => setStatusFilter('PENDING')}
-          className={`p-6 rounded-3xl border transition-all cursor-pointer ${
-            statusFilter === 'PENDING'
-              ? 'bg-amber-50 border-amber-300 shadow-md shadow-amber-500/10'
-              : 'bg-white border-slate-200/90 hover:border-amber-200 hover:shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700">
-              Pending Review
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black text-slate-900">{stats.pending}</span>
-            {stats.pending > 0 && (
-              <span className="text-xs text-amber-700 font-bold px-2 py-0.5 rounded-full bg-amber-100 animate-pulse">
-                Needs Action
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Live on Website */}
-        <div
-          onClick={() => setStatusFilter('APPROVED')}
-          className={`p-6 rounded-3xl border transition-all cursor-pointer ${
-            statusFilter === 'APPROVED'
-              ? 'bg-emerald-50 border-emerald-300 shadow-md shadow-emerald-500/10'
-              : 'bg-white border-slate-200/90 hover:border-emerald-200 hover:shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">
-              Live on Website
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black text-slate-900">{stats.approved}</span>
-            <span className="text-xs text-emerald-700 font-bold">Public</span>
-          </div>
-        </div>
-
-        {/* Rejected */}
-        <div
-          onClick={() => setStatusFilter('REJECTED')}
-          className={`p-6 rounded-3xl border transition-all cursor-pointer ${
-            statusFilter === 'REJECTED'
-              ? 'bg-rose-50 border-rose-300 shadow-md shadow-rose-500/10'
-              : 'bg-white border-slate-200/90 hover:border-rose-200 hover:shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-rose-700">
-              Rejected
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
-              <XCircle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black text-slate-900">{stats.rejected}</span>
-            <span className="text-xs text-rose-600 font-bold">Hidden</span>
-          </div>
-        </div>
-
-        {/* Total Applications */}
-        <div
-          onClick={() => setStatusFilter('ALL')}
-          className={`p-6 rounded-3xl border transition-all cursor-pointer ${
-            statusFilter === 'ALL'
-              ? 'bg-sky-50 border-sky-300 shadow-md shadow-sky-500/10'
-              : 'bg-white border-slate-200/90 hover:border-sky-200 hover:shadow-xs'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-[#0099e6]">
-              Total Applications
-            </span>
-            <div className="w-10 h-10 rounded-2xl bg-sky-100 text-[#0099e6] flex items-center justify-center">
-              <Trophy className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black text-slate-900">{stats.total}</span>
-            <span className="text-xs text-slate-500 font-bold">All Time</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Search & Tab Filters ────────────────────────────────────────── */}
-      <div className="bg-white border border-slate-200/90 p-3 rounded-2xl shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        {/* Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {(
-            [
-              { key: 'PENDING', label: 'Pending Review', count: stats.pending },
-              { key: 'APPROVED', label: 'Approved & Live', count: stats.approved },
-              { key: 'REJECTED', label: 'Rejected', count: stats.rejected },
-              { key: 'DRAFT', label: 'Drafts', count: stats.draft },
-              { key: 'ALL', label: 'All Submissions', count: stats.total },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
-                statusFilter === tab.key
-                  ? 'bg-[#0099e6] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              className={`p-6 rounded-3xl border transition-all cursor-pointer select-none ${
+                statusFilter === 'PENDING'
+                  ? 'bg-amber-50/90 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 shadow-md shadow-amber-500/10'
+                  : 'bg-white dark:bg-[#0c1017] border-slate-200/90 dark:border-white/[0.08] hover:border-amber-200 dark:hover:border-amber-500/30 hover:shadow-xs'
               }`}
             >
-              <span>{tab.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
-                  statusFilter === tab.key ? 'bg-white text-[#0099e6]' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Pending Review
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Clock className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">{stats.pending}</span>
+                {stats.pending > 0 && (
+                  <span className="text-xs text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 animate-pulse">
+                    Needs Action
+                  </span>
+                )}
+              </div>
+            </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by title, host, college..."
-            className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-[#0099e6] focus:ring-1 focus:ring-[#0099e6] rounded-xl text-xs text-slate-900 placeholder-slate-400 font-medium transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            {/* Live on Website */}
+            <div
+              onClick={() => setStatusFilter('APPROVED')}
+              className={`p-6 rounded-3xl border transition-all cursor-pointer select-none ${
+                statusFilter === 'APPROVED'
+                  ? 'bg-emerald-50/90 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40 shadow-md shadow-emerald-500/10'
+                  : 'bg-white dark:bg-[#0c1017] border-slate-200/90 dark:border-white/[0.08] hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:shadow-xs'
+              }`}
             >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Live on Website
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">{stats.approved}</span>
+                <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Public</span>
+              </div>
+            </div>
+
+            {/* Rejected */}
+            <div
+              onClick={() => setStatusFilter('REJECTED')}
+              className={`p-6 rounded-3xl border transition-all cursor-pointer select-none ${
+                statusFilter === 'REJECTED'
+                  ? 'bg-rose-50/90 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40 shadow-md shadow-rose-500/10'
+                  : 'bg-white dark:bg-[#0c1017] border-slate-200/90 dark:border-white/[0.08] hover:border-rose-200 dark:hover:border-rose-500/30 hover:shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                  Rejected
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <XCircle className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">{stats.rejected}</span>
+                <span className="text-xs text-rose-600 dark:text-rose-400 font-bold">Hidden</span>
+              </div>
+            </div>
+
+            {/* Total Applications */}
+            <div
+              onClick={() => setStatusFilter('ALL')}
+              className={`p-6 rounded-3xl border transition-all cursor-pointer select-none ${
+                statusFilter === 'ALL'
+                  ? 'bg-sky-50/90 dark:bg-sky-500/10 border-sky-300 dark:border-sky-500/40 shadow-md shadow-sky-500/10'
+                  : 'bg-white dark:bg-[#0c1017] border-slate-200/90 dark:border-white/[0.08] hover:border-sky-200 dark:hover:border-sky-500/30 hover:shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#0099e6] dark:text-[#38bdf8]">
+                  Total Applications
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-sky-100 dark:bg-sky-500/20 text-[#0099e6] dark:text-[#38bdf8] flex items-center justify-center">
+                  <Trophy className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">{stats.total}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">All Time</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Search & Tab Filters ────────────────────────────────────────── */}
+          <div className="bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] p-3 rounded-2xl shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            {/* Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {(
+                [
+                  { key: 'PENDING', label: 'Pending Review', count: stats.pending },
+                  { key: 'APPROVED', label: 'Approved & Live', count: stats.approved },
+                  { key: 'REJECTED', label: 'Rejected', count: stats.rejected },
+                  { key: 'DRAFT', label: 'Drafts', count: stats.draft },
+                  { key: 'ALL', label: 'All Submissions', count: stats.total },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
+                    statusFilter === tab.key
+                      ? 'bg-[#0099e6] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                      statusFilter === tab.key ? 'bg-white text-[#0099e6]' : 'bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title, host, college..."
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#080c14] focus:border-[#0099e6] focus:ring-1 focus:ring-[#0099e6] rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
 
       {/* ─── Submissions List ────────────────────────────────────────────── */}
       {loadingEvents ? (
-        <div className="py-20 text-center bg-white border border-slate-200/90 rounded-3xl p-8">
+        <div className="py-20 text-center bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8">
           <Loader2 className="w-8 h-8 text-[#0099e6] animate-spin mx-auto mb-3" />
-          <p className="text-xs text-slate-500 font-semibold">Loading hackathon applications...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Loading hackathon applications...</p>
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="py-20 text-center bg-white border border-slate-200/90 rounded-3xl p-8 shadow-xs">
-          <div className="w-14 h-14 rounded-2xl bg-sky-50 text-[#0099e6] flex items-center justify-center mx-auto mb-3">
+        <div className="py-20 text-center bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-500/10 text-[#0099e6] dark:text-[#38bdf8] flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-7 h-7" />
           </div>
-          <h3 className="text-lg font-black text-slate-900 mb-1">No applications found</h3>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto font-medium">
+          <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">No applications found</h3>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto font-medium">
             {statusFilter === 'PENDING'
               ? 'All submitted hackathons have been reviewed! New submissions will appear here in real-time.'
               : 'No hackathons match the selected filter or search term.'}
@@ -813,50 +813,50 @@ export default function AdminCsapPortal() {
             return (
               <div
                 key={event.id}
-                className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-3xl p-6 shadow-xs hover:shadow-md transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+                className="bg-white dark:bg-[#0c1017] border border-slate-200/90 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.16] rounded-3xl p-6 shadow-xs hover:shadow-md transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6"
               >
                 {/* Left details */}
                 <div className="flex-1 space-y-3">
                   {/* Status badge & categories */}
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {isPending && (
-                      <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-bold flex items-center gap-1.5">
+                      <span className="px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         PENDING APPROVAL
                       </span>
                     )}
                     {isApproved && (
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold flex items-center gap-1.5">
+                      <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         APPROVED &amp; LIVE
                       </span>
                     )}
                     {isRejected && (
-                      <span className="px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 font-bold flex items-center gap-1.5">
+                      <span className="px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 font-bold flex items-center gap-1.5">
                         <XCircle className="w-3.5 h-3.5" />
                         REJECTED
                       </span>
                     )}
                     {!isPending && !isApproved && !isRejected && (
-                      <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-bold">
+                      <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 font-bold">
                         {event.status}
                       </span>
                     )}
 
-                    <span className="px-2.5 py-1 rounded-md bg-sky-50 text-[#0099e6] font-bold text-[11px]">
+                    <span className="px-2.5 py-1 rounded-md bg-sky-50 dark:bg-sky-500/10 text-[#0099e6] dark:text-[#38bdf8] font-bold text-[11px]">
                       {event.category || 'HACKATHON'}
                     </span>
-                    <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                    <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 font-semibold text-[11px]">
                       {event.event_type || 'ONLINE'}
                     </span>
-                    <span className="text-slate-400 text-[11px] font-medium">
+                    <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium">
                       Submitted {new Date(event.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>
 
                   {/* Title & Tagline */}
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                       {event.title}
                       {isApproved && (
                         <Link
@@ -870,7 +870,7 @@ export default function AdminCsapPortal() {
                       )}
                     </h3>
                     {event.tagline && (
-                      <p className="text-xs sm:text-sm text-slate-500 font-medium line-clamp-1 mt-0.5">
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium line-clamp-1 mt-0.5">
                         {event.tagline}
                       </p>
                     )}
@@ -880,12 +880,12 @@ export default function AdminCsapPortal() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
                     {/* Organizer */}
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-sky-50 text-[#0099e6] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-500/10 text-[#0099e6] dark:text-[#38bdf8] flex items-center justify-center shrink-0">
                         <Building2 className="w-4 h-4" />
                       </div>
                       <div className="truncate">
-                        <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Host / Org</span>
-                        <span className="font-bold text-slate-800 truncate block">
+                        <span className="text-slate-400 dark:text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Host / Org</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">
                           {event.organizer_name || 'Independent'}
                         </span>
                       </div>
@@ -893,12 +893,12 @@ export default function AdminCsapPortal() {
 
                     {/* Timeline */}
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
                         <Calendar className="w-4 h-4" />
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Event Timeline</span>
-                        <span className="font-bold text-slate-800 block">
+                        <span className="text-slate-400 dark:text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Event Timeline</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block">
                           {new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
                           {new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
@@ -907,12 +907,12 @@ export default function AdminCsapPortal() {
 
                     {/* Prize */}
                     <div className="flex items-center gap-2.5 col-span-2 sm:col-span-1">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-[#ea580c] dark:text-[#fb923c] flex items-center justify-center shrink-0">
                         <Trophy className="w-4 h-4" />
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Prize Pool</span>
-                        <span className="font-black text-[#ea580c] block">
+                        <span className="text-slate-400 dark:text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Prize Pool</span>
+                        <span className="font-black text-[#ea580c] dark:text-[#fb923c] block">
                           {formatCurrency(event.total_prize_value || 0, (event.currency as 'INR' | 'USD') || 'INR')}
                         </span>
                       </div>
@@ -921,10 +921,10 @@ export default function AdminCsapPortal() {
                 </div>
 
                 {/* Right Action Buttons */}
-                <div className="flex flex-row lg:flex-col items-center lg:items-end justify-end gap-2.5 shrink-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                <div className="flex flex-row lg:flex-col items-center lg:items-end justify-end gap-2.5 shrink-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-white/[0.06]">
                   <button
                     onClick={() => setSelectedEvent(event)}
-                    className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-[#0099e6]" />
                     <span>Review Details</span>
@@ -947,7 +947,7 @@ export default function AdminCsapPortal() {
                       <button
                         onClick={() => setRejectModalEvent(event)}
                         disabled={actionLoadingId === event.id}
-                        className="px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>Reject</span>
@@ -958,7 +958,7 @@ export default function AdminCsapPortal() {
                   {isApproved && (
                     <button
                       onClick={() => setRejectModalEvent(event)}
-                      className="px-4 py-2 rounded-2xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-700 border border-slate-200 hover:border-rose-200 text-xs font-bold transition cursor-pointer"
+                      className="px-4 py-2 rounded-2xl bg-slate-50 hover:bg-rose-50 dark:bg-white/[0.04] dark:hover:bg-rose-950/30 text-slate-500 hover:text-rose-700 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-white/[0.08] hover:border-rose-200 dark:hover:border-rose-900/40 text-xs font-bold transition cursor-pointer"
                     >
                       Revoke Live Status
                     </button>
@@ -968,7 +968,7 @@ export default function AdminCsapPortal() {
                     <button
                       onClick={() => handleApprove(event)}
                       disabled={actionLoadingId === event.id}
-                      className="px-4 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Re-Approve</span>
@@ -984,106 +984,106 @@ export default function AdminCsapPortal() {
       {/* ─── Detail Review Modal ─────────────────────────────────────────── */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+          <div className="bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
             {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-4 bg-slate-50/50">
+            <div className="p-6 border-b border-slate-100 dark:border-white/[0.08] flex items-start justify-between gap-4 bg-slate-50/50 dark:bg-white/[0.02]">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span
                     className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${
                       selectedEvent.status === 'PUBLISHED'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30'
                         : selectedEvent.status === 'REJECTED'
-                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30'
+                        : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30'
                     }`}
                   >
                     STATUS: {selectedEvent.status}
                   </span>
-                  <span className="text-xs text-slate-500 font-mono">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                     Slug: {selectedEvent.slug}
                   </span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{selectedEvent.title}</h2>
-                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">{selectedEvent.tagline}</p>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{selectedEvent.title}</h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">{selectedEvent.tagline}</p>
               </div>
 
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="p-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition"
+                className="p-2 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm text-slate-700">
+            <div className="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
               {/* Organizer Card */}
-              <div className="p-5 rounded-2xl bg-sky-50/60 border border-sky-100 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#0099e6] flex items-center gap-2">
+              <div className="p-5 rounded-2xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-800/30 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#0099e6] dark:text-[#38bdf8] flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   Organizer &amp; Host Institution Information
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 block font-medium">Organizer Name</span>
-                    <span className="font-bold text-slate-900 text-sm">{selectedEvent.organizer_name}</span>
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Organizer Name</span>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm">{selectedEvent.organizer_name}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Host Institution</span>
-                    <span className="font-bold text-slate-900 text-sm">
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Host Institution</span>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm">
                       {selectedEvent.institution_name || 'Independent / Community'} ({selectedEvent.host_type || 'College'})
                     </span>
                   </div>
                   {selectedEvent.organizer_email && (
                     <div>
-                      <span className="text-slate-400 block font-medium">Contact Email</span>
-                      <span className="font-semibold text-slate-800">{selectedEvent.organizer_email}</span>
+                      <span className="text-slate-400 dark:text-slate-500 block font-medium">Contact Email</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedEvent.organizer_email}</span>
                     </div>
                   )}
                   {selectedEvent.organizer_phone && (
                     <div>
-                      <span className="text-slate-400 block font-medium">Contact Phone</span>
-                      <span className="font-semibold text-slate-800">{selectedEvent.organizer_phone}</span>
+                      <span className="text-slate-400 dark:text-slate-500 block font-medium">Contact Phone</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedEvent.organizer_phone}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Schedule & Format */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#0099e6]" />
                   Schedule, Format &amp; Venue
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 block font-medium">Category</span>
-                    <span className="font-bold text-slate-900">{selectedEvent.category}</span>
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Category</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{selectedEvent.category}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Format</span>
-                    <span className="font-bold text-slate-900">{selectedEvent.event_type}</span>
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Format</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{selectedEvent.event_type}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Location / Discord</span>
-                    <span className="font-bold text-slate-900">{selectedEvent.location || 'Online'}</span>
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Location / Discord</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{selectedEvent.location || 'Online'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Start Date</span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Start Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
                       {new Date(selectedEvent.start_date).toLocaleString()}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">End Date</span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">End Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
                       {new Date(selectedEvent.end_date).toLocaleString()}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-medium">Reg. Deadline</span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="text-slate-400 dark:text-slate-500 block font-medium">Reg. Deadline</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
                       {new Date(selectedEvent.registration_deadline).toLocaleString()}
                     </span>
                   </div>
@@ -1092,10 +1092,10 @@ export default function AdminCsapPortal() {
 
               {/* Description */}
               <div className="space-y-1.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Description &amp; Overview
                 </h4>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-700 text-xs leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 text-xs leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
                   {selectedEvent.description}
                 </div>
               </div>
@@ -1103,13 +1103,13 @@ export default function AdminCsapPortal() {
               {/* Prizes & Tracks */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Prizes */}
-                <div className="p-5 rounded-2xl bg-orange-50/50 border border-orange-100 space-y-3">
+                <div className="p-5 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-800/30 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#ea580c] flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#ea580c] dark:text-[#fb923c] flex items-center gap-1.5">
                       <Trophy className="w-4 h-4" />
                       Prize Breakdown
                     </h4>
-                    <span className="font-black text-[#ea580c] text-base">
+                    <span className="font-black text-[#ea580c] dark:text-[#fb923c] text-base">
                       {formatCurrency(selectedEvent.total_prize_value || 0, (selectedEvent.currency as 'INR' | 'USD') || 'INR')}
                     </span>
                   </div>
@@ -1118,33 +1118,33 @@ export default function AdminCsapPortal() {
                       {selectedEvent.prizes.map((p, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-2 rounded-xl bg-white border border-orange-100 text-xs"
+                          className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#080c14] border border-orange-100 dark:border-orange-900/30 text-xs"
                         >
-                          <span className="font-bold text-slate-800">{p.title || `Rank ${idx + 1}`}</span>
-                          <span className="font-bold text-[#ea580c]">
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{p.title || `Rank ${idx + 1}`}</span>
+                          <span className="font-bold text-[#ea580c] dark:text-[#fb923c]">
                             {formatCurrency(p.amount || 0, (selectedEvent.currency as 'INR' | 'USD') || 'INR')}
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-500">No individual prize tiers configured.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No individual prize tiers configured.</p>
                   )}
                 </div>
 
                 {/* Tracks */}
-                <div className="p-5 rounded-2xl bg-sky-50/50 border border-sky-100 space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#0099e6] flex items-center gap-1.5">
+                <div className="p-5 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-800/30 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#0099e6] dark:text-[#38bdf8] flex items-center gap-1.5">
                     <Layers className="w-4 h-4" />
                     Tracks ({selectedEvent.tracks?.length || 0})
                   </h4>
                   {Array.isArray(selectedEvent.tracks) && selectedEvent.tracks.length > 0 ? (
                     <div className="space-y-1.5 mt-2 max-h-36 overflow-y-auto">
                       {selectedEvent.tracks.map((t, idx) => (
-                        <div key={idx} className="p-2 rounded-xl bg-white border border-sky-100 text-xs">
-                          <span className="font-bold text-slate-800 block">{t.title || t.name}</span>
+                        <div key={idx} className="p-2 rounded-xl bg-white dark:bg-[#080c14] border border-sky-100 dark:border-sky-900/30 text-xs">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block">{t.title || t.name}</span>
                           {t.description && (
-                            <span className="text-slate-500 line-clamp-1 text-[11px]">
+                            <span className="text-slate-500 dark:text-slate-400 line-clamp-1 text-[11px]">
                               {t.description}
                             </span>
                           )}
@@ -1152,25 +1152,25 @@ export default function AdminCsapPortal() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-500">Open Innovation / General track.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Open Innovation / General track.</p>
                   )}
                 </div>
               </div>
 
               {/* Team Rules */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs font-medium">
-                <span className="text-slate-500">Team Size Constraints:</span>
-                <span className="font-bold text-slate-900">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between text-xs font-medium">
+                <span className="text-slate-500 dark:text-slate-400">Team Size Constraints:</span>
+                <span className="font-bold text-slate-900 dark:text-white">
                   {selectedEvent.min_team_size} to {selectedEvent.max_team_size} Members Per Squad
                 </span>
               </div>
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-3">
+            <div className="p-5 border-t border-slate-100 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02] flex items-center justify-end gap-3">
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="px-5 py-2.5 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                className="px-5 py-2.5 rounded-2xl bg-white dark:bg-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-slate-200 font-bold text-xs transition cursor-pointer"
               >
                 Close
               </button>
@@ -1180,7 +1180,7 @@ export default function AdminCsapPortal() {
                   setRejectModalEvent(selectedEvent);
                   setSelectedEvent(null);
                 }}
-                className="px-5 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition cursor-pointer"
+                className="px-5 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 font-bold text-xs transition cursor-pointer"
               >
                 Reject Request
               </button>
@@ -1208,25 +1208,25 @@ export default function AdminCsapPortal() {
       {/* ─── Reject Reason Modal ─────────────────────────────────────────── */}
       {rejectModalEvent && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-rose-200 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
+          <div className="bg-white dark:bg-[#0c1017] border border-rose-200 dark:border-rose-900/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Reject Application</h3>
-                <p className="text-xs text-slate-500 font-medium">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Reject Application</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {rejectModalEvent.title}
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 font-medium">
-              Setting status to <span className="font-bold text-rose-700">REJECTED</span> will ensure this event never appears publicly on Hacker&apos;s Unity.
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+              Setting status to <span className="font-bold text-rose-700 dark:text-rose-400">REJECTED</span> will ensure this event never appears publicly on Hacker&apos;s Unity.
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Rejection Reason / Notes (Optional)
               </label>
               <textarea
@@ -1234,7 +1234,7 @@ export default function AdminCsapPortal() {
                 onChange={(e) => setRejectFeedback(e.target.value)}
                 placeholder="e.g. Unverified college credentials or incomplete prize pool documentation..."
                 rows={3}
-                className="w-full p-3 bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-400 focus:ring-2 focus:ring-rose-400/20 rounded-2xl text-xs text-slate-900 placeholder-slate-400 font-medium transition"
+                className="w-full p-3 bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#080c14] focus:border-rose-400 focus:ring-2 focus:ring-rose-400/20 rounded-2xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium transition"
               />
             </div>
 
@@ -1244,7 +1244,7 @@ export default function AdminCsapPortal() {
                   setRejectModalEvent(null);
                   setRejectFeedback('');
                 }}
-                className="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                className="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 font-bold text-xs transition cursor-pointer"
               >
                 Cancel
               </button>
