@@ -74,7 +74,7 @@ const compressImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<str
 
 const DOMAINS = [
   'Agentic AI',
-  'Space Domain',
+  'Space',
   'Web3',
   'IoT',
   'Cybersecurity',
@@ -140,7 +140,7 @@ export default function WriteBlogPage() {
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<string>('Agentic AI');
-  const [bannerUrl, setBannerUrl] = useState(PRESET_BANNERS[0].url);
+  const [bannerUrl, setBannerUrl] = useState('');
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [uploadedBannerName, setUploadedBannerName] = useState<string | null>(null);
   const [bannerMode, setBannerMode] = useState<'upload' | 'url'>('upload');
@@ -283,7 +283,7 @@ export default function WriteBlogPage() {
         title: title.trim(),
         subtitle: subtitle.trim(),
         category,
-        image: bannerUrl.trim() || PRESET_BANNERS[0].url,
+        image: bannerUrl.trim(),
         rawMarkdown: content.trim(),
         tags,
         authorName: authorName.trim(),
@@ -466,16 +466,14 @@ export default function WriteBlogPage() {
                         type="button"
                         onClick={() => {
                           setCategory(dom);
-                          const matched = PRESET_BANNERS.find((p) => p.category === dom);
-                          if (matched) setBannerUrl(matched.url);
                         }}
                         className={`px-3 py-2 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
                           category === dom
-                            ? 'bg-[#0099e6] text-white border-[#0099e6] shadow-md shadow-sky-500/20'
+                            ? 'bg-[#0099e6] text-white border-[#0099e6] shadow-md shadow-sky-500/20 scale-[1.02]'
                             : 'bg-slate-50 dark:bg-white/[0.03] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.2]'
                         }`}
                       >
-                        {dom}
+                        #{dom}
                       </button>
                     ))}
                   </div>
@@ -585,49 +583,59 @@ export default function WriteBlogPage() {
               </div>
 
               {/* Banner Visual Preview with clear spacing */}
-              {bannerUrl && (
-                <div className="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06] space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-[#0099e6]" />
-                      <span>Banner Live Preview</span>
+              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06] space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5 text-[#0099e6]" />
+                    <span>Banner Live Preview</span>
+                  </span>
+
+                  {bannerUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBannerUrl('');
+                        setUploadedBannerName(null);
+                      }}
+                      className="text-rose-500 hover:text-rose-600 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Remove Photo</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative h-48 sm:h-56 w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] bg-gradient-to-br from-[#0c1017] via-[#090d16] to-[#05070d] shadow-inner flex flex-col justify-end">
+                  {bannerUrl ? (
+                    <>
+                      <Image
+                        src={bannerUrl}
+                        alt="Banner preview"
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+                    </>
+                  ) : (
+                    <>
+                      {/* Subtle futuristic tech grid & ambient glow when no photo is uploaded */}
+                      <div className="absolute top-0 right-0 w-80 h-80 bg-[#0099e6]/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute bottom-0 left-10 w-64 h-64 bg-sky-500/05 rounded-full blur-2xl pointer-events-none" />
+                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+                    </>
+                  )}
+
+                  <div className="relative z-10 p-5 sm:p-6 space-y-1.5">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-black uppercase tracking-wider bg-[#0099e6] text-white shadow-md shadow-sky-500/25">
+                      #{category}
                     </span>
-
-                    {uploadedBannerName && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBannerUrl('/blogs/agentic-ai.jpg');
-                          setUploadedBannerName(null);
-                        }}
-                        className="text-rose-500 hover:text-rose-600 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Remove Photo</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="relative h-48 sm:h-56 w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] bg-slate-950 shadow-inner">
-                    <Image
-                      src={bannerUrl}
-                      alt="Banner preview"
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#0099e6] text-white shadow-xs">
-                        {category}
-                      </span>
-                      <h3 className="text-base sm:text-xl font-bold text-white mt-1.5 line-clamp-1 drop-shadow-sm">
-                        {title || 'Your headline will look like this'}
-                      </h3>
-                    </div>
+                    <h3 className="text-base sm:text-xl font-bold text-white line-clamp-1 drop-shadow-sm">
+                      {title || 'Your headline will look like this'}
+                    </h3>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Content Editor Card with Formatting Toolbar & Live Preview */}

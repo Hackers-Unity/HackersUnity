@@ -182,20 +182,28 @@ export default function BlogsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[420px] lg:min-h-[460px]">
               {/* Left Column: Visual Image Container (approx 50%) */}
               <div className="lg:col-span-6 relative overflow-hidden bg-slate-950 min-h-[300px] sm:min-h-[380px] lg:min-h-full">
-                <Image
-                  src={currentFeaturedBlog.image}
-                  alt={currentFeaturedBlog.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  priority
-                />
+                {currentFeaturedBlog.image ? (
+                  <Image
+                    src={currentFeaturedBlog.image}
+                    alt={currentFeaturedBlog.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    priority
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0a0e1a] to-slate-950 flex flex-col items-center justify-center p-8 text-center">
+                    <span className="text-4xl sm:text-5xl font-black text-sky-400/20 font-mono tracking-widest uppercase">
+                      #{currentFeaturedBlog.category}
+                    </span>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-black/30" />
 
                 {/* Mobile overlay pill badge */}
                 <div className="absolute top-4 left-4 lg:hidden">
                   <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/20">
-                    {currentFeaturedBlog.category}
+                    #{currentFeaturedBlog.category}
                   </span>
                 </div>
               </div>
@@ -208,8 +216,8 @@ export default function BlogsPage() {
                     <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
                       FEATURED
                     </span>
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
-                      {currentFeaturedBlog.category}
+                    <span className="text-xs uppercase font-extrabold tracking-widest text-[#0099e6] dark:text-sky-400">
+                      #{currentFeaturedBlog.category}
                     </span>
                     <span className="text-slate-300 dark:text-slate-700">•</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -272,7 +280,7 @@ export default function BlogsPage() {
                     : 'bg-white/70 dark:bg-white/[0.04] hover:bg-white dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.06]'
                 }`}
               >
-                {cat}
+                {cat === 'ALL' ? 'ALL' : `#${cat}`}
               </button>
             );
           })}
@@ -282,7 +290,7 @@ export default function BlogsPage() {
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-white/[0.08] pb-3 font-medium">
           <span>
             Showing <strong className="text-slate-900 dark:text-white">{filteredBlogs.length}</strong> articles
-            {activeCategory !== 'ALL' && ` in "${activeCategory}"`}
+            {activeCategory !== 'ALL' && ` in "#${activeCategory}"`}
           </span>
           {searchQuery && (
             <button
@@ -330,18 +338,26 @@ export default function BlogsPage() {
                 <div>
                   {/* Image Container */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-900 border-b border-slate-200/60 dark:border-white/[0.08]">
-                    <Image
-                      src={blog.image}
-                      alt={blog.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
+                    {blog.image ? (
+                      <Image
+                        src={blog.image}
+                        alt={blog.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0a0e1a] to-slate-950 flex flex-col items-center justify-center p-6 text-center">
+                        <span className="text-2xl sm:text-3xl font-black text-sky-400/20 font-mono tracking-widest uppercase">
+                          #{blog.category}
+                        </span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                     {/* Category badge top-left */}
                     <span className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/10 shadow-xs z-10">
-                      {blog.category}
+                      #{blog.category}
                     </span>
 
                     {/* Read time top-right */}
@@ -442,12 +458,20 @@ export default function BlogsPage() {
 
             {/* Modal Header with Cover Image */}
             <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-900 shrink-0">
-              <Image
-                src={selectedBlog.image}
-                alt={selectedBlog.title}
-                fill
-                className="object-cover"
-              />
+              {selectedBlog.image ? (
+                <Image
+                  src={selectedBlog.image}
+                  alt={selectedBlog.title}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0a0e1a] to-slate-950 flex flex-col items-center justify-center p-6 text-center">
+                  <span className="text-3xl font-black text-sky-400/20 font-mono tracking-widest uppercase">
+                    #{selectedBlog.category}
+                  </span>
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c1220] via-black/40 to-transparent" />
 
               {/* Close Button */}
@@ -463,7 +487,7 @@ export default function BlogsPage() {
               <div className="absolute bottom-4 left-6 right-6 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 rounded-full bg-black/60 text-white border border-white/20 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
-                    {selectedBlog.category}
+                    #{selectedBlog.category}
                   </span>
                   <span className="text-xs text-slate-200 font-medium flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-[#0099e6]" />
