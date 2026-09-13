@@ -120,14 +120,16 @@ export default function BlogsPage() {
         BLOGS
       </div>
 
-      {/* ─── Hero Section ─────────────────────────────────────────── */}
-      <div className="relative pt-10 pb-14 lg:pb-16 border-b border-slate-200/80 dark:border-white/[0.08] bg-gradient-to-b from-white/70 via-transparent to-transparent dark:from-[#0c1220]/80 dark:via-[#070a13]/60 dark:to-transparent backdrop-blur-xs">
+      {/* ─── Hero Section (Reference Style) ─────────────────────────── */}
+      <div className="relative pt-10 pb-12 lg:pb-16 border-b border-slate-200/80 dark:border-white/[0.08] bg-gradient-to-b from-white/70 via-transparent to-transparent dark:from-[#0a0e17] dark:via-[#060910] dark:to-transparent backdrop-blur-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Top Bar with Badge (Left) and Write Blog button (Top Right Corner) */}
-          <div className="flex items-center justify-between gap-4 mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 dark:bg-white/[0.05] border border-slate-200/90 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 backdrop-blur-xl shadow-xs">
-              <BookOpen className="w-3.5 h-3.5 text-[#0099e6]" />
-              <span className="tracking-wider uppercase text-[11px]">Domain Tech Chronicles</span>
+          <div className="flex items-center justify-between gap-4 mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 dark:bg-white/[0.06] border border-slate-700/60 dark:border-white/10 text-xs font-semibold text-slate-300 backdrop-blur-xl shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-[#0099e6] animate-pulse" />
+              <span className="tracking-widest uppercase text-[10px] sm:text-[11px] font-extrabold text-slate-300">
+                The Hacker&apos;s Unity Blog
+              </span>
             </div>
 
             <Link
@@ -139,115 +141,115 @@ export default function BlogsPage() {
             </Link>
           </div>
 
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            {/* Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-              Frontier Tech &amp;{' '}
-              <span className="bg-gradient-to-r from-[#0099e6] via-sky-400 to-[#f97316] bg-clip-text text-transparent">
-                Domain Playbooks.
-              </span>
-            </h1>
+          {/* Two-Column Editorial Headline & Description (Reference Layout) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-end">
+            <div className="lg:col-span-7 space-y-2">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.12]">
+                Stories, guides &amp;{' '}
+                <span className="font-serif italic font-normal text-[#0099e6] dark:text-sky-400">
+                  field notes
+                </span>
+                <br />
+                from builders.
+              </h1>
+            </div>
 
-            {/* Subheading */}
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-              Deep dives across Agentic AI, SpaceTech, Web3, Internet of Things, Cybersecurity, and Hyperscale Cloud Architecture.
-            </p>
+            <div className="lg:col-span-5 lg:pb-1">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                Case studies, success stories and deep technical guides on AI, Web3, Space, IoT, and cloud architecture — straight from the community that ships.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ─── Main Content Area ─────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
-        {/* ─── Featured Hero Article Card (Glassmorphism) ───────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 space-y-12">
+        {/* ─── Featured Hero Article Card (Reference Style: Image on Left, Content on Right) ── */}
         {!searchQuery && activeCategory === 'ALL' && featuredBlog && (
-          <div className="relative rounded-3xl overflow-hidden bg-white/70 dark:bg-gradient-to-br dark:from-[#0d1424]/90 dark:via-[#090d16]/80 dark:to-[#06080f]/90 border border-slate-200/90 dark:border-white/[0.1] backdrop-blur-2xl shadow-xl shadow-slate-200/60 dark:shadow-black/80 transition-all duration-300 hover:border-[#0099e6]/50 group">
-            {/* Top Glowing Hairline */}
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0099e6] to-transparent opacity-80" />
+          <div
+            onClick={() => setSelectedBlog(featuredBlog)}
+            className="group relative rounded-[28px] sm:rounded-[36px] overflow-hidden bg-white dark:bg-[#0b101b] border border-slate-200/90 dark:border-white/[0.08] shadow-2xl shadow-slate-200/60 dark:shadow-black/80 transition-all duration-300 hover:border-[#0099e6]/50 cursor-pointer"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-[420px] lg:min-h-[460px]">
+              {/* Left Column: Visual Image Container (approx 50%) */}
+              <div className="lg:col-span-6 relative overflow-hidden bg-slate-950 min-h-[300px] sm:min-h-[380px] lg:min-h-full">
+                <Image
+                  src={featuredBlog.image}
+                  alt={featuredBlog.title}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-black/30" />
 
-            <div className="p-6 sm:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Left Column: Text Content */}
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0099e6]/10 text-[#0099e6] border border-[#0099e6]/30 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
-                    <Flame className="w-3 h-3 text-[#f97316]" />
-                    <span>FEATURED DOMAIN ARTICLE</span>
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{featuredBlog.readTime}</span>
+                {/* Mobile overlay pill badge */}
+                <div className="absolute top-4 left-4 lg:hidden">
+                  <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/20">
+                    {featuredBlog.category}
                   </span>
                 </div>
+              </div>
 
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-snug group-hover:text-[#0099e6] transition-colors">
-                  {featuredBlog.title}
-                </h2>
+              {/* Right Column: Editorial Text Content (approx 50%) */}
+              <div className="lg:col-span-6 p-7 sm:p-10 lg:p-12 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  {/* Top Metadata Row */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                      FEATURED
+                    </span>
+                    <span className="text-xs uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
+                      {featuredBlog.category}
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-700">•</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      {featuredBlog.publishedAt}
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-700">•</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#0099e6]" />
+                      <span>{featuredBlog.readTime}</span>
+                    </span>
+                  </div>
 
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-                  {featuredBlog.subtitle}
-                </p>
+                  {/* Headline */}
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-[1.22] group-hover:text-[#0099e6] transition-colors">
+                    {featuredBlog.title}
+                  </h2>
 
-                {/* Published Date (No names) */}
-                <div className="flex items-center gap-2 pt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  <Calendar className="w-4 h-4 text-[#0099e6]" />
-                  <span>Published on {featuredBlog.publishedAt}</span>
+                  {/* Subtitle / Excerpt */}
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal line-clamp-3">
+                    {featuredBlog.subtitle || featuredBlog.excerpt}
+                  </p>
                 </div>
 
-                {/* Action CTA */}
-                <div className="pt-3 flex items-center gap-3">
+                {/* Bottom CTA Row: Read the story → */}
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-2 font-bold text-sm sm:text-base text-slate-900 dark:text-white group-hover:text-[#0099e6] dark:group-hover:text-sky-400 underline underline-offset-8 decoration-slate-400 dark:decoration-slate-600 group-hover:decoration-[#0099e6] transition-all">
+                    <span>Read the story</span>
+                    <span className="group-hover:translate-x-1.5 transition-transform">→</span>
+                  </span>
+
                   <button
                     type="button"
-                    onClick={() => setSelectedBlog(featuredBlog)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0099e6] hover:bg-[#0088cc] text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 border border-sky-400/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span>Read Article</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleShare(featuredBlog)}
-                    className="p-3 rounded-2xl bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShare(featuredBlog);
+                    }}
+                    className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
                     title="Share article"
                   >
                     {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-
-              {/* Right Column: Visual Image Container */}
-              <div className="lg:col-span-5">
-                <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/15 shadow-2xl backdrop-blur-xl group-hover:scale-[1.02] transition-transform duration-500">
-                  <Image
-                    src={featuredBlog.image}
-                    alt={featuredBlog.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 40vw"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-                  <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-                    <span className="px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/20">
-                      {featuredBlog.category}
-                    </span>
-                    <div className="flex gap-1">
-                      {featuredBlog.tags.slice(0, 2).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white text-[9px] font-medium"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
 
-        {/* ─── Category Filter Pills (Glassmorphism) ────────────────── */}
+        {/* ─── Category Filter Pills ────────────────── */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat;
@@ -256,10 +258,10 @@ export default function BlogsPage() {
                 key={cat}
                 type="button"
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer backdrop-blur-xl ${
+                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-[#0099e6] text-white shadow-md shadow-sky-500/30 border border-sky-400/40 scale-105'
-                    : 'bg-white/60 dark:bg-white/[0.04] hover:bg-white dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/[0.06] shadow-xs'
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-md scale-105'
+                    : 'bg-white/70 dark:bg-white/[0.04] hover:bg-white dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.06]'
                 }`}
               >
                 {cat}
@@ -315,14 +317,11 @@ export default function BlogsPage() {
               <article
                 key={blog.id}
                 onClick={() => setSelectedBlog(blog)}
-                className="group rounded-3xl overflow-hidden bg-white/70 dark:bg-[#0b101b]/80 border border-slate-200/80 dark:border-white/[0.08] hover:border-[#0099e6]/60 dark:hover:border-[#0099e6]/60 backdrop-blur-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/70 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1.5 cursor-pointer relative"
+                className="group rounded-3xl overflow-hidden bg-white dark:bg-[#0b101b] border border-slate-200/90 dark:border-white/[0.08] hover:border-[#0099e6]/60 dark:hover:border-[#0099e6]/60 shadow-lg shadow-slate-200/50 dark:shadow-black/70 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1.5 cursor-pointer relative"
               >
-                {/* Top Glowing Hairline on Card Hover */}
-                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#0099e6] to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-20" />
-
                 <div>
-                  {/* Real Image Container */}
-                  <div className="relative h-48 w-full overflow-hidden bg-slate-900 border-b border-slate-200/60 dark:border-white/[0.08]">
+                  {/* Image Container */}
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-900 border-b border-slate-200/60 dark:border-white/[0.08]">
                     <Image
                       src={blog.image}
                       alt={blog.title}
@@ -339,44 +338,37 @@ export default function BlogsPage() {
 
                     {/* Read time top-right */}
                     <div className="absolute top-3.5 right-3.5 inline-flex items-center gap-1 text-[11px] font-mono text-white/90 bg-black/60 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/10 z-10">
-                      <Clock className="w-3 h-3" />
+                      <Clock className="w-3 h-3 text-[#0099e6]" />
                       <span>{blog.readTime}</span>
-                    </div>
-
-                    {/* Tags bottom-left */}
-                    <div className="absolute bottom-3 left-3.5 flex flex-wrap gap-1 z-10">
-                      {blog.tags.slice(0, 2).map((t) => (
-                        <span
-                          key={t}
-                          className="px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white text-[9px] font-medium border border-white/10"
-                        >
-                          #{t}
-                        </span>
-                      ))}
                     </div>
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-5 sm:p-6 space-y-3">
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-[#0099e6] transition-colors">
+                  <div className="p-6 space-y-3">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <Calendar className="w-3.5 h-3.5 text-[#0099e6]" />
+                      <span>{blog.publishedAt}</span>
+                    </div>
+
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-[#0099e6] transition-colors">
                       {blog.title}
                     </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed font-normal">
+
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed font-normal">
                       {blog.excerpt}
                     </p>
                   </div>
                 </div>
 
-                {/* Card Footer: Date & Read More (No personal names) */}
-                <div className="p-5 sm:p-6 pt-0 border-t border-slate-100 dark:border-white/[0.06] mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    <Calendar className="w-3.5 h-3.5 text-[#0099e6]" />
-                    <span>{blog.publishedAt}</span>
-                  </div>
+                {/* Card Footer: Read story link */}
+                <div className="p-6 pt-0 border-t border-slate-100 dark:border-white/[0.06] mt-4 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#0099e6] dark:group-hover:text-sky-400 underline underline-offset-4 decoration-slate-300 dark:decoration-slate-700 group-hover:decoration-[#0099e6] transition-all">
+                    <span>Read story</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </span>
 
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0099e6] group-hover:translate-x-1 transition-transform">
-                    <span>Read</span>
-                    <ChevronRight className="w-4 h-4" />
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Hacker&apos;s Unity
                   </span>
                 </div>
               </article>
