@@ -35,9 +35,12 @@ export function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 cursor-pointer"
+    >
       <div
-        className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] shadow-2xl dark:shadow-black/90"
+        className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] shadow-2xl dark:shadow-black/90 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.03]">
@@ -51,11 +54,23 @@ export function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
             className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
           />
           {query && (
-            <button onClick={() => setQuery('')} className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer transition-colors"
+              title="Clear search"
+            >
               <X className="w-4 h-4" />
             </button>
           )}
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-white/[0.08] text-slate-600 dark:text-slate-400">ESC</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 dark:bg-white/[0.08] dark:hover:bg-white/[0.15] text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
+            title="Press ESC or click to close"
+          >
+            ESC
+          </button>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-6">

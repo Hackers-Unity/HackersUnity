@@ -88,17 +88,17 @@ export function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-[#05070c]/85 border-b border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-xs dark:shadow-black/60 transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-22 flex items-center justify-between relative">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-22 flex items-center justify-between gap-4 relative">
           {/* Left: Brand Logo */}
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center shrink-0 pl-6 sm:pl-10 lg:pl-16 xl:pl-20">
             <Link href="/" className="flex items-center group py-1">
               <Logo size={74} showText={false} />
             </Link>
           </div>
 
-          {/* Center: Shekunj-style Floating Glass Panel Navigation (Strictly Centered) */}
+          {/* Center: Floating Glass Panel Navigation (Centered) */}
           <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 z-10 pointer-events-auto">
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 px-3 sm:px-4 py-2 rounded-full bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-xs">
+            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-xl shadow-xs">
               {/* About Us */}
               <Link
                 href="/about"
@@ -208,7 +208,7 @@ export function Navbar() {
               {/* Contact Us */}
               <Link
                 href="/contact"
-                className={`px-3 xl:px-4 py-1.5 rounded-full text-xs xl:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
                   isContactActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -220,7 +220,7 @@ export function Navbar() {
               {/* Blogs */}
               <Link
                 href="/blogs"
-                className={`px-3 xl:px-4 py-1.5 rounded-full text-xs xl:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
                   isBlogsActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -232,7 +232,7 @@ export function Navbar() {
               {/* My Dashboard */}
               <Link
                 href="/dashboard"
-                className={`px-3 xl:px-4 py-1.5 rounded-full text-xs xl:text-sm font-semibold transition-all duration-200 ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
                   isDashboardActive
                     ? 'bg-white dark:bg-white/[0.08] text-[#0099e6] shadow-xs font-bold dark:border dark:border-white/[0.08]'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
@@ -245,15 +245,19 @@ export function Navbar() {
 
           {/* Right: Action Bar */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 z-20">
-            {/* Quick Search Button (⌘K) */}
+            {/* Quick Search Button (⌘K) - Styled exactly as user screenshot */}
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-600 dark:text-slate-300 transition-all cursor-pointer group shadow-2xs"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/80 dark:bg-[#0c1017]/90 dark:hover:bg-white/[0.06] border border-slate-200/90 dark:border-white/[0.12] transition-all cursor-pointer shadow-2xs group shrink-0"
               aria-label="Open search"
               title="Search hackathons & builders (⌘K)"
             >
-              <Search className="w-4 h-4 text-[#0099e6] group-hover:scale-110 transition-transform" />
+              <Search className="w-3.5 h-3.5 text-[#0099e6] group-hover:scale-110 transition-transform shrink-0" />
+              <span className="text-slate-400 text-xs font-normal">Search...</span>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white/60 dark:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.12] text-[10px] font-mono font-bold text-slate-400 dark:text-slate-400 shadow-2xs">
+                ⌘K
+              </kbd>
             </button>
 
             {/* Notifications Menu Trigger */}
