@@ -192,12 +192,19 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      const isRedirectAllowed = Boolean(
+        evt.allow_external_redirect === true ||
+        (Array.isArray(evt.tags) && evt.tags.includes('allow_external_redirect'))
+      );
+
       const cleanTags = Array.isArray(evt.tags)
-        ? evt.tags.filter((t: string) => typeof t === 'string' && !t.startsWith('hu_order:'))
+        ? evt.tags.filter((t: string) => typeof t === 'string' && !t.startsWith('hu_order:') && t !== 'allow_external_redirect')
         : [];
 
       return {
         ...evt,
+        allow_external_redirect: isRedirectAllowed,
+        registration_link: evt.registration_link || null,
         tags: cleanTags,
         display_order: displayOrder,
         registration_count: regCount,
@@ -553,6 +560,8 @@ export async function PATCH(req: NextRequest) {
         'stages',
         'faqs',
         'sponsors',
+        'registration_link',
+        'allow_external_redirect',
       ];
 
       for (const field of allowedFields) {
@@ -569,6 +578,7 @@ export async function PATCH(req: NextRequest) {
       if (error && (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column'))) {
         delete updateData.reviewed_at;
         delete updateData.admin_feedback;
+        delete updateData.allow_external_redirect;
         let retry = supabase.from('events').update(updateData);
         retry = isUuid ? retry.eq('id', eventId) : retry.eq('slug', eventId);
         const result = await retry.select('*').single();
@@ -596,6 +606,78 @@ export async function PATCH(req: NextRequest) {
         success: true,
         message: `Event "${data.title}" updated successfully!`,
         event: data,
+      });
+    }
+
+    // ── Toggle External Registration Redirect Permission ──
+    if (action === 'toggle_external_redirect') {
+      const allowed = Boolean(body.allowed);
+
+      // 1. Fetch current tags
+      let getQuery = supabase.from('events').select('id, tags, title');
+      getQuery = isUuid ? getQuery.eq('id', eventId) : getQuery.eq('slug', eventId);
+      const { data: currentEvt, error: fetchErr } = await getQuery.single();
+
+      if (fetchErr) {
+        return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+      }
+
+      let currentTags = Array.isArray(currentEvt?.tags) ? [...currentEvt.tags] : [];
+      if (allowed) {
+        if (!currentTags.includes('allow_external_redirect')) {
+          currentTags.push('allow_external_redirect');
+        }
+      } else {
+        currentTags = currentTags.filter((t: string) => t !== 'allow_external_redirect');
+      }
+
+      const updateData: any = {
+        tags: currentTags,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Also set allow_external_redirect column if exists
+      updateData.allow_external_redirect = allowed;
+
+      let query = supabase.from('events').update(updateData);
+      query = isUuid ? query.eq('id', eventId) : query.eq('slug', eventId);
+      let { data, error } = await query.select('*').single();
+
+      // Graceful column fallback if allow_external_redirect column does not exist
+      if (error && (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column'))) {
+        delete updateData.allow_external_redirect;
+        let retry = supabase.from('events').update(updateData);
+        retry = isUuid ? retry.eq('id', eventId) : retry.eq('slug', eventId);
+        const result = await retry.select('*').single();
+        data = result.data;
+        error = result.error;
+      }
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      // Realtime broadcast update
+      try {
+        const channel = supabase.channel('public:events_realtime');
+        await channel.send({
+          type: 'broadcast',
+          event: 'event_updated',
+          payload: { eventId, event: data },
+        });
+      } catch (broadcastErr) {
+        console.warn('Realtime broadcast warning:', broadcastErr);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: allowed
+          ? `External redirect unlocked for "${data.title}"`
+          : `External redirect locked for "${data.title}"`,
+        event: {
+          ...data,
+          allow_external_redirect: allowed,
+        },
       });
     }
 

@@ -25,6 +25,8 @@ import {
   Image as ImageIcon,
   Users,
   FileSpreadsheet,
+  Globe,
+  Lock,
 } from 'lucide-react';
 
 export interface AdminEvent {
@@ -71,6 +73,8 @@ export interface AdminEvent {
   reviewed_at?: string;
   registration_count?: number;
   submission_count?: number;
+  registration_link?: string | null;
+  allow_external_redirect?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -135,6 +139,8 @@ export function AdminEditEventModal({
   const [bannerUrl, setBannerUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [adminFeedback, setAdminFeedback] = useState('');
+  const [allowExternalRedirect, setAllowExternalRedirect] = useState(false);
+  const [registrationLink, setRegistrationLink] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -169,6 +175,8 @@ export function AdminEditEventModal({
       setBannerUrl(event.banner_url || '');
       setLogoUrl(event.logo_url || '');
       setAdminFeedback(event.admin_feedback || '');
+      setAllowExternalRedirect(Boolean(event.allow_external_redirect));
+      setRegistrationLink(event.registration_link || '');
       setErrorMessage('');
     }
   }, [event]);
@@ -217,6 +225,8 @@ export function AdminEditEventModal({
       banner_url: bannerUrl.trim() || undefined,
       logo_url: logoUrl.trim() || undefined,
       admin_feedback: adminFeedback.trim() || undefined,
+      registration_link: registrationLink.trim() || null,
+      allow_external_redirect: allowExternalRedirect,
       updated_at: new Date().toISOString(),
     };
 
@@ -647,6 +657,57 @@ export function AdminEditEventModal({
                 >
                   Allow Team Registrations (Squads)
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ SECTION 4B: External Registration Redirection ═══ */}
+          <div className="p-5 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-800/30 space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0099e6] dark:text-[#38bdf8] flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              External Registration Redirection Control
+            </h4>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  id="admin-allow-external-redirect"
+                  checked={allowExternalRedirect}
+                  onChange={(e) => setAllowExternalRedirect(e.target.checked)}
+                  className="w-4 h-4 text-[#0099e6] rounded border-slate-300 dark:border-white/[0.2] focus:ring-[#0099e6] cursor-pointer"
+                />
+                <label
+                  htmlFor="admin-allow-external-redirect"
+                  className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer flex items-center gap-2"
+                >
+                  <span>Grant Permission to Redirect Registration Externally</span>
+                  {allowExternalRedirect ? (
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                      Unlocked
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-white/[0.1] dark:text-slate-300">
+                      Locked
+                    </span>
+                  )}
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  External Registration Link (Admin Override)
+                </label>
+                <input
+                  type="url"
+                  value={registrationLink}
+                  onChange={(e) => setRegistrationLink(e.target.value)}
+                  placeholder="https://unstop.com/... or https://devfolio.co/..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.1] text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#0099e6]"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  When enabled and provided, clicking &quot;Register&quot; routes hackers to this external link instead of the HackersUnity squad registration flow.
+                </p>
               </div>
             </div>
           </div>

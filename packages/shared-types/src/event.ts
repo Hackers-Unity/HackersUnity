@@ -74,6 +74,8 @@ export interface EventPublic {
   customQuestions?: CustomQuestion[];
   registrationFields?: string[];
   previewToken?: string;
+  registrationLink?: string | null;
+  allowExternalRedirect?: boolean;
 }
 
 export interface Prize {

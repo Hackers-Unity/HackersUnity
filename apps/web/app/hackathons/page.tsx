@@ -336,7 +336,7 @@ export default function HackathonsDirectoryPage() {
                     ) : (
                       <button
                         onClick={() => {
-                          if (event.registrationLink && event.registrationLink.startsWith('http')) {
+                          if (event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http')) {
                             window.open(event.registrationLink, '_blank', 'noopener,noreferrer');
                           } else {
                             setActiveRegEvent(event);

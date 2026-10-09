@@ -282,6 +282,11 @@ function HostHackathonContent() {
   const [newQuestionLabel, setNewQuestionLabel] = useState('');
   const [newQuestionType, setNewQuestionType] = useState<'text' | 'select' | 'textarea'>('text');
 
+  // External Redirect Setting (Controlled by admin approval in /admin-csap)
+  const [allowExternalRedirect, setAllowExternalRedirect] = useState(false);
+  const [registrationMode, setRegistrationMode] = useState<'INTERNAL' | 'EXTERNAL'>('INTERNAL');
+  const [registrationLink, setRegistrationLink] = useState('');
+
   // Step 6: Project Submission Settings
   const [submissionGuidelines, setSubmissionGuidelines] = useState(
     'Ensure all GitHub repositories are set to public during the judging window. Demo videos should be 2-3 minutes highlighting key user workflows.'
@@ -554,6 +559,15 @@ function HostHackathonContent() {
           if (found.customQuestions && found.customQuestions.length > 0) {
             setCustomQuestions(found.customQuestions);
           }
+          if (found.allowExternalRedirect !== undefined) {
+            setAllowExternalRedirect(Boolean(found.allowExternalRedirect));
+          }
+          if (found.registrationLink) {
+            setRegistrationLink(found.registrationLink);
+            if (found.allowExternalRedirect) {
+              setRegistrationMode('EXTERNAL');
+            }
+          }
 
           const stepParam = searchParams?.get('step');
           if (stepParam) {
@@ -772,6 +786,11 @@ function HostHackathonContent() {
       entryFee: registrationType === 'PAID' ? Number(entryFee) || 0 : null,
       registrationCapacity: isUnlimitedCapacity ? null : registrationCapacity,
       approvalMode,
+      registrationLink:
+        registrationMode === 'EXTERNAL' && allowExternalRedirect && registrationLink
+          ? registrationLink.trim()
+          : null,
+      allowExternalRedirect,
       registrationFields: [
         'name',
         'email',
@@ -852,6 +871,9 @@ function HostHackathonContent() {
     entryFee,
     approvalMode,
     customQuestions,
+    allowExternalRedirect,
+    registrationMode,
+    registrationLink,
   ]);
 
   // ─── PRIVATE LINK & PREVIEW ACCESS ─────────────────────
@@ -2025,6 +2047,140 @@ ${organizerName || 'Organizer'}`;
                     <Settings className="w-4 h-4 text-[#0099e6]" />
                     <span>Registration Settings</span>
                   </h3>
+
+                  {/* External Registration Redirect Feature (Requires Admin Approval) */}
+                  <div
+                    className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                      allowExternalRedirect
+                        ? 'bg-sky-50/70 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/40 shadow-xs'
+                        : 'bg-slate-50/80 dark:bg-white/[0.02] border-slate-200/90 dark:border-white/[0.08]'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                            allowExternalRedirect
+                              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40'
+                              : 'bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/[0.08]'
+                          }`}
+                        >
+                          {allowExternalRedirect ? (
+                            <Globe className="w-4 h-4" />
+                          ) : (
+                            <Lock className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                            <span>Redirect to External Registration Portal</span>
+                            {allowExternalRedirect ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                Unlocked by Admin
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" />
+                                Locked (Admin Approval Required)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            Redirect hackers to an external portal (Unstop, Devfolio, Google Forms, College Portal, etc.) when clicking &quot;Register&quot;.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!allowExternalRedirect ? (
+                      <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/30 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <div className="leading-relaxed">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200">
+                              This redirection option is locked by default.
+                            </p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                              To prevent unverified external redirects and safeguard hackers, redirecting requires Admin Approval. Once an admin grants permission in the CSAP Admin Portal, this card will unlock automatically, allowing you to enter your external registration link.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="relative opacity-60 pointer-events-none select-none">
+                          <input
+                            type="text"
+                            disabled
+                            value="🔒 https://your-external-portal.com/... (Locked until Admin Approval)"
+                            className="w-full px-3.5 py-2 rounded-xl bg-white/70 dark:bg-[#0c1017]/70 border border-slate-200 dark:border-white/[0.1] text-xs font-mono text-slate-400"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3.5 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setRegistrationMode('INTERNAL')}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                              registrationMode === 'INTERNAL'
+                                ? 'bg-sky-50 dark:bg-sky-950/50 border-sky-400 dark:border-sky-600 ring-2 ring-sky-400/20'
+                                : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                              <span>HackersUnity Native Squads</span>
+                              {registrationMode === 'INTERNAL' && <Check className="w-3.5 h-3.5 text-[#0099e6]" />}
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Participants form squads and register on platform
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setRegistrationMode('EXTERNAL')}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                              registrationMode === 'EXTERNAL'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/20'
+                                : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                              <span>Redirect to External Portal</span>
+                              {registrationMode === 'EXTERNAL' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Route &quot;Register&quot; button to your external link
+                            </div>
+                          </button>
+                        </div>
+
+                        {registrationMode === 'EXTERNAL' && (
+                          <div className="p-4 rounded-xl bg-white dark:bg-[#121824] border border-emerald-200 dark:border-emerald-800/40 space-y-2 animate-in fade-in">
+                            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                              External Registration URL *
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                                <Link2 className="w-3.5 h-3.5" />
+                              </span>
+                              <input
+                                type="url"
+                                required={registrationMode === 'EXTERNAL'}
+                                value={registrationLink}
+                                onChange={(e) => setRegistrationLink(e.target.value)}
+                                placeholder="https://unstop.com/... or https://devfolio.co/... or https://forms.gle/..."
+                                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.1] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0099e6]"
+                              />
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Hackers clicking &quot;Register&quot; on your hackathon card will be redirected directly to this link in a new tab.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Free/Paid toggle */}
                   <div className="grid grid-cols-2 gap-3">

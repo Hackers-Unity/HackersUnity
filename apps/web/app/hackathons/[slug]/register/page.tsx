@@ -40,6 +40,7 @@ import {
   Download,
   QrCode,
   Smartphone,
+  Globe,
 } from 'lucide-react';
 import { useEvent } from '@/lib/hooks/use-events';
 import { useAuth } from '@/lib/auth-context';
@@ -851,6 +852,39 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       setResolvingLink(false);
     }
   };
+
+  // If external redirect is allowed and link is configured, render direct external gateway view
+  if (event?.allowExternalRedirect && event?.registrationLink && event?.registrationLink.startsWith('http')) {
+    return (
+      <div className="flex-1 pb-20 bg-slate-50/60 dark:bg-[#080b11] min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-6 sm:p-8 bg-white dark:bg-[#0c1017] rounded-3xl border border-slate-200 dark:border-white/[0.08] shadow-xl text-center space-y-4 animate-in fade-in">
+          <div className="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-950/40 text-[#0099e6] flex items-center justify-center mx-auto border border-sky-200 dark:border-sky-800/40">
+            <Globe className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">External Registration</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+              Registrations for <strong className="text-slate-900 dark:text-white">{event.title}</strong> are hosted on an external official portal.
+            </p>
+          </div>
+          <a
+            href={event.registrationLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 px-4 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-sky-500/20 transition-all inline-block"
+          >
+            <span>Continue to External Registration ↗</span>
+          </a>
+          <Link
+            href={`/hackathons/${event.slug}`}
+            className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white inline-block mt-2"
+          >
+            ← Back to Hackathon Details
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 pb-20 bg-slate-50/60 dark:bg-[#080b11] min-h-screen">

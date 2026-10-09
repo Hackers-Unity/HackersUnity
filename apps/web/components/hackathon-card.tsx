@@ -221,7 +221,7 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
               >
                 Completed
               </Link>
-            ) : event.registrationLink && event.registrationLink.startsWith('http') ? (
+            ) : event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http') ? (
               <a
                 href={event.registrationLink}
                 target="_blank"

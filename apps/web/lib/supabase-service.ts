@@ -84,6 +84,10 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
     logoUrl: item.logo_url || null,
     rulesDocUrl: item.rules_doc_url || null,
     registrationLink: item.registration_link || null,
+    allowExternalRedirect: Boolean(
+      item.allow_external_redirect === true ||
+      (Array.isArray(item.tags) && item.tags.includes('allow_external_redirect'))
+    ),
     status: (() => {
       const rawStatus = (item.status as EventStatus) || EventStatus.PUBLISHED;
       if (
@@ -112,7 +116,7 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
     )}`,
     featured: Boolean(item.featured),
     tags: (item.tags || ['Hackathon', 'Innovation']).filter(
-      (t: string) => typeof t === 'string' && !t.startsWith('hu_order:')
+      (t: string) => typeof t === 'string' && !t.startsWith('hu_order:') && t !== 'allow_external_redirect' && t !== 'PENDING_APPROVAL'
     ),
     displayOrder: (() => {
       if (typeof item.display_order === 'number' && !isNaN(item.display_order)) {
@@ -704,6 +708,7 @@ export async function createEventInSupabase(
       registration_capacity: event.registrationCapacity || 2000,
       approval_mode: event.approvalMode || 'AUTO',
       custom_questions: event.customQuestions || [],
+      registration_link: event.registrationLink || null,
     };
 
     let { data, error } = await supabase
@@ -830,6 +835,8 @@ export async function updateEventInSupabase(
     if (updates.difficulty !== undefined) updatePayload.difficulty = updates.difficulty;
     if (updates.rulesText !== undefined) updatePayload.rules_text = updates.rulesText;
     if (updates.customQuestions !== undefined) updatePayload.custom_questions = updates.customQuestions;
+    if (updates.registrationLink !== undefined) updatePayload.registration_link = updates.registrationLink;
+    if (updates.allowExternalRedirect !== undefined) updatePayload.allow_external_redirect = updates.allowExternalRedirect;
     updatePayload.updated_at = new Date().toISOString();
 
     const isUuid = Boolean(eventId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId));

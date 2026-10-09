@@ -29,7 +29,8 @@ export interface ExtendedEvent extends EventPublic {
   mode?: string;
   domain?: string;
   teamSize?: string;
-  registrationLink?: string;
+  registrationLink?: string | null;
+  allowExternalRedirect?: boolean;
   ctaText?: string;
   image?: string;
   stages: EventStage[];

@@ -108,6 +108,7 @@ export async function POST(req: Request) {
       approval_mode: event.approvalMode || 'MANUAL',
       custom_questions: event.customQuestions || [],
       registration_count: 0,
+      registration_link: event.registrationLink || null,
     };
 
     if (event.organizerName !== undefined) insertPayload.organizer_name = event.organizerName;
@@ -255,6 +256,8 @@ export async function PATCH(req: Request) {
     if (updates.registrationCapacity !== undefined) updatePayload.registration_capacity = updates.registrationCapacity;
     if (updates.approvalMode !== undefined) updatePayload.approval_mode = updates.approvalMode;
     if (updates.customQuestions !== undefined) updatePayload.custom_questions = updates.customQuestions;
+    if (updates.registrationLink !== undefined) updatePayload.registration_link = updates.registrationLink;
+    if (updates.allowExternalRedirect !== undefined) updatePayload.allow_external_redirect = updates.allowExternalRedirect;
     updatePayload.updated_at = new Date().toISOString();
 
     const VALID_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED', 'REJECTED'];

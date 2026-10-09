@@ -587,14 +587,23 @@ function HackathonDetailContent({ params }: PageProps) {
                       </p>
                     </div>
                     {effectiveStatus !== EventStatus.COMPLETED ? (
-                      <a
-                        href={isManipalEvent ? MANIPAL_REDIRECT_URL : `/hackathons/${event.slug}/register`}
-                        target={isManipalEvent ? '_blank' : undefined}
-                        rel={isManipalEvent ? 'noopener noreferrer' : undefined}
-                        className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap"
-                      >
-                        Squad Registration Portal
-                      </a>
+                      (() => {
+                        const externalRedirectUrl = isManipalEvent
+                          ? MANIPAL_REDIRECT_URL
+                          : event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http')
+                          ? event.registrationLink
+                          : null;
+                        return (
+                          <a
+                            href={externalRedirectUrl || `/hackathons/${event.slug}/register`}
+                            target={externalRedirectUrl ? '_blank' : undefined}
+                            rel={externalRedirectUrl ? 'noopener noreferrer' : undefined}
+                            className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap"
+                          >
+                            {externalRedirectUrl ? 'External Registration Portal ↗' : 'Squad Registration Portal'}
+                          </a>
+                        );
+                      })()
                     ) : (
                       <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 text-xs font-bold">
                         Registration Closed
@@ -1117,7 +1126,7 @@ function HackathonDetailContent({ params }: PageProps) {
                     Registrations for this hackathon have closed. Explore the event timeline, tracks, and details above.
                   </p>
                 </div>
-              ) : event.registrationLink && event.registrationLink.startsWith('http') ? (
+              ) : event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http') ? (
                 <div className="space-y-2.5">
                   <a
                     href={event.registrationLink}

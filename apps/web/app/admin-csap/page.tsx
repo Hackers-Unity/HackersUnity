@@ -100,6 +100,8 @@ interface AdminEvent {
   display_order?: number;
   registration_count?: number;
   submission_count?: number;
+  registration_link?: string | null;
+  allow_external_redirect?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -335,6 +337,48 @@ export default function AdminCsapPortal() {
     }
   };
 
+  // ─── 7b. Toggle External Registration Redirect ──────────────────────────────
+  const handleToggleExternalRedirect = async (event: AdminEvent) => {
+    setActionLoadingId(event.id);
+    const nextAllowed = !Boolean(event.allow_external_redirect);
+    try {
+      const res = await fetch('/api/admin-csap', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_external_redirect',
+          eventId: event.id,
+          allowExternalRedirect: nextAllowed,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotificationMsg({
+          type: 'success',
+          text: nextAllowed
+            ? `🔓 External redirect UNLOCKED for "${event.title}". Host can now configure custom registration redirect.`
+            : `🔒 External redirect LOCKED for "${event.title}". Registrations will now be conducted on HackersUnity platform.`,
+        });
+        setEvents((prev) =>
+          prev.map((e) => (e.id === event.id ? { ...e, allow_external_redirect: nextAllowed } : e))
+        );
+        if (selectedEvent?.id === event.id) {
+          setSelectedEvent((prev) => (prev ? { ...prev, allow_external_redirect: nextAllowed } : null));
+        }
+      } else {
+        setNotificationMsg({
+          type: 'error',
+          text: `Failed to toggle external redirect: ${data.error || 'Unknown error'}`,
+        });
+      }
+    } catch (err: any) {
+      setNotificationMsg({ type: 'error', text: err.message || 'Network error toggling redirect permission' });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   // ─── 8. Edit Event as Admin ────────────────────────────────────────────────
   const handleAdminEditSave = async (updatedEvent: AdminEvent): Promise<boolean> => {
     try {
@@ -373,6 +417,8 @@ export default function AdminCsapPortal() {
             banner_url: updatedEvent.banner_url,
             logo_url: updatedEvent.logo_url,
             admin_feedback: updatedEvent.admin_feedback,
+            registration_link: updatedEvent.registration_link ?? null,
+            allow_external_redirect: Boolean(updatedEvent.allow_external_redirect),
           },
         }),
       });
@@ -995,6 +1041,17 @@ export default function AdminCsapPortal() {
                     <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 font-semibold text-[11px]">
                       {event.event_type || 'ONLINE'}
                     </span>
+                    {event.allow_external_redirect ? (
+                      <span className="px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] flex items-center gap-1 border border-emerald-200 dark:border-emerald-500/20" title="External registration redirect allowed">
+                        <Globe className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <span>Redirect Allowed</span>
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 font-medium text-[11px] flex items-center gap-1 border border-slate-200 dark:border-white/[0.08]" title="Registrations locked to HackersUnity platform">
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        <span>Redirect Locked</span>
+                      </span>
+                    )}
                     <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium">
                       Submitted {new Date(event.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
@@ -1136,63 +1193,91 @@ export default function AdminCsapPortal() {
                     </Link>
                   </div>
 
-                  {/* Status action control */}
-                  <div className="flex items-center justify-end w-full">
-                    {isPending && (
-                      <div className="flex items-center gap-2">
+                  {/* Status action control & redirect toggle */}
+                  <div className="flex items-center justify-between w-full gap-2 flex-wrap sm:flex-nowrap">
+                    {/* Toggle Redirect Permission */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleExternalRedirect(event)}
+                      disabled={actionLoadingId === event.id}
+                      className={`px-3 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 border shrink-0 ${
+                        event.allow_external_redirect
+                          ? 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/40'
+                          : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40'
+                      }`}
+                      title={
+                        event.allow_external_redirect
+                          ? 'Click to revoke external redirect permission (lock registration to platform)'
+                          : 'Click to allow host to redirect registration to external portal'
+                      }
+                    >
+                      {actionLoadingId === event.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : event.allow_external_redirect ? (
+                        <Lock className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                      ) : (
+                        <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      )}
+                      <span>{event.allow_external_redirect ? 'Lock Redirect' : 'Allow Redirect'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 justify-end ml-auto">
+                      {isPending && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleApprove(event)}
+                            disabled={actionLoadingId === event.id}
+                            className="px-5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+                          >
+                            {actionLoadingId === event.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                            <span>Approve</span>
+                          </button>
+                          <button
+                            onClick={() => setRejectModalEvent(event)}
+                            disabled={actionLoadingId === event.id}
+                            className="px-4 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {isApproved && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setStatusFilter('SHOWCASE')}
+                            className="px-3 py-2 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                            title="Open Drag & Drop Showcase Ordering"
+                          >
+                            <GripVertical className="w-3.5 h-3.5" />
+                            <span>Showcase Order</span>
+                          </button>
+                          <button
+                            onClick={() => setRejectModalEvent(event)}
+                            className="px-4 py-2 rounded-2xl bg-slate-50 hover:bg-rose-50 dark:bg-white/[0.04] dark:hover:bg-rose-950/30 text-slate-500 hover:text-rose-700 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-white/[0.08] hover:border-rose-200 dark:hover:border-rose-900/40 text-xs font-bold transition cursor-pointer"
+                          >
+                            Revoke Live Status
+                          </button>
+                        </div>
+                      )}
+
+                      {isRejected && (
                         <button
                           onClick={() => handleApprove(event)}
                           disabled={actionLoadingId === event.id}
-                          className="px-5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+                          className="px-4 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
                         >
-                          {actionLoadingId === event.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5" />
-                          )}
-                          <span>Approve</span>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Re-Approve</span>
                         </button>
-                        <button
-                          onClick={() => setRejectModalEvent(event)}
-                          disabled={actionLoadingId === event.id}
-                          className="px-4 py-2 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          <span>Reject</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {isApproved && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setStatusFilter('SHOWCASE')}
-                          className="px-3 py-2 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                          title="Open Drag & Drop Showcase Ordering"
-                        >
-                          <GripVertical className="w-3.5 h-3.5" />
-                          <span>Showcase Order</span>
-                        </button>
-                        <button
-                          onClick={() => setRejectModalEvent(event)}
-                          className="px-4 py-2 rounded-2xl bg-slate-50 hover:bg-rose-50 dark:bg-white/[0.04] dark:hover:bg-rose-950/30 text-slate-500 hover:text-rose-700 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-white/[0.08] hover:border-rose-200 dark:hover:border-rose-900/40 text-xs font-bold transition cursor-pointer"
-                        >
-                          Revoke Live Status
-                        </button>
-                      </div>
-                    )}
-
-                    {isRejected && (
-                      <button
-                        onClick={() => handleApprove(event)}
-                        disabled={actionLoadingId === event.id}
-                        className="px-4 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Re-Approve</span>
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1461,6 +1546,81 @@ export default function AdminCsapPortal() {
                 <span className="font-bold text-slate-900 dark:text-white">
                   {selectedEvent.min_team_size} to {selectedEvent.max_team_size} Members Per Squad
                 </span>
+              </div>
+
+              {/* External Registration Redirect Management Card */}
+              <div
+                className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  selectedEvent.allow_external_redirect
+                    ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40'
+                    : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40'
+                }`}
+              >
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-[#0099e6]" />
+                      External Registration Redirection
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
+                        selectedEvent.allow_external_redirect
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
+                      }`}
+                    >
+                      {selectedEvent.allow_external_redirect ? 'Allowed / Unlocked' : 'Locked (Admin Approval Required)'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    {selectedEvent.allow_external_redirect
+                      ? 'The host is permitted to redirect the "Register" button to an external URL. Hackers will be routed to their external portal.'
+                      : 'External redirect is locked for this event. Registrations will take place directly on the HackersUnity platform.'}
+                  </p>
+                  {selectedEvent.registration_link ? (
+                    <div className="text-xs text-sky-600 dark:text-sky-400 truncate pt-1 flex items-center gap-1.5">
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Configured Link:</span>
+                      <a
+                        href={selectedEvent.registration_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono font-bold hover:underline truncate"
+                      >
+                        {selectedEvent.registration_link}
+                      </a>
+                    </div>
+                  ) : selectedEvent.allow_external_redirect ? (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                      Unlocked: Host can now input their external link in the Host portal.
+                    </p>
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleExternalRedirect(selectedEvent)}
+                  disabled={actionLoadingId === selectedEvent.id}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border shadow-xs disabled:opacity-50 ${
+                    selectedEvent.allow_external_redirect
+                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-emerald-600/20'
+                  }`}
+                >
+                  {actionLoadingId === selectedEvent.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : selectedEvent.allow_external_redirect ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Lock Redirect</span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>Allow External Redirect</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
