@@ -859,7 +859,19 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
   };
 
   // If external redirect is allowed and link is configured, render direct external gateway view
-  if (event?.allowExternalRedirect && event?.registrationLink && event?.registrationLink.startsWith('http')) {
+  const isRedirectAllowed = Boolean(
+    event?.allowExternalRedirect === true ||
+    (event as any)?.allow_external_redirect === true ||
+    (Array.isArray(event?.tags) && event?.tags.includes('allow_external_redirect'))
+  );
+  const rawExternalLink = (event?.registrationLink || '').trim();
+  const normalizedExternalLink = rawExternalLink
+    ? rawExternalLink.startsWith('http://') || rawExternalLink.startsWith('https://')
+      ? rawExternalLink
+      : `https://${rawExternalLink}`
+    : null;
+
+  if (isRedirectAllowed && normalizedExternalLink) {
     return (
       <div className="flex-1 pb-20 bg-slate-50/60 dark:bg-[#080b11] min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full p-6 sm:p-8 bg-white dark:bg-[#0c1017] rounded-3xl border border-slate-200 dark:border-white/[0.08] shadow-xl text-center space-y-4 animate-in fade-in">
@@ -873,7 +885,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
             </p>
           </div>
           <a
-            href={event.registrationLink}
+            href={normalizedExternalLink}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-3 px-4 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-sky-500/20 transition-all inline-block"

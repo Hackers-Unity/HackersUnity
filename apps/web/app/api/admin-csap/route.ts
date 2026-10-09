@@ -611,7 +611,7 @@ export async function PATCH(req: NextRequest) {
 
     // ── Toggle External Registration Redirect Permission ──
     if (action === 'toggle_external_redirect') {
-      const allowed = Boolean(body.allowed);
+      const allowed = Boolean(body.allowed ?? body.allowExternalRedirect);
 
       // 1. Fetch current tags
       let getQuery = supabase.from('events').select('id, tags, title');

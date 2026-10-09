@@ -54,6 +54,18 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
   const deadlineInfo = getDaysLeft(event.registrationDeadline);
   const eventDuration = calculateEventDuration(event.startDate, event.endDate);
 
+  const isRedirectAllowed = Boolean(
+    event.allowExternalRedirect === true ||
+    (event as any)?.allow_external_redirect === true ||
+    (Array.isArray(event.tags) && event.tags.includes('allow_external_redirect'))
+  );
+  const rawExternalLink = (event.registrationLink || '').trim();
+  const normalizedExternalLink = rawExternalLink
+    ? rawExternalLink.startsWith('http://') || rawExternalLink.startsWith('https://')
+      ? rawExternalLink
+      : `https://${rawExternalLink}`
+    : null;
+
   const handleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -229,14 +241,14 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
               >
                 Completed
               </Link>
-            ) : event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http') ? (
+            ) : isRedirectAllowed && normalizedExternalLink ? (
               <a
-                href={event.registrationLink}
+                href={normalizedExternalLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="py-2 px-4 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs shadow-xs shadow-sky-500/30 transition-all text-center inline-block"
               >
-                Register
+                Register ↗
               </a>
             ) : (
               <Link

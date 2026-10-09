@@ -348,6 +348,7 @@ export default function AdminCsapPortal() {
         body: JSON.stringify({
           action: 'toggle_external_redirect',
           eventId: event.id,
+          allowed: nextAllowed,
           allowExternalRedirect: nextAllowed,
         }),
       });
@@ -1218,7 +1219,7 @@ export default function AdminCsapPortal() {
                       ) : (
                         <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       )}
-                      <span>{event.allow_external_redirect ? 'Lock Redirect' : 'Allow Redirect'}</span>
+                      <span>{event.allow_external_redirect ? 'Disable Redirect' : 'Allow Redirect'}</span>
                     </button>
 
                     <div className="flex items-center gap-2 justify-end ml-auto">
@@ -1612,12 +1613,12 @@ export default function AdminCsapPortal() {
                   ) : selectedEvent.allow_external_redirect ? (
                     <>
                       <Lock className="w-3.5 h-3.5" />
-                      <span>Lock Redirect</span>
+                      <span>Disable Redirect</span>
                     </>
                   ) : (
                     <>
                       <Globe className="w-3.5 h-3.5" />
-                      <span>Allow External Redirect</span>
+                      <span>Allow Redirect</span>
                     </>
                   )}
                 </button>

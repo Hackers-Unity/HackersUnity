@@ -203,6 +203,21 @@ function HackathonDetailContent({ params }: PageProps) {
 
   const hasPrivateAccess = !isUnpublished || hasKeyAccess || isOrganizerOrAdmin || isExplicitPreview;
 
+  const isRedirectAllowed = Boolean(
+    event.allowExternalRedirect === true ||
+    (event as any)?.allow_external_redirect === true ||
+    (Array.isArray(event.tags) && event.tags.includes('allow_external_redirect'))
+  );
+
+  const rawExternalLink = (event.registrationLink || '').trim();
+  const normalizedExternalLink = rawExternalLink
+    ? rawExternalLink.startsWith('http://') || rawExternalLink.startsWith('https://')
+      ? rawExternalLink
+      : `https://${rawExternalLink}`
+    : null;
+
+  const externalRedirectUrl = isRedirectAllowed && normalizedExternalLink ? normalizedExternalLink : null;
+
   // If hackathon is not published and viewer has no private access token, show locked screen
   if (isUnpublished && !hasPrivateAccess) {
     return (
@@ -590,23 +605,14 @@ function HackathonDetailContent({ params }: PageProps) {
                       </p>
                     </div>
                     {effectiveStatus !== EventStatus.COMPLETED ? (
-                      (() => {
-                        const externalRedirectUrl = isManipalEvent
-                          ? MANIPAL_REDIRECT_URL
-                          : event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http')
-                          ? event.registrationLink
-                          : null;
-                        return (
-                          <a
-                            href={externalRedirectUrl || `/hackathons/${event.slug}/register`}
-                            target={externalRedirectUrl ? '_blank' : undefined}
-                            rel={externalRedirectUrl ? 'noopener noreferrer' : undefined}
-                            className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap"
-                          >
-                            {externalRedirectUrl ? 'External Registration Portal ↗' : 'Squad Registration Portal'}
-                          </a>
-                        );
-                      })()
+                      <a
+                        href={externalRedirectUrl || `/hackathons/${event.slug}/register`}
+                        target={externalRedirectUrl ? '_blank' : undefined}
+                        rel={externalRedirectUrl ? 'noopener noreferrer' : undefined}
+                        className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap"
+                      >
+                        {externalRedirectUrl ? 'External Registration Portal ↗' : 'Squad Registration Portal'}
+                      </a>
                     ) : (
                       <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 text-xs font-bold">
                         Registration Closed
@@ -1129,10 +1135,10 @@ function HackathonDetailContent({ params }: PageProps) {
                     Registrations for this hackathon have closed. Explore the event timeline, tracks, and details above.
                   </p>
                 </div>
-              ) : event.allowExternalRedirect && event.registrationLink && event.registrationLink.startsWith('http') ? (
+              ) : externalRedirectUrl ? (
                 <div className="space-y-2.5">
                   <a
-                    href={event.registrationLink}
+                    href={externalRedirectUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-3.5 rounded-2xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-extrabold text-sm shadow-md shadow-sky-500/20 transition-all text-center block"

@@ -578,12 +578,16 @@ function HostHackathonContent() {
           if (found.customQuestions && found.customQuestions.length > 0) {
             setCustomQuestions(found.customQuestions);
           }
-          if (found.allowExternalRedirect !== undefined) {
-            setAllowExternalRedirect(Boolean(found.allowExternalRedirect));
-          }
+          const isRedirectPermitted = Boolean(
+            found.allowExternalRedirect === true ||
+            (found as any).allow_external_redirect === true ||
+            (Array.isArray(found.tags) && found.tags.includes('allow_external_redirect'))
+          );
+          setAllowExternalRedirect(isRedirectPermitted);
+
           if (found.registrationLink) {
             setRegistrationLink(found.registrationLink);
-            if (found.allowExternalRedirect) {
+            if (isRedirectPermitted) {
               setRegistrationMode('EXTERNAL');
             }
           }
