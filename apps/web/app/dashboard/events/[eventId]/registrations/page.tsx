@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
+  Eye,
 } from 'lucide-react';
 import {
   getEventRegistrations,
@@ -100,6 +101,7 @@ export default function EventRegistrationsPage({ params }: PageProps) {
 
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [viewingApplicant, setViewingApplicant] = useState<any | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -316,16 +318,43 @@ export default function EventRegistrationsPage({ params }: PageProps) {
   // Export CSV
   const handleExportCSV = () => {
     if (!event) return;
-    const headers = ['Name', 'Email', 'Phone', 'College', 'City', 'GitHub', 'LinkedIn', 'Skills', 'Status', 'Registered At'];
+    const headers = [
+      'Name',
+      'Email',
+      'Phone',
+      'College',
+      'City',
+      'GitHub',
+      'LinkedIn',
+      'Skills',
+      'Portfolio',
+      'Resume',
+      'Discord',
+      'Twitter',
+      'T-Shirt Size',
+      'Dietary Preference',
+      'Experience Level',
+      'Custom Answers',
+      'Status',
+      'Registered At',
+    ];
     const rows = filteredRegistrations.map((r) => [
-      `"${r.userName || ''}"`,
-      `"${r.userEmail || ''}"`,
-      `"${r.phone || ''}"`,
-      `"${r.college || ''}"`,
-      `"${r.city || ''}"`,
-      `"${r.githubUrl || ''}"`,
-      `"${r.linkedinUrl || ''}"`,
-      `"${(r.skills || []).join('; ')}"`,
+      `"${(r.userName || '').replace(/"/g, '""')}"`,
+      `"${(r.userEmail || '').replace(/"/g, '""')}"`,
+      `"${(r.phone || '').replace(/"/g, '""')}"`,
+      `"${(r.college || '').replace(/"/g, '""')}"`,
+      `"${(r.city || '').replace(/"/g, '""')}"`,
+      `"${(r.githubUrl || '').replace(/"/g, '""')}"`,
+      `"${(r.linkedinUrl || '').replace(/"/g, '""')}"`,
+      `"${(r.skills || []).join('; ').replace(/"/g, '""')}"`,
+      `"${((r as any).portfolioUrl || r.customAnswers?.portfolio_url || r.customAnswers?.portfolioUrl || '').replace(/"/g, '""')}"`,
+      `"${((r as any).resumeUrl || r.customAnswers?.resume_url || r.customAnswers?.resumeUrl || '').replace(/"/g, '""')}"`,
+      `"${((r as any).discordHandle || r.customAnswers?.discord_handle || r.customAnswers?.discordHandle || '').replace(/"/g, '""')}"`,
+      `"${((r as any).twitterUrl || r.customAnswers?.twitter_url || r.customAnswers?.twitterUrl || '').replace(/"/g, '""')}"`,
+      `"${((r as any).tshirtSize || r.customAnswers?.tshirt_size || r.customAnswers?.tshirtSize || '').replace(/"/g, '""')}"`,
+      `"${((r as any).dietaryPreference || r.customAnswers?.dietary_preference || r.customAnswers?.dietaryPreference || '').replace(/"/g, '""')}"`,
+      `"${((r as any).experienceLevel || r.customAnswers?.experience_level || r.customAnswers?.experienceLevel || '').replace(/"/g, '""')}"`,
+      `"${JSON.stringify(r.customAnswers || {}).replace(/"/g, '""')}"`,
       `"${r.status}"`,
       `"${r.registeredAt}"`,
     ]);
@@ -755,6 +784,13 @@ export default function EventRegistrationsPage({ params }: PageProps) {
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5 justify-end">
                           <button
+                            onClick={() => setViewingApplicant(reg)}
+                            title="View Full Details & Answers"
+                            className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-[#0099e6] transition-colors cursor-pointer border border-sky-200 dark:border-sky-800/40"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => handleStatusChange(reg.id, 'APPROVED')}
                             title="Approve Applicant"
                             className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800/40"
@@ -911,6 +947,236 @@ export default function EventRegistrationsPage({ params }: PageProps) {
             }, 8000);
           }}
         />
+      )}
+
+      {/* ─── Applicant Details Modal ───────────────────────────── */}
+      {viewingApplicant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0c1017] rounded-3xl border border-slate-200 dark:border-white/[0.08] shadow-2xl max-w-2xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-white/[0.08]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                    {viewingApplicant.userName}
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300">
+                    {viewingApplicant.role || 'Participant'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+                  {viewingApplicant.userEmail}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingApplicant(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Core Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Phone Number</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingApplicant.phone || '—'}</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">College / Institute</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingApplicant.college || '—'}</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">City / Location</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingApplicant.city || '—'}</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Registered At</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{formatDate(viewingApplicant.registeredAt)}</span>
+              </div>
+            </div>
+
+            {/* Profiles & Links */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                Profiles & Links
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {viewingApplicant.githubUrl && (
+                  <a
+                    href={viewingApplicant.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] flex items-center justify-between text-[#0099e6] font-semibold transition-colors"
+                  >
+                    <span>GitHub Profile</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {viewingApplicant.linkedinUrl && (
+                  <a
+                    href={viewingApplicant.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] flex items-center justify-between text-[#0099e6] font-semibold transition-colors"
+                  >
+                    <span>LinkedIn Profile</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {(viewingApplicant.portfolioUrl || viewingApplicant.customAnswers?.portfolio_url || viewingApplicant.customAnswers?.portfolioUrl) && (
+                  <a
+                    href={viewingApplicant.portfolioUrl || viewingApplicant.customAnswers?.portfolio_url || viewingApplicant.customAnswers?.portfolioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] flex items-center justify-between text-[#0099e6] font-semibold transition-colors"
+                  >
+                    <span>Portfolio Website</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {(viewingApplicant.resumeUrl || viewingApplicant.customAnswers?.resume_url || viewingApplicant.customAnswers?.resumeUrl) && (
+                  <a
+                    href={viewingApplicant.resumeUrl || viewingApplicant.customAnswers?.resume_url || viewingApplicant.customAnswers?.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] hover:border-[#0099e6] flex items-center justify-between text-[#0099e6] font-semibold transition-colors"
+                  >
+                    <span>Resume / CV</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {(viewingApplicant.discordHandle || viewingApplicant.customAnswers?.discord_handle || viewingApplicant.customAnswers?.discordHandle) && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] flex items-center justify-between">
+                    <span className="text-slate-500">Discord:</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                      {viewingApplicant.discordHandle || viewingApplicant.customAnswers?.discord_handle || viewingApplicant.customAnswers?.discordHandle}
+                    </span>
+                  </div>
+                )}
+                {(viewingApplicant.twitterUrl || viewingApplicant.customAnswers?.twitter_url || viewingApplicant.customAnswers?.twitterUrl) && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] flex items-center justify-between">
+                    <span className="text-slate-500">Twitter / X:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {viewingApplicant.twitterUrl || viewingApplicant.customAnswers?.twitter_url || viewingApplicant.customAnswers?.twitterUrl}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Fields & Swag */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                Preferences & Swag
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block font-bold">T-Shirt Size</span>
+                  <span className="font-black text-slate-900 dark:text-white mt-0.5 block">
+                    {viewingApplicant.tshirtSize || viewingApplicant.customAnswers?.tshirt_size || viewingApplicant.customAnswers?.tshirtSize || '—'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block font-bold">Dietary</span>
+                  <span className="font-black text-slate-900 dark:text-white mt-0.5 block">
+                    {viewingApplicant.dietaryPreference || viewingApplicant.customAnswers?.dietary_preference || viewingApplicant.customAnswers?.dietaryPreference || '—'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06]">
+                  <span className="text-[10px] text-slate-400 block font-bold">Experience</span>
+                  <span className="font-black text-slate-900 dark:text-white mt-0.5 block">
+                    {viewingApplicant.experienceLevel || viewingApplicant.customAnswers?.experience_level || viewingApplicant.customAnswers?.experienceLevel || '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills */}
+            {Array.isArray(viewingApplicant.skills) && viewingApplicant.skills.length > 0 && (
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  Skills & Tech Stack
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {viewingApplicant.skills.map((s: string) => (
+                    <span
+                      key={s}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-white/[0.06] rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom Questions & Answers */}
+            {viewingApplicant.customAnswers && Object.keys(viewingApplicant.customAnswers).length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/[0.08]">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  Custom Questions & Answers
+                </h4>
+                <div className="space-y-2">
+                  {Object.entries(viewingApplicant.customAnswers)
+                    .filter(([key]) => !['portfolio_url', 'portfolioUrl', 'resume_url', 'resumeUrl', 'discord_handle', 'discordHandle', 'twitter_url', 'twitterUrl', 'tshirt_size', 'tshirtSize', 'dietary_preference', 'dietaryPreference', 'experience_level', 'experienceLevel'].includes(key))
+                    .map(([key, val]) => {
+                      const questionObj = (event?.customQuestions || []).find((q) => q.id === key);
+                      const questionLabel = questionObj ? questionObj.label : key;
+                      return (
+                        <div
+                          key={key}
+                          className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] space-y-1"
+                        >
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                            {questionLabel}
+                          </span>
+                          <p className="text-xs text-slate-900 dark:text-white font-medium whitespace-pre-wrap">
+                            {String(val) || '—'}
+                          </p>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="pt-4 border-t border-slate-100 dark:border-white/[0.08] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStatusChange(viewingApplicant.id, 'APPROVED');
+                    setViewingApplicant((prev: any) => (prev ? { ...prev, status: 'APPROVED' } : null));
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                >
+                  <Check className="w-3.5 h-3.5" /> <span>Approve</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStatusChange(viewingApplicant.id, 'REJECTED');
+                    setViewingApplicant((prev: any) => (prev ? { ...prev, status: 'REJECTED' } : null));
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                >
+                  <X className="w-3.5 h-3.5" /> <span>Reject</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewingApplicant(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

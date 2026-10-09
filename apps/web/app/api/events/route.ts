@@ -107,9 +107,19 @@ export async function POST(req: Request) {
       registration_capacity: event.registrationCapacity || null,
       approval_mode: event.approvalMode || 'MANUAL',
       custom_questions: event.customQuestions || [],
+      registration_fields: event.registrationFields || ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'],
       registration_count: 0,
       registration_link: event.registrationLink || null,
     };
+
+    if (Array.isArray(event.registrationFields)) {
+      if (!Array.isArray(insertPayload.tags)) insertPayload.tags = [];
+      insertPayload.tags = insertPayload.tags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+      insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(event.registrationFields));
+      if (Array.isArray(event.customQuestions) && event.customQuestions.length > 0) {
+        insertPayload.tags.push('hu_custom_q:' + JSON.stringify(event.customQuestions));
+      }
+    }
 
     if (event.organizerName !== undefined) insertPayload.organizer_name = event.organizerName;
     if (event.organizerAvatar !== undefined) insertPayload.organizer_avatar = event.organizerAvatar;
@@ -120,6 +130,15 @@ export async function POST(req: Request) {
       .insert(insertPayload)
       .select('*')
       .single();
+
+    // Resilient fallback: If database schema lacks registration_fields column (code 42703)
+    if (error && (error.code === '42703' || error.message?.includes('registration_fields'))) {
+      console.warn('Server Supabase missing registration_fields column, retrying with tags fallback');
+      delete insertPayload.registration_fields;
+      const retryCol = await serverSupabase.from('events').insert(insertPayload).select('*').single();
+      data = retryCol.data;
+      error = retryCol.error;
+    }
 
     // Resilient fallback: If database constraint 'events_status_check' fails because migration is pending
     if (error && (error.code === '23514' || error.message?.includes('events_status_check'))) {
@@ -256,8 +275,22 @@ export async function PATCH(req: Request) {
     if (updates.registrationCapacity !== undefined) updatePayload.registration_capacity = updates.registrationCapacity;
     if (updates.approvalMode !== undefined) updatePayload.approval_mode = updates.approvalMode;
     if (updates.customQuestions !== undefined) updatePayload.custom_questions = updates.customQuestions;
+    if (updates.registrationFields !== undefined) updatePayload.registration_fields = updates.registrationFields;
     if (updates.registrationLink !== undefined) updatePayload.registration_link = updates.registrationLink;
     if (updates.allowExternalRedirect !== undefined) updatePayload.allow_external_redirect = updates.allowExternalRedirect;
+
+    if (updates.registrationFields !== undefined || updates.customQuestions !== undefined) {
+      const existingTags = Array.isArray(updates.tags) ? [...updates.tags] : [];
+      let newTags = existingTags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+      if (updates.registrationFields) {
+        newTags.push('hu_reg_fields:' + JSON.stringify(updates.registrationFields));
+      }
+      if (updates.customQuestions && updates.customQuestions.length > 0) {
+        newTags.push('hu_custom_q:' + JSON.stringify(updates.customQuestions));
+      }
+      updatePayload.tags = newTags;
+    }
+
     updatePayload.updated_at = new Date().toISOString();
 
     const VALID_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED', 'REJECTED'];
@@ -278,6 +311,24 @@ export async function PATCH(req: Request) {
         .update(updatePayload)
         .eq('slug', eventId)
         .select('*');
+    }
+
+    if (updateResult?.error && (updateResult.error.code === '42703' || updateResult.error.message?.includes('registration_fields'))) {
+      console.warn('Server Supabase update missing registration_fields, retrying without column');
+      delete updatePayload.registration_fields;
+      if (isUuid) {
+        updateResult = await serverSupabase
+          .from('events')
+          .update(updatePayload)
+          .eq('id', eventId)
+          .select('*');
+      } else {
+        updateResult = await serverSupabase
+          .from('events')
+          .update(updatePayload)
+          .eq('slug', eventId)
+          .select('*');
+      }
     }
 
     if (updateResult?.error) {
@@ -325,13 +376,30 @@ export async function PATCH(req: Request) {
         registration_capacity: updates.registrationCapacity || 2000,
         approval_mode: updates.approvalMode || 'AUTO',
         custom_questions: updates.customQuestions || [],
+        registration_fields: updates.registrationFields || ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'],
       };
+
+      if (Array.isArray(updates.registrationFields)) {
+        if (!Array.isArray(insertPayload.tags)) insertPayload.tags = [];
+        insertPayload.tags = insertPayload.tags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+        insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(updates.registrationFields));
+        if (Array.isArray(updates.customQuestions) && updates.customQuestions.length > 0) {
+          insertPayload.tags.push('hu_custom_q:' + JSON.stringify(updates.customQuestions));
+        }
+      }
 
       let { data: insertedData, error: insertErr } = await serverSupabase
         .from('events')
         .insert(insertPayload)
         .select('*')
         .single();
+
+      if (insertErr && (insertErr.code === '42703' || insertErr.message?.includes('registration_fields'))) {
+        delete insertPayload.registration_fields;
+        const retryCol = await serverSupabase.from('events').insert(insertPayload).select('*').single();
+        insertedData = retryCol.data;
+        insertErr = retryCol.error;
+      }
 
       if (insertErr && (insertErr.code === '23514' || insertErr.message?.includes('events_status_check'))) {
         insertPayload.status = 'DRAFT';

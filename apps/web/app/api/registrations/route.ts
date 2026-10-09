@@ -141,6 +141,17 @@ export async function POST(req: Request) {
       }
     }
 
+    const packedCustomAnswers: Record<string, any> = {
+      ...(input.customAnswers || {}),
+      ...(input.portfolioUrl ? { portfolioUrl: input.portfolioUrl, portfolio_url: input.portfolioUrl } : {}),
+      ...(input.resumeUrl ? { resumeUrl: input.resumeUrl, resume_url: input.resumeUrl } : {}),
+      ...(input.discordHandle ? { discordHandle: input.discordHandle, discord_handle: input.discordHandle } : {}),
+      ...(input.twitterUrl ? { twitterUrl: input.twitterUrl, twitter_url: input.twitterUrl } : {}),
+      ...(input.tshirtSize ? { tshirtSize: input.tshirtSize, tshirt_size: input.tshirtSize } : {}),
+      ...(input.dietaryPreference ? { dietaryPreference: input.dietaryPreference, dietary_preference: input.dietaryPreference } : {}),
+      ...(input.experienceLevel ? { experienceLevel: input.experienceLevel, experience_level: input.experienceLevel } : {}),
+    };
+
     const payload: any = {
       event_id: targetEventId,
       user_id: validUserId,
@@ -152,17 +163,38 @@ export async function POST(req: Request) {
       github_url: input.githubUrl || null,
       linkedin_url: input.linkedinUrl || null,
       skills: input.skills || [],
-      custom_answers: input.customAnswers || {},
+      custom_answers: packedCustomAnswers,
       is_team: Boolean(input.isTeam),
       team_name: input.teamName || null,
       role: input.role || (input.isTeam ? 'Team Leader' : 'Individual Hacker'),
       status: input.status || 'CONFIRMED',
       registered_at: new Date().toISOString(),
+      portfolio_url: input.portfolioUrl || null,
+      resume_url: input.resumeUrl || null,
+      discord_handle: input.discordHandle || null,
+      twitter_url: input.twitterUrl || null,
+      tshirt_size: input.tshirtSize || null,
+      dietary_preference: input.dietaryPreference || null,
+      experience_level: input.experienceLevel || null,
     };
 
-    const { error: insertErr } = await serverSupabase
+    let { error: insertErr } = await serverSupabase
       .from('registrations')
       .insert(payload);
+
+    // Resilient fallback: If database schema lacks new columns (code 42703)
+    if (insertErr && (insertErr.code === '42703' || insertErr.message?.includes('column'))) {
+      console.warn('Server Supabase registrations missing optional columns, saving in custom_answers JSONB');
+      delete payload.portfolio_url;
+      delete payload.resume_url;
+      delete payload.discord_handle;
+      delete payload.twitter_url;
+      delete payload.tshirt_size;
+      delete payload.dietary_preference;
+      delete payload.experience_level;
+      const retryRes = await serverSupabase.from('registrations').insert(payload);
+      insertErr = retryRes.error;
+    }
 
     if (insertErr) {
       console.error('Server Supabase registration error:', insertErr.message);
@@ -360,6 +392,13 @@ export async function GET(req: Request) {
             githubUrl: row.github_url || '',
             linkedinUrl: row.linkedin_url || '',
             skills: Array.isArray(row.skills) ? row.skills : [],
+            portfolioUrl: row.portfolio_url || row.custom_answers?.portfolio_url || row.custom_answers?.portfolioUrl || '',
+            resumeUrl: row.resume_url || row.custom_answers?.resume_url || row.custom_answers?.resumeUrl || '',
+            discordHandle: row.discord_handle || row.custom_answers?.discord_handle || row.custom_answers?.discordHandle || '',
+            twitterUrl: row.twitter_url || row.custom_answers?.twitter_url || row.custom_answers?.twitterUrl || '',
+            tshirtSize: row.tshirt_size || row.custom_answers?.tshirt_size || row.custom_answers?.tshirtSize || '',
+            dietaryPreference: row.dietary_preference || row.custom_answers?.dietary_preference || row.custom_answers?.dietaryPreference || '',
+            experienceLevel: row.experience_level || row.custom_answers?.experience_level || row.custom_answers?.experienceLevel || '',
             customAnswers: row.custom_answers || {},
             isTeam: Boolean(row.is_team),
             teamName: row.team_name || '',

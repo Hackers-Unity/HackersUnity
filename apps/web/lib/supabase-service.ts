@@ -116,7 +116,13 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
     )}`,
     featured: Boolean(item.featured),
     tags: (item.tags || ['Hackathon', 'Innovation']).filter(
-      (t: string) => typeof t === 'string' && !t.startsWith('hu_order:') && t !== 'allow_external_redirect' && t !== 'PENDING_APPROVAL'
+      (t: string) =>
+        typeof t === 'string' &&
+        !t.startsWith('hu_order:') &&
+        !t.startsWith('hu_reg_fields:') &&
+        !t.startsWith('hu_custom_q:') &&
+        t !== 'allow_external_redirect' &&
+        t !== 'PENDING_APPROVAL'
     ),
     displayOrder: (() => {
       if (typeof item.display_order === 'number' && !isNaN(item.display_order)) {
@@ -146,8 +152,34 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
     currency: item.currency || 'INR',
     registrationCapacity: item.registration_capacity || null,
     approvalMode: item.approval_mode || 'MANUAL',
-    customQuestions: item.custom_questions || [],
-    registrationFields: item.registration_fields || ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'],
+    customQuestions: (() => {
+      if (Array.isArray(item.custom_questions) && item.custom_questions.length > 0) {
+        return item.custom_questions;
+      }
+      if (Array.isArray(item.tags)) {
+        const qTag = item.tags.find((t: string) => typeof t === 'string' && t.startsWith('hu_custom_q:'));
+        if (qTag) {
+          try {
+            return JSON.parse(qTag.substring('hu_custom_q:'.length));
+          } catch {}
+        }
+      }
+      return item.custom_questions || [];
+    })(),
+    registrationFields: (() => {
+      if (Array.isArray(item.registration_fields) && item.registration_fields.length > 0) {
+        return item.registration_fields;
+      }
+      if (Array.isArray(item.tags)) {
+        const fTag = item.tags.find((t: string) => typeof t === 'string' && t.startsWith('hu_reg_fields:'));
+        if (fTag) {
+          try {
+            return JSON.parse(fTag.substring('hu_reg_fields:'.length));
+          } catch {}
+        }
+      }
+      return item.registration_fields || ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'];
+    })(),
     previewToken: item.preview_token || item.previewToken || (item.slug ? getEventPreviewToken(item) : undefined),
     ctaText: item.cta_text || item.ctaText || undefined,
   };
@@ -708,14 +740,33 @@ export async function createEventInSupabase(
       registration_capacity: event.registrationCapacity || 2000,
       approval_mode: event.approvalMode || 'AUTO',
       custom_questions: event.customQuestions || [],
+      registration_fields: event.registrationFields || ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'],
       registration_link: event.registrationLink || null,
     };
+
+    if (Array.isArray(event.registrationFields)) {
+      if (!Array.isArray(insertPayload.tags)) insertPayload.tags = [];
+      insertPayload.tags = insertPayload.tags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+      insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(event.registrationFields));
+      if (Array.isArray(event.customQuestions) && event.customQuestions.length > 0) {
+        insertPayload.tags.push('hu_custom_q:' + JSON.stringify(event.customQuestions));
+      }
+    }
 
     let { data, error } = await supabase
       .from('events')
       .insert(insertPayload)
       .select('*')
       .single();
+
+    // Resilient fallback: If database schema lacks registration_fields column (code 42703)
+    if (error && (error.code === '42703' || error.message?.includes('registration_fields'))) {
+      console.warn('DB missing registration_fields column, retrying with tags fallback');
+      delete insertPayload.registration_fields;
+      const retryCol = await supabase.from('events').insert(insertPayload).select('*').single();
+      data = retryCol.data;
+      error = retryCol.error;
+    }
 
     // Resilient fallback: If database constraint 'events_status_check' fails because migration is pending
     if (error && error.code === '23514' && sanitizedStatus === 'PENDING_APPROVAL') {
@@ -835,8 +886,22 @@ export async function updateEventInSupabase(
     if (updates.difficulty !== undefined) updatePayload.difficulty = updates.difficulty;
     if (updates.rulesText !== undefined) updatePayload.rules_text = updates.rulesText;
     if (updates.customQuestions !== undefined) updatePayload.custom_questions = updates.customQuestions;
+    if (updates.registrationFields !== undefined) updatePayload.registration_fields = updates.registrationFields;
     if (updates.registrationLink !== undefined) updatePayload.registration_link = updates.registrationLink;
     if (updates.allowExternalRedirect !== undefined) updatePayload.allow_external_redirect = updates.allowExternalRedirect;
+
+    if (updates.registrationFields !== undefined || updates.customQuestions !== undefined) {
+      const existingTags = Array.isArray(updates.tags) ? [...updates.tags] : [];
+      let newTags = existingTags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+      if (updates.registrationFields) {
+        newTags.push('hu_reg_fields:' + JSON.stringify(updates.registrationFields));
+      }
+      if (updates.customQuestions && updates.customQuestions.length > 0) {
+        newTags.push('hu_custom_q:' + JSON.stringify(updates.customQuestions));
+      }
+      updatePayload.tags = newTags;
+    }
+
     updatePayload.updated_at = new Date().toISOString();
 
     const isUuid = Boolean(eventId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId));
@@ -846,7 +911,17 @@ export async function updateEventInSupabase(
     } else {
       clientQuery = clientQuery.eq('slug', eventId);
     }
-    const { error } = await clientQuery;
+    let { error } = await clientQuery;
+
+    if (error && (error.code === '42703' || error.message?.includes('registration_fields'))) {
+      console.warn('DB missing registration_fields column on update, retrying without it');
+      delete updatePayload.registration_fields;
+      let retryQuery = supabase.from('events').update(updatePayload);
+      if (isUuid) retryQuery = retryQuery.eq('id', eventId);
+      else retryQuery = retryQuery.eq('slug', eventId);
+      const retryRes = await retryQuery;
+      error = retryRes.error;
+    }
 
     if (error) {
       console.warn('Direct Supabase update error:', error.message);
@@ -956,6 +1031,13 @@ export interface RegistrationInput {
   githubUrl?: string;
   linkedinUrl?: string;
   skills?: string[];
+  portfolioUrl?: string;
+  resumeUrl?: string;
+  discordHandle?: string;
+  twitterUrl?: string;
+  tshirtSize?: string;
+  dietaryPreference?: string;
+  experienceLevel?: string;
   customAnswers?: Record<string, string>;
   isTeam?: boolean;
   teamName?: string;
@@ -1025,6 +1107,13 @@ export async function registerForEventSupabase(
       githubUrl: input.githubUrl || undefined,
       linkedinUrl: input.linkedinUrl || undefined,
       skills: input.skills || [],
+      portfolioUrl: input.portfolioUrl || undefined,
+      resumeUrl: input.resumeUrl || undefined,
+      discordHandle: input.discordHandle || undefined,
+      twitterUrl: input.twitterUrl || undefined,
+      tshirtSize: input.tshirtSize || undefined,
+      dietaryPreference: input.dietaryPreference || undefined,
+      experienceLevel: input.experienceLevel || undefined,
       customAnswers: input.customAnswers || {},
       isTeam: Boolean(input.isTeam),
       teamName: input.teamName,
@@ -1088,6 +1177,17 @@ export async function registerForEventSupabase(
       return { success: false, error: 'You are already registered for this event.' };
     }
 
+    const packedCustomAnswers: Record<string, string> = {
+      ...(input.customAnswers || {}),
+      ...(input.portfolioUrl ? { portfolioUrl: input.portfolioUrl, portfolio_url: input.portfolioUrl } : {}),
+      ...(input.resumeUrl ? { resumeUrl: input.resumeUrl, resume_url: input.resumeUrl } : {}),
+      ...(input.discordHandle ? { discordHandle: input.discordHandle, discord_handle: input.discordHandle } : {}),
+      ...(input.twitterUrl ? { twitterUrl: input.twitterUrl, twitter_url: input.twitterUrl } : {}),
+      ...(input.tshirtSize ? { tshirtSize: input.tshirtSize, tshirt_size: input.tshirtSize } : {}),
+      ...(input.dietaryPreference ? { dietaryPreference: input.dietaryPreference, dietary_preference: input.dietaryPreference } : {}),
+      ...(input.experienceLevel ? { experienceLevel: input.experienceLevel, experience_level: input.experienceLevel } : {}),
+    };
+
     const payload: any = {
       event_id: input.eventId,
       user_id: input.userId || null,
@@ -1099,15 +1199,36 @@ export async function registerForEventSupabase(
       github_url: input.githubUrl || null,
       linkedin_url: input.linkedinUrl || null,
       skills: input.skills || [],
-      custom_answers: input.customAnswers || {},
+      custom_answers: packedCustomAnswers,
       is_team: Boolean(input.isTeam),
       team_name: input.teamName || null,
       role: input.role || (input.isTeam ? 'Team Leader' : 'Individual Hacker'),
       status: input.status || 'CONFIRMED',
       registered_at: new Date().toISOString(),
+      portfolio_url: input.portfolioUrl || null,
+      resume_url: input.resumeUrl || null,
+      discord_handle: input.discordHandle || null,
+      twitter_url: input.twitterUrl || null,
+      tshirt_size: input.tshirtSize || null,
+      dietary_preference: input.dietaryPreference || null,
+      experience_level: input.experienceLevel || null,
     };
 
-    const { error } = await supabase.from('registrations').insert(payload);
+    let { error } = await supabase.from('registrations').insert(payload);
+
+    // Resilient fallback: If database schema lacks new columns (code 42703)
+    if (error && (error.code === '42703' || error.message?.includes('column'))) {
+      console.warn('DB missing extended columns in registrations, saving in custom_answers JSONB');
+      delete payload.portfolio_url;
+      delete payload.resume_url;
+      delete payload.discord_handle;
+      delete payload.twitter_url;
+      delete payload.tshirt_size;
+      delete payload.dietary_preference;
+      delete payload.experience_level;
+      const retryRes = await supabase.from('registrations').insert(payload);
+      error = retryRes.error;
+    }
 
     if (error) {
       console.warn('Supabase registration error:', error.message);

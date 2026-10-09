@@ -281,6 +281,8 @@ function HostHackathonContent() {
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [newQuestionLabel, setNewQuestionLabel] = useState('');
   const [newQuestionType, setNewQuestionType] = useState<'text' | 'select' | 'textarea'>('text');
+  const [newQuestionRequired, setNewQuestionRequired] = useState(false);
+  const [newQuestionOptions, setNewQuestionOptions] = useState('');
 
   // External Redirect Setting (Controlled by admin approval in /admin-csap)
   const [allowExternalRedirect, setAllowExternalRedirect] = useState(false);
@@ -551,9 +553,9 @@ function HostHackathonContent() {
             setApprovalMode('MANUAL');
           }
           if (found.registrationFields && Array.isArray(found.registrationFields)) {
-            const optionalInEvent = found.registrationFields.filter(
-              (f: string) => !['name', 'email', 'phone', 'college', 'city'].includes(f.toLowerCase())
-            );
+            const optionalInEvent = found.registrationFields
+              .map((f: string) => f.toLowerCase().trim())
+              .filter((f: string) => !['name', 'email', 'phone', 'college', 'city'].includes(f));
             setSelectedOptionalFields(optionalInEvent);
           }
           if (found.customQuestions && found.customQuestions.length > 0) {
@@ -730,10 +732,16 @@ function HostHackathonContent() {
         id: `q_${Date.now()}`,
         label: newQuestionLabel.trim(),
         type: newQuestionType,
-        required: false,
+        required: newQuestionRequired,
+        options:
+          newQuestionType === 'select' && newQuestionOptions.trim()
+            ? newQuestionOptions.split(',').map((o) => o.trim()).filter(Boolean)
+            : undefined,
       },
     ]);
     setNewQuestionLabel('');
+    setNewQuestionOptions('');
+    setNewQuestionRequired(false);
   };
   const removeCustomQuestion = (id: string) => {
     setCustomQuestions((prev) => prev.filter((q) => q.id !== id));
@@ -2451,25 +2459,73 @@ ${organizerName || 'Organizer'}`;
                     </label>
 
                     {customQuestions.map((q) => (
-                      <div key={q.id} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08]">
+                      <div key={q.id} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08]">
                         <span className="flex-1 text-xs text-slate-700 dark:text-slate-300 font-medium">{q.label}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{q.type}</span>
-                        <button type="button" onClick={() => removeCustomQuestion(q.id)} className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-500 cursor-pointer">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.05]">{q.type}</span>
+                        {q.required ? (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
+                            Required
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-white/[0.05] text-slate-400">
+                            Optional
+                          </span>
+                        )}
+                        <button type="button" onClick={() => removeCustomQuestion(q.id)} className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-500 cursor-pointer transition-colors">
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
 
-                    <div className="flex gap-2">
-                      <input type="text" placeholder="Question label" value={newQuestionLabel} onChange={(e) => setNewQuestionLabel(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomQuestion())} className="flex-1 px-3 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]" />
-                      <select value={newQuestionType} onChange={(e) => setNewQuestionType(e.target.value as any)} className="px-2 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none">
-                        <option value="text">Text</option>
-                        <option value="textarea">Long Text</option>
-                        <option value="select">Select</option>
-                      </select>
-                      <button type="button" onClick={addCustomQuestion} className="px-3 py-2 rounded-xl bg-[#0099e6] text-white text-xs font-bold cursor-pointer hover:bg-[#0284c7]">
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Question label (e.g. Why do you want to join?)"
+                          value={newQuestionLabel}
+                          onChange={(e) => setNewQuestionLabel(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomQuestion())}
+                          className="flex-1 px-3 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]"
+                        />
+                        <select
+                          value={newQuestionType}
+                          onChange={(e) => setNewQuestionType(e.target.value as any)}
+                          className="px-2 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none"
+                        >
+                          <option value="text">Short Text</option>
+                          <option value="textarea">Long Text</option>
+                          <option value="select">Dropdown Select</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={addCustomQuestion}
+                          className="px-3 py-2 rounded-xl bg-[#0099e6] text-white text-xs font-bold cursor-pointer hover:bg-[#0284c7] transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {newQuestionType === 'select' && (
+                        <input
+                          type="text"
+                          placeholder="Options comma-separated (e.g. Beginner, Intermediate, Expert)"
+                          value={newQuestionOptions}
+                          onChange={(e) => setNewQuestionOptions(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]"
+                        />
+                      )}
+
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 select-none">
+                          <input
+                            type="checkbox"
+                            checked={newQuestionRequired}
+                            onChange={(e) => setNewQuestionRequired(e.target.checked)}
+                            className="w-3.5 h-3.5 rounded text-[#0099e6] cursor-pointer"
+                          />
+                          <span>Make this question mandatory for participants</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
 

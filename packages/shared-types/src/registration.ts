@@ -29,6 +29,13 @@ export interface Registration {
   githubUrl?: string;
   linkedinUrl?: string;
   skills?: string[];
+  portfolioUrl?: string;
+  resumeUrl?: string;
+  discordHandle?: string;
+  twitterUrl?: string;
+  tshirtSize?: string;
+  dietaryPreference?: string;
+  experienceLevel?: string;
   customAnswers?: Record<string, unknown>;
 }
 

@@ -134,9 +134,10 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
   const isFieldEnabled = (fieldId: string) => {
     if (!event) return true;
     if (!event.registrationFields || !Array.isArray(event.registrationFields) || event.registrationFields.length === 0) {
-      return ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'].includes(fieldId);
+      return ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'].includes(fieldId.toLowerCase());
     }
-    return event.registrationFields.map((f: string) => f.toLowerCase()).includes(fieldId.toLowerCase());
+    const cleanList = event.registrationFields.map((f: string) => f.toLowerCase().trim());
+    return cleanList.includes(fieldId.toLowerCase().trim());
   };
 
   // Submission state
@@ -600,6 +601,16 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       return;
     }
 
+    // Validate required custom questions if configured by event host
+    if (event?.customQuestions && Array.isArray(event.customQuestions)) {
+      for (const q of event.customQuestions) {
+        if (q.required && (!customAnswers[q.id] || !customAnswers[q.id].trim())) {
+          setErrorMsg(`Please answer the required question: "${q.label}"`);
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -641,6 +652,13 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           githubUrl: githubUrl.trim() || undefined,
           linkedinUrl: linkedinUrl.trim() || undefined,
           skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+          portfolioUrl: portfolioUrl.trim() || undefined,
+          resumeUrl: resumeUrl.trim() || undefined,
+          discordHandle: discordHandle.trim() || undefined,
+          twitterUrl: twitterUrl.trim() || undefined,
+          tshirtSize: tshirtSize || undefined,
+          dietaryPreference: dietaryPreference || undefined,
+          experienceLevel: experienceLevel || undefined,
           customAnswers,
           isTeam: true,
           teamName: teamName.trim(),
@@ -692,6 +710,13 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           githubUrl: githubUrl.trim() || undefined,
           linkedinUrl: linkedinUrl.trim() || undefined,
           skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+          portfolioUrl: portfolioUrl.trim() || undefined,
+          resumeUrl: resumeUrl.trim() || undefined,
+          discordHandle: discordHandle.trim() || undefined,
+          twitterUrl: twitterUrl.trim() || undefined,
+          tshirtSize: tshirtSize || undefined,
+          dietaryPreference: dietaryPreference || undefined,
+          experienceLevel: experienceLevel || undefined,
           customAnswers,
           isTeam: true,
           teamName: teamObj?.name || 'Squad Member',
@@ -720,6 +745,13 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           githubUrl: githubUrl.trim() || undefined,
           linkedinUrl: linkedinUrl.trim() || undefined,
           skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+          portfolioUrl: portfolioUrl.trim() || undefined,
+          resumeUrl: resumeUrl.trim() || undefined,
+          discordHandle: discordHandle.trim() || undefined,
+          twitterUrl: twitterUrl.trim() || undefined,
+          tshirtSize: tshirtSize || undefined,
+          dietaryPreference: dietaryPreference || undefined,
+          experienceLevel: experienceLevel || undefined,
           customAnswers,
           isTeam: false,
           role: 'Solo Builder',
@@ -1689,6 +1721,20 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                             onChange={(e) => setCustomAnswers({ ...customAnswers, [q.id]: e.target.value })}
                             className="w-full px-4 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] focus:border-[#0099e6] rounded-xl text-xs text-slate-900 dark:text-white outline-none resize-none"
                           />
+                        ) : q.type === 'select' && q.options && q.options.length > 0 ? (
+                          <select
+                            required={q.required}
+                            value={customAnswers[q.id] || ''}
+                            onChange={(e) => setCustomAnswers({ ...customAnswers, [q.id]: e.target.value })}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] focus:border-[#0099e6] rounded-xl text-xs text-slate-900 dark:text-white outline-none"
+                          >
+                            <option value="">Select an option</option>
+                            {q.options.map((opt, i) => (
+                              <option key={i} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <input
                             type="text"
