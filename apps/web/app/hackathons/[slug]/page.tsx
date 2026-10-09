@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import {
   Trophy,
   Calendar,
+  Clock,
   MapPin,
   Bookmark,
   Share2,
@@ -43,6 +44,8 @@ import {
   formatCurrency,
   formatDate,
   formatDateTime,
+  formatEventDateTime,
+  calculateEventDuration,
   getDaysLeft,
   getStatusBadge,
   getCategoryBadge,
@@ -1231,12 +1234,23 @@ function HackathonDetailContent({ params }: PageProps) {
                 </div>
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span className="font-medium">Starts</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatDate(event.startDate)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatEventDateTime(event.startDate)}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span className="font-medium">Ends</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatDate(event.endDate)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatEventDateTime(event.endDate)}</span>
                 </div>
+                {calculateEventDuration(event.startDate, event.endDate) && (
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <span className="font-medium flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-[#0099e6]" />
+                      <span>Duration</span>
+                    </span>
+                    <span className="font-bold text-[#0099e6] dark:text-[#38bdf8]">
+                      {calculateEventDuration(event.startDate, event.endDate)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium">Live Participants</span>

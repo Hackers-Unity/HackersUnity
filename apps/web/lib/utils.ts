@@ -51,6 +51,64 @@ export function formatDateTime(dateString: string): string {
   }
 }
 
+export function formatEventDateTime(dateString?: string | null): string {
+  if (!dateString) return 'TBA';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    const hasTime =
+      dateString.includes('T') &&
+      !dateString.endsWith('T00:00:00Z') &&
+      !dateString.endsWith('T00:00:00.000Z');
+    if (hasTime) {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(date);
+    }
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+  } catch {
+    return dateString || 'TBA';
+  }
+}
+
+export function calculateEventDuration(
+  startDate?: string | null,
+  endDate?: string | null
+): string | null {
+  if (!startDate || !endDate) return null;
+  try {
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    if (isNaN(start) || isNaN(end) || end <= start) return null;
+
+    const diffHours = (end - start) / (1000 * 60 * 60);
+    if (diffHours < 1) {
+      const minutes = Math.round((end - start) / (1000 * 60));
+      return `${minutes} Min`;
+    }
+    if (diffHours < 24) {
+      const hours = Math.round(diffHours * 10) / 10;
+      return `${hours} ${hours === 1 ? 'Hour' : 'Hours'}`;
+    }
+    const days = Math.round((diffHours / 24) * 10) / 10;
+    const roundedHours = Math.round(diffHours);
+    if (Number.isInteger(days)) {
+      return `${roundedHours} Hours (${days} ${days === 1 ? 'Day' : 'Days'})`;
+    }
+    return `${roundedHours} Hours (~${days} Days)`;
+  } catch {
+    return null;
+  }
+}
+
 export function isEventRegistrationClosed(registrationDeadline?: string | null, endDate?: string | null): boolean {
   const deadlineStr = registrationDeadline || endDate;
   if (!deadlineStr) return false;

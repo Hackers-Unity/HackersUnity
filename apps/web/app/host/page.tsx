@@ -7,6 +7,7 @@ import {
   Trophy,
   Sparkles,
   Calendar,
+  Clock,
   Rocket,
   Eye,
   CheckCircle2,
@@ -72,7 +73,7 @@ import {
   removeEventAdmin,
   EventTeamData,
 } from '@/lib/supabase-service';
-import { getEventPreviewToken, getEventPrivateLink } from '@/lib/utils';
+import { getEventPreviewToken, getEventPrivateLink, calculateEventDuration } from '@/lib/utils';
 import { HackathonCard } from '@/components/hackathon-card';
 import { getEventImageSrc } from '@/lib/event-images';
 import { RichTextEditor } from '@/components/rich-text-editor';
@@ -240,7 +241,9 @@ function HostHackathonContent() {
   const [registrationStart, setRegistrationStart] = useState('');
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('09:00');
   const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('18:00');
   const [timezone, setTimezone] = useState('Asia/Kolkata');
 
   // Step 3: Hackathon Details
@@ -484,10 +487,24 @@ function HostHackathonContent() {
           }
 
           if (found.startDate) {
-            setStartDate(found.startDate.split('T')[0] || '');
+            const [d, t] = found.startDate.split('T');
+            setStartDate(d || '');
+            if (t) {
+              const timePart = t.slice(0, 5);
+              if (/^\d{2}:\d{2}$/.test(timePart)) {
+                setStartTime(timePart);
+              }
+            }
           }
           if (found.endDate) {
-            setEndDate(found.endDate.split('T')[0] || '');
+            const [d, t] = found.endDate.split('T');
+            setEndDate(d || '');
+            if (t) {
+              const timePart = t.slice(0, 5);
+              if (/^\d{2}:\d{2}$/.test(timePart)) {
+                setEndTime(timePart);
+              }
+            }
           }
           if (found.registrationDeadline) {
             setRegistrationDeadline(found.registrationDeadline.split('T')[0] || '');
@@ -596,10 +613,10 @@ function HostHackathonContent() {
   // ─── Pure Date Validation Calculation ────────────────────
   const dateErrors = useMemo(() => {
     const errors: Record<string, string> = {};
-    const regStart = registrationStart ? new Date(registrationStart) : null;
-    const regEnd = registrationDeadline ? new Date(registrationDeadline) : null;
-    const hackStart = startDate ? new Date(startDate) : null;
-    const hackEnd = endDate ? new Date(endDate) : null;
+    const regStart = registrationStart ? new Date(`${registrationStart}T00:00:00`) : null;
+    const regEnd = registrationDeadline ? new Date(`${registrationDeadline}T23:59:59`) : null;
+    const hackStart = startDate ? new Date(`${startDate}T${startTime || '09:00'}:00`) : null;
+    const hackEnd = endDate ? new Date(`${endDate}T${endTime || '18:00'}:00`) : null;
 
     if (regStart && regEnd && regStart >= regEnd) {
       errors.registrationDeadline = 'Registration deadline must be after registration start';
@@ -608,10 +625,18 @@ function HostHackathonContent() {
       errors.startDate = 'Hackathon start must be after registration deadline';
     }
     if (hackStart && hackEnd && hackStart >= hackEnd) {
-      errors.endDate = 'Hackathon end must be after hackathon start';
+      errors.endDate = 'Hackathon end must be after hackathon start (check date & time)';
     }
     return errors;
-  }, [registrationStart, registrationDeadline, startDate, endDate]);
+  }, [registrationStart, registrationDeadline, startDate, startTime, endDate, endTime]);
+
+  const eventDuration = useMemo(() => {
+    if (!startDate || !endDate) return null;
+    return calculateEventDuration(
+      `${startDate}T${startTime || '09:00'}:00`,
+      `${endDate}T${endTime || '18:00'}:00`
+    );
+  }, [startDate, startTime, endDate, endTime]);
 
   // Check if current event is already approved / published by admins
   const isAlreadyApproved = useMemo(() => {
@@ -760,8 +785,8 @@ function HostHackathonContent() {
       description: description || 'Join this hackathon to innovate, build real-world solutions, and compete for prizes.',
       category,
       eventType,
-      startDate: startDate ? `${startDate}T00:00:00Z` : new Date(Date.now() + 30 * 86400000).toISOString(),
-      endDate: endDate ? `${endDate}T23:59:59Z` : new Date(Date.now() + 45 * 86400000).toISOString(),
+      startDate: startDate ? `${startDate}T${startTime || '09:00'}:00Z` : new Date(Date.now() + 30 * 86400000).toISOString(),
+      endDate: endDate ? `${endDate}T${endTime || '18:00'}:00Z` : new Date(Date.now() + 45 * 86400000).toISOString(),
       registrationDeadline: registrationDeadline ? `${registrationDeadline}T23:59:59Z` : new Date(Date.now() + 28 * 86400000).toISOString(),
       registrationStart: registrationStart ? `${registrationStart}T00:00:00Z` : undefined,
       timezone,
@@ -823,8 +848,8 @@ function HostHackathonContent() {
           eventId: 'preview',
           stageName: 'Hacking Sprint & Submissions',
           stageOrder: 2,
-          startDate: startDate ? `${startDate}T00:00:00Z` : null,
-          endDate: endDate ? `${endDate}T23:59:59Z` : null,
+          startDate: startDate ? `${startDate}T${startTime || '09:00'}:00Z` : null,
+          endDate: endDate ? `${endDate}T${endTime || '18:00'}:00Z` : null,
           description: 'Ship working code, repos, and demo videos',
         },
       ],
@@ -854,7 +879,9 @@ function HostHackathonContent() {
     category,
     eventType,
     startDate,
+    startTime,
     endDate,
+    endTime,
     registrationDeadline,
     registrationStart,
     timezone,
@@ -949,9 +976,9 @@ A new hackathon submission request has been submitted on Hacker's Unity and is a
 📅 SCHEDULE & DATES
 ========================================
 • Registration Opens: ${registrationStart || 'Immediate'}
-• Registration Deadline: ${registrationDeadline || 'TBD'}
-• Hackathon Sprint Starts: ${startDate || 'TBD'}
-• Hackathon Sprint Ends: ${endDate || 'TBD'}
+• Hackathon Sprint Starts: ${startDate ? `${startDate} at ${startTime || '09:00'}` : 'TBD'}
+• Hackathon Sprint Ends: ${endDate ? `${endDate} at ${endTime || '18:00'}` : 'TBD'}
+• Sprint Duration: ${eventDuration || 'Custom'}
 • Timezone: ${timezone}
 
 ========================================
@@ -1011,7 +1038,10 @@ ${organizerName || 'Organizer'}`;
     registrationStart,
     registrationDeadline,
     startDate,
+    startTime,
     endDate,
+    endTime,
+    eventDuration,
     timezone,
     prizes,
     tracks,
@@ -1842,32 +1872,66 @@ ${organizerName || 'Organizer'}`;
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Hackathon Start *</label>
-                      <input
-                        type="date"
-                        required
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#121824] border rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6] ${dateErrors.startDate ? 'border-red-400' : 'border-slate-200 dark:border-white/[0.1]'}`}
-                      />
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Hackathon Start Date & Time *</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          required
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className={`flex-1 px-3 py-2 bg-slate-50 dark:bg-[#121824] border rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6] ${dateErrors.startDate ? 'border-red-400' : 'border-slate-200 dark:border-white/[0.1]'}`}
+                        />
+                        <input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          title="Start Time"
+                          className="w-28 px-2.5 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]"
+                        />
+                      </div>
                       {dateErrors.startDate && (
                         <p className="text-[10px] text-red-500 mt-0.5">{dateErrors.startDate}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Hackathon End *</label>
-                      <input
-                        type="date"
-                        required
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#121824] border rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6] ${dateErrors.endDate ? 'border-red-400' : 'border-slate-200 dark:border-white/[0.1]'}`}
-                      />
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Hackathon End Date & Time *</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          required
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className={`flex-1 px-3 py-2 bg-slate-50 dark:bg-[#121824] border rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6] ${dateErrors.endDate ? 'border-red-400' : 'border-slate-200 dark:border-white/[0.1]'}`}
+                        />
+                        <input
+                          type="time"
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                          title="End Time"
+                          className="w-28 px-2.5 py-2 bg-slate-50 dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]"
+                        />
+                      </div>
                       {dateErrors.endDate && (
                         <p className="text-[10px] text-red-500 mt-0.5">{dateErrors.endDate}</p>
                       )}
                     </div>
                   </div>
+
+                  {/* Calculated Duration Card */}
+                  {eventDuration && (
+                    <div className="p-3 rounded-2xl bg-sky-50/80 dark:bg-[#0099e6]/10 border border-[#0099e6]/30 flex items-center justify-between text-xs animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#0099e6] shrink-0" />
+                        <div>
+                          <span className="font-semibold text-slate-600 dark:text-slate-300">Calculated Event Duration: </span>
+                          <span className="font-bold text-[#0099e6] dark:text-[#38bdf8] text-xs sm:text-sm">{eventDuration}</span>
+                        </div>
+                      </div>
+                      <span className="hidden sm:inline text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        {timezone}
+                      </span>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Timezone</label>
@@ -3008,8 +3072,11 @@ ${organizerName || 'Organizer'}`;
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                         <div><span className="text-slate-500 dark:text-slate-400">Reg. Opens:</span> <span className="font-semibold text-slate-900 dark:text-white">{registrationStart || '—'}</span></div>
                         <div><span className="text-slate-500 dark:text-slate-400">Reg. Deadline:</span> <span className="font-semibold text-slate-900 dark:text-white">{registrationDeadline || '—'}</span></div>
-                        <div><span className="text-slate-500 dark:text-slate-400">Hack Start:</span> <span className="font-semibold text-slate-900 dark:text-white">{startDate || '—'}</span></div>
-                        <div><span className="text-slate-500 dark:text-slate-400">Hack End:</span> <span className="font-semibold text-slate-900 dark:text-white">{endDate || '—'}</span></div>
+                        <div><span className="text-slate-500 dark:text-slate-400">Hack Start:</span> <span className="font-semibold text-slate-900 dark:text-white">{startDate ? `${startDate} (${startTime || '09:00'})` : '—'}</span></div>
+                        <div><span className="text-slate-500 dark:text-slate-400">Hack End:</span> <span className="font-semibold text-slate-900 dark:text-white">{endDate ? `${endDate} (${endTime || '18:00'})` : '—'}</span></div>
+                        {eventDuration && (
+                          <div className="col-span-2"><span className="text-slate-500 dark:text-slate-400">Duration:</span> <span className="font-bold text-[#0099e6] dark:text-[#38bdf8]">{eventDuration}</span></div>
+                        )}
                         <div><span className="text-slate-500 dark:text-slate-400">Timezone:</span> <span className="font-semibold text-slate-900 dark:text-white">{timezone}</span></div>
                       </div>
                     </div>

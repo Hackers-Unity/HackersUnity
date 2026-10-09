@@ -14,7 +14,7 @@ import {
 import { EventCategory, EventStatus } from '@hackers-unity/shared-types';
 import { ExtendedEvent } from '@/lib/mock-data';
 import { EVENT_IMAGE_MAP, getEventImageSrc } from '@/lib/event-images';
-import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, formatRegistrationCount, getEffectiveEventStatus } from '@/lib/utils';
+import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, formatRegistrationCount, getEffectiveEventStatus, calculateEventDuration } from '@/lib/utils';
 import { toggleBookmarkEvent, getBookmarkedEventIds } from '@/lib/storage';
 import { useAuth } from '@/lib/auth-context';
 import { useEffect } from 'react';
@@ -52,6 +52,7 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
   const statusInfo = getStatusBadge(effectiveStatus, event.registrationDeadline, event.endDate);
   const categoryInfo = getCategoryBadge(event.category);
   const deadlineInfo = getDaysLeft(event.registrationDeadline);
+  const eventDuration = calculateEventDuration(event.startDate, event.endDate);
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -120,9 +121,16 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
                 <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`} />
                 <span>{statusInfo.label}</span>
               </div>
-              <div className={`flex items-center gap-1 text-[11px] font-medium ${deadlineInfo.urgent ? 'text-[#ea580c] font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
-                <Clock className="w-3.5 h-3.5" />
-                <span>{deadlineInfo.text}</span>
+              <div className="flex items-center gap-1.5">
+                {eventDuration && (
+                  <span className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.08]">
+                    {eventDuration}
+                  </span>
+                )}
+                <div className={`flex items-center gap-1 text-[11px] font-medium ${deadlineInfo.urgent ? 'text-[#ea580c] font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{deadlineInfo.text}</span>
+                </div>
               </div>
             </div>
 
