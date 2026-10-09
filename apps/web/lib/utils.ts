@@ -51,16 +51,78 @@ export function formatDateTime(dateString: string): string {
   }
 }
 
-export function getDaysLeft(dateString: string): { text: string; urgent: boolean; past: boolean } {
+export function isEventRegistrationClosed(registrationDeadline?: string | null, endDate?: string | null): boolean {
+  const deadlineStr = registrationDeadline || endDate;
+  if (!deadlineStr) return false;
   try {
-    const target = new Date(dateString).getTime();
-    const now = new Date().getTime();
-    const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+    const trimmed = String(deadlineStr).trim();
+    if (!trimmed) return false;
+    // If date format is YYYY-MM-DD, allow registration through the full day (23:59:59.999)
+    const dateToParse = /^\d{4}-\d{2}-\d{2}$/.test(trimmed)
+      ? `${trimmed}T23:59:59.999`
+      : trimmed;
+    const target = new Date(dateToParse).getTime();
+    if (isNaN(target)) return false;
+    return target < Date.now();
+  } catch {
+    return false;
+  }
+}
 
-    if (diffDays < 0) {
+export function getEffectiveEventStatus(event?: {
+  status?: EventStatus | string | null;
+  registrationDeadline?: string | null;
+  endDate?: string | null;
+} | null): EventStatus {
+  if (!event) return EventStatus.PUBLISHED;
+  const currentStatus = (event.status as EventStatus) || EventStatus.PUBLISHED;
+
+  // Never alter draft or pending approval states
+  if (
+    currentStatus === EventStatus.DRAFT ||
+    currentStatus === EventStatus.PENDING_APPROVAL
+  ) {
+    return currentStatus;
+  }
+
+  // If explicitly completed
+  if (currentStatus === EventStatus.COMPLETED) {
+    return EventStatus.COMPLETED;
+  }
+
+  // If registration deadline has passed, status dynamically becomes COMPLETED
+  if (isEventRegistrationClosed(event.registrationDeadline, event.endDate)) {
+    return EventStatus.COMPLETED;
+  }
+
+  return currentStatus;
+}
+
+export function getDaysLeft(dateString?: string | null): { text: string; urgent: boolean; past: boolean } {
+  if (!dateString) {
+    return { text: 'TBA', urgent: false, past: false };
+  }
+  try {
+    const trimmed = String(dateString).trim();
+    if (!trimmed) {
+      return { text: 'TBA', urgent: false, past: false };
+    }
+    const dateToParse = /^\d{4}-\d{2}-\d{2}$/.test(trimmed)
+      ? `${trimmed}T23:59:59.999`
+      : trimmed;
+    const target = new Date(dateToParse).getTime();
+    if (isNaN(target)) {
+      return { text: 'TBA', urgent: false, past: false };
+    }
+    const now = Date.now();
+
+    if (target < now) {
       return { text: 'Ended', urgent: false, past: true };
     }
-    if (diffDays === 0) {
+
+    const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
       return { text: 'Ends today', urgent: true, past: false };
     }
     if (diffDays === 1) {
@@ -94,8 +156,22 @@ export function getCategoryBadge(category: EventCategory): { label: string; bg: 
   }
 }
 
-export function getStatusBadge(status: EventStatus): { label: string; color: string; dot: string } {
-  switch (status) {
+export function getStatusBadge(
+  status: EventStatus,
+  registrationDeadline?: string | null,
+  endDate?: string | null
+): { label: string; color: string; dot: string } {
+  let resolvedStatus = status;
+
+  if (
+    status !== EventStatus.DRAFT &&
+    status !== EventStatus.PENDING_APPROVAL &&
+    isEventRegistrationClosed(registrationDeadline, endDate)
+  ) {
+    resolvedStatus = EventStatus.COMPLETED;
+  }
+
+  switch (resolvedStatus) {
     case EventStatus.PENDING_APPROVAL:
       return { label: 'Verification Pending', color: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30', dot: 'bg-amber-500' };
     case EventStatus.PUBLISHED:

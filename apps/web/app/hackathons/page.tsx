@@ -17,7 +17,7 @@ import { EventCategory, EventStatus, EventType } from '@hackers-unity/shared-typ
 import { HackathonCard } from '@/components/hackathon-card';
 import { usePublishedEvents } from '@/lib/hooks/use-events';
 import { ExtendedEvent } from '@/lib/mock-data';
-import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge } from '@/lib/utils';
+import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, getEffectiveEventStatus } from '@/lib/utils';
 import { RegistrationModal } from '@/components/registration-modal';
 import { stripHtmlAndMarkdown } from '@/lib/format-description';
 
@@ -41,9 +41,10 @@ export default function HackathonsDirectoryPage() {
           event.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
           event.organizerName.toLowerCase().includes(searchQuery.toLowerCase());
 
+        const effectiveStatus = getEffectiveEventStatus(event);
         const matchCategory = selectedCategory === 'ALL' || event.category === selectedCategory;
         const matchType = selectedType === 'ALL' || event.eventType === selectedType;
-        const matchStatus = selectedStatus === 'ALL' || event.status === selectedStatus;
+        const matchStatus = selectedStatus === 'ALL' || effectiveStatus === selectedStatus;
 
         return matchQuery && matchCategory && matchType && matchStatus;
       })
@@ -264,9 +265,11 @@ export default function HackathonsDirectoryPage() {
         /* ─── List View ───────────────────────────────────────────── */
         <div className="space-y-4">
           {filteredEvents.map((event) => {
-            const statusInfo = getStatusBadge(event.status);
+            const effectiveStatus = getEffectiveEventStatus(event);
+            const statusInfo = getStatusBadge(effectiveStatus, event.registrationDeadline, event.endDate);
             const categoryInfo = getCategoryBadge(event.category);
             const deadlineInfo = getDaysLeft(event.registrationDeadline);
+            const isCompleted = effectiveStatus === EventStatus.COMPLETED;
 
             return (
               <div
@@ -323,18 +326,27 @@ export default function HackathonsDirectoryPage() {
                     >
                       Details
                     </Link>
-                    <button
-                      onClick={() => {
-                        if (event.registrationLink && event.registrationLink.startsWith('http')) {
-                          window.open(event.registrationLink, '_blank', 'noopener,noreferrer');
-                        } else {
-                          setActiveRegEvent(event);
-                        }
-                      }}
-                      className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs shadow-sm shadow-sky-500/20 transition-all cursor-pointer"
-                    >
-                      Register
-                    </button>
+                    {isCompleted ? (
+                      <Link
+                        href={`/hackathons/${event.slug}`}
+                        className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08] font-bold text-xs transition-all text-center inline-block"
+                      >
+                        Completed
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (event.registrationLink && event.registrationLink.startsWith('http')) {
+                            window.open(event.registrationLink, '_blank', 'noopener,noreferrer');
+                          } else {
+                            setActiveRegEvent(event);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs shadow-sm shadow-sky-500/20 transition-all cursor-pointer"
+                      >
+                        Register
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -50,6 +50,7 @@ import {
   getEventPreviewToken,
   getEventPrivateLink,
   formatBuildersCount,
+  getEffectiveEventStatus,
 } from '@/lib/utils';
 import { RegistrationModal } from '@/components/registration-modal';
 import { TeamRegistrationModal } from '@/components/team-registration-modal';
@@ -240,7 +241,8 @@ function HackathonDetailContent({ params }: PageProps) {
     );
   }
 
-  const statusInfo = getStatusBadge(event.status);
+  const effectiveStatus = getEffectiveEventStatus(event);
+  const statusInfo = getStatusBadge(effectiveStatus, event.registrationDeadline, event.endDate);
   const categoryInfo = getCategoryBadge(event.category);
   const eventTypeInfo = getEventTypeBadge(event.eventType);
   const deadlineInfo = getDaysLeft(event.registrationDeadline);
@@ -584,14 +586,20 @@ function HackathonDetailContent({ params }: PageProps) {
                         This event allows squads of {event.minTeamSize}-{event.maxTeamSize} builders.
                       </p>
                     </div>
-                    <a
-                      href={isManipalEvent ? MANIPAL_REDIRECT_URL : `/hackathons/${event.slug}/register`}
-                      target={isManipalEvent ? '_blank' : undefined}
-                      rel={isManipalEvent ? 'noopener noreferrer' : undefined}
-                      className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap"
-                    >
-                      Squad Registration Portal
-                    </a>
+                    {effectiveStatus !== EventStatus.COMPLETED ? (
+                      <a
+                        href={isManipalEvent ? MANIPAL_REDIRECT_URL : `/hackathons/${event.slug}/register`}
+                        target={isManipalEvent ? '_blank' : undefined}
+                        rel={isManipalEvent ? 'noopener noreferrer' : undefined}
+                        className="px-4 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap"
+                      >
+                        Squad Registration Portal
+                      </a>
+                    ) : (
+                      <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 text-xs font-bold">
+                        Registration Closed
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -1099,7 +1107,7 @@ function HackathonDetailContent({ params }: PageProps) {
                     <span>{userSubmission ? '✓ View / Edit Submission' : 'Submit Project 🚀'}</span>
                   </button>
                 </div>
-              ) : event.status === EventStatus.COMPLETED ? (
+              ) : effectiveStatus === EventStatus.COMPLETED ? (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] text-center space-y-2">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />

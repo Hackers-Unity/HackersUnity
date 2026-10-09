@@ -14,7 +14,7 @@ import {
 import { EventCategory, EventStatus } from '@hackers-unity/shared-types';
 import { ExtendedEvent } from '@/lib/mock-data';
 import { EVENT_IMAGE_MAP, getEventImageSrc } from '@/lib/event-images';
-import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, formatRegistrationCount } from '@/lib/utils';
+import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, formatRegistrationCount, getEffectiveEventStatus } from '@/lib/utils';
 import { toggleBookmarkEvent, getBookmarkedEventIds } from '@/lib/storage';
 import { useAuth } from '@/lib/auth-context';
 import { useEffect } from 'react';
@@ -48,7 +48,8 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
     return () => window.removeEventListener('hackers_unity_storage_change', updateState);
   }, [event.id, event.slug, isBookmarked]);
 
-  const statusInfo = getStatusBadge(event.status);
+  const effectiveStatus = getEffectiveEventStatus(event);
+  const statusInfo = getStatusBadge(effectiveStatus, event.registrationDeadline, event.endDate);
   const categoryInfo = getCategoryBadge(event.category);
   const deadlineInfo = getDaysLeft(event.registrationDeadline);
 
@@ -213,7 +214,7 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             </Link>
 
-            {event.status === EventStatus.COMPLETED ? (
+            {effectiveStatus === EventStatus.COMPLETED ? (
               <Link
                 href={`/hackathons/${event.slug}`}
                 className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08] font-bold text-xs transition-all text-center inline-block"

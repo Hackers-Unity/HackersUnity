@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { ExtendedEvent, MOCK_EVENTS } from './mock-data';
-import { getEventPreviewToken } from './utils';
+import { getEventPreviewToken, isEventRegistrationClosed } from './utils';
 import {
   UserPublic,
   EventStatus,
@@ -84,7 +84,17 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
     logoUrl: item.logo_url || null,
     rulesDocUrl: item.rules_doc_url || null,
     registrationLink: item.registration_link || null,
-    status: (item.status as EventStatus) || EventStatus.PUBLISHED,
+    status: (() => {
+      const rawStatus = (item.status as EventStatus) || EventStatus.PUBLISHED;
+      if (
+        rawStatus !== EventStatus.DRAFT &&
+        rawStatus !== EventStatus.PENDING_APPROVAL &&
+        isEventRegistrationClosed(item.registration_deadline, item.end_date)
+      ) {
+        return EventStatus.COMPLETED;
+      }
+      return rawStatus;
+    })(),
     maxParticipants: item.max_participants || 2000,
     minTeamSize: minTeam,
     maxTeamSize: maxTeam,
