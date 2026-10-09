@@ -275,7 +275,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       }
 
       const options = {
-        key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TlgU23bANXxPqr',
+        key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount,
         currency: data.currency || 'INR',
         name: "Hacker's Unity",
