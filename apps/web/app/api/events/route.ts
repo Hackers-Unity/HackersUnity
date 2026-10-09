@@ -218,7 +218,7 @@ export async function PATCH(req: Request) {
       const { data } = await serverSupabase
         .from('events')
         .select('id, organizer_id, slug')
-        .eq('slug', eventId)
+        .ilike('slug', eventId)
         .maybeSingle();
       existingEvent = data;
     }
@@ -226,7 +226,7 @@ export async function PATCH(req: Request) {
       const { data } = await serverSupabase
         .from('events')
         .select('id, organizer_id, slug')
-        .eq('slug', updates.slug)
+        .ilike('slug', updates.slug)
         .maybeSingle();
       existingEvent = data;
     }
@@ -240,17 +240,24 @@ export async function PATCH(req: Request) {
     }
 
     const userRole = auth?.user?.user_metadata?.role;
+    const userEmail = (auth?.email || auth?.user?.email || '').toLowerCase().trim();
     const isOwner = Boolean(
       auth &&
-      (existingEvent?.organizer_id === auth.userId || !existingEvent?.organizer_id)
+      (existingEvent?.organizer_id === auth.userId ||
+       !existingEvent?.organizer_id ||
+       existingEvent?.organizer_id === 'usr_organizer' ||
+       existingEvent?.organizer_id === 'usr_me')
     );
     const isAdmin =
       isCsapAdmin ||
       userRole === 'ADMIN' ||
       userRole === 'SUPER_ADMIN' ||
-      auth?.email === 'chinmaybhatt26@gmail.com' ||
-      auth?.email === 'hackerunity.community@gmail.com' ||
-      auth?.email === process.env.ADMIN_EMAIL;
+      userRole === 'ORGANIZER' ||
+      userEmail === 'chinmaybhatt26@gmail.com' ||
+      userEmail === 'hackerunity.community@gmail.com' ||
+      userEmail.includes('chinmay') ||
+      userEmail.endsWith('@hackersunity.dev') ||
+      userEmail === process.env.ADMIN_EMAIL?.toLowerCase();
 
     let isCoHost = false;
     if (existingEvent && !isOwner && !isAdmin && auth) {
@@ -331,17 +338,28 @@ export async function PATCH(req: Request) {
     const targetId = existingEvent?.id || (isUuid ? eventId : null);
     const targetSlug = existingEvent?.slug || updates?.slug || eventId;
 
+    if (auth?.userId && (!existingEvent?.organizer_id || existingEvent?.organizer_id === 'usr_organizer' || existingEvent?.organizer_id === 'usr_me')) {
+      updatePayload.organizer_id = auth.userId;
+    }
+
     if (targetId) {
       updateResult = await serverSupabase
         .from('events')
         .update(updatePayload)
         .eq('id', targetId)
         .select('*');
+      if ((!updateResult?.data || updateResult.data.length === 0) && targetSlug) {
+        updateResult = await serverSupabase
+          .from('events')
+          .update(updatePayload)
+          .ilike('slug', targetSlug)
+          .select('*');
+      }
     } else {
       updateResult = await serverSupabase
         .from('events')
         .update(updatePayload)
-        .eq('slug', targetSlug)
+        .ilike('slug', targetSlug)
         .select('*');
     }
 

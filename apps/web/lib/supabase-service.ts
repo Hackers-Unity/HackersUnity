@@ -527,7 +527,7 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
       const mapped = mapDbEventToExtended(data);
       if (typeof window !== 'undefined') {
         try {
-          const rawOverrides = localStorage.getItem('hackers_unity_events_override');
+          const rawOverrides = localStorage.getItem('hackers_unity_events_overrides') || localStorage.getItem('hackers_unity_events_override');
           if (rawOverrides) {
             const overrides = JSON.parse(rawOverrides);
             const override = overrides[mapped.id] || (mapped.slug ? overrides[mapped.slug] : null);
@@ -876,6 +876,9 @@ export async function updateEventInSupabase(
             } catch {}
             return { success: true };
           }
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          console.warn('[updateEventInSupabase] API PATCH returned error:', response.status, errData);
         }
       } catch (apiErr) {
         console.warn('API /api/events update error, falling back:', apiErr);

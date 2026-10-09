@@ -231,13 +231,14 @@ export function updateHostedEvent(event: ExtendedEvent): void {
   if (typeof window === 'undefined') return;
   try {
     const sanitized = sanitizeEventForStorage(event);
-    const rawOverrides = localStorage.getItem(STORAGE_KEYS_EVENTS_OVERRIDE);
+    const rawOverrides = localStorage.getItem(STORAGE_KEYS_EVENTS_OVERRIDE) || localStorage.getItem('hackers_unity_events_override');
     const overrides: Record<string, ExtendedEvent> = rawOverrides ? JSON.parse(rawOverrides) : {};
     overrides[sanitized.id] = sanitized;
     if (sanitized.slug) {
       overrides[sanitized.slug] = sanitized;
     }
     safeLocalStorageSet(STORAGE_KEYS_EVENTS_OVERRIDE, JSON.stringify(overrides));
+    safeLocalStorageSet('hackers_unity_events_override', JSON.stringify(overrides));
 
     // Also update in hosted events if present, or add if not already in local storage
     const custom = getCustomEvents();
