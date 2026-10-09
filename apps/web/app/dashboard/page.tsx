@@ -244,21 +244,25 @@ export default function DashboardPage() {
       setPayments(finalPayments);
 
       if (remoteRegs && remoteRegs.length > 0) {
-        const userRegs: UserRegistrationItem[] = remoteRegs.map((r: any) => ({
-          eventId: r.event_id,
-          eventName: r.events?.title || r.events?.name || 'Registered Hackathon',
-          registeredAt: r.registered_at,
-          teamName: r.team_name,
-          isTeam: r.is_team,
-          role: r.role || 'Participant',
-          status: r.status || 'CONFIRMED',
-          paymentStatus: r.payment_status || (Number(r.events?.entry_fee || 0) > 0 ? 'UNPAID' : 'FREE'),
-          paymentId: r.payment_id,
-          entryFee: Number(r.events?.entry_fee || 0),
-          currency: r.events?.currency || 'INR',
-          teamId: r.team_id,
-          slug: r.events?.slug || r.event_id,
-        }));
+        const userRegs: UserRegistrationItem[] = remoteRegs.map((r: any) => {
+          const rawEntryFee = Number(r.events?.entry_fee || 0);
+          const mappedEntryFee = (rawEntryFee === 59 || rawEntryFee === 1) ? 800 : rawEntryFee;
+          return {
+            eventId: r.event_id,
+            eventName: r.events?.title || r.events?.name || 'Registered Hackathon',
+            registeredAt: r.registered_at,
+            teamName: r.team_name,
+            isTeam: r.is_team,
+            role: r.role || 'Participant',
+            status: r.status || 'CONFIRMED',
+            paymentStatus: r.payment_status || (mappedEntryFee > 0 ? 'UNPAID' : 'FREE'),
+            paymentId: r.payment_id,
+            entryFee: mappedEntryFee,
+            currency: r.events?.currency || 'INR',
+            teamId: r.team_id,
+            slug: r.events?.slug || r.event_id,
+          };
+        });
         setRegistrations(userRegs);
       } else {
         setRegistrations(getMyRegistrations());
@@ -1574,7 +1578,7 @@ export default function DashboardPage() {
                                   team_name: reg.teamName || 'Solo Builder',
                                   team_leader_name: user?.name || 'Hacker',
                                   team_leader_email: user?.email || '',
-                                  amount: reg.entryFee === 59 ? 1 : (reg.entryFee || 1),
+                                  amount: (reg.entryFee === 59 || reg.entryFee === 1) ? 800 : (reg.entryFee || 800),
                                   currency: reg.currency || 'INR',
                                   status: 'PAID',
                                   transaction_date: reg.registeredAt,

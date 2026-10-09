@@ -147,9 +147,9 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
 
   const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
 
-  // Payment states (₹59 mapped to ₹1 as requested)
-  const rawFee = Number(event?.entryFee || (event?.registrationType === 'PAID' ? 1 : 0));
-  const feeAmount = rawFee === 59 ? 1 : rawFee;
+  // Payment states (fee mapped to ₹800 as requested)
+  const rawFee = Number(event?.entryFee || (event?.registrationType === 'PAID' ? 800 : 0));
+  const feeAmount = (rawFee === 59 || rawFee === 1) ? 800 : (rawFee || 800);
   const isPaidEvent = Boolean(event && (event.registrationType === 'PAID' || Number(event.entryFee) > 0) && feeAmount > 0);
   const [paymentStatus, setPaymentStatus] = useState<'UNPAID' | 'PAID' | 'LOADING'>('LOADING');
   const isPaymentPending = isPaidEvent && paymentStatus !== 'PAID';

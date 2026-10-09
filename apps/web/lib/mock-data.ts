@@ -86,7 +86,7 @@ export const MOCK_EVENTS: ExtendedEvent[] = [
     registrationLink: '#',
     status: EventStatus.PUBLISHED,
     registrationType: 'PAID',
-    entryFee: 1,
+    entryFee: 800,
     currency: 'INR',
     maxParticipants: 3000,
     minTeamSize: 2,

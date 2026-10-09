@@ -362,7 +362,7 @@ export function formatPaymentRecordForSheet(payment: Record<string, any>) {
     team_leader_name: payment.team_leader_name || 'Hacker',
     team_leader_email: email,
     team_leader_phone: phone,
-    amount: payment.amount ? `₹${payment.amount}` : '₹1',
+    amount: (payment.amount === 1 || payment.amount === 59 || !payment.amount) ? '₹800' : `₹${payment.amount}`,
     currency: payment.currency || 'INR',
     status: payment.status || 'PAID',
     utr_number: utr,

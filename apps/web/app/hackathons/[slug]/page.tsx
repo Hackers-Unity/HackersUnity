@@ -92,8 +92,8 @@ function HackathonDetailContent({ params }: PageProps) {
   const { user, supabaseUser } = useAuth();
   const [userSquad, setUserSquad] = useState<any | null>(null);
 
-  const rawFee = Number(event?.entryFee || (event?.registrationType === 'PAID' ? 1 : 0));
-  const feeAmount = rawFee === 59 ? 1 : rawFee;
+  const rawFee = Number(event?.entryFee || (event?.registrationType === 'PAID' ? 800 : 0));
+  const feeAmount = (rawFee === 59 || rawFee === 1) ? 800 : (rawFee || 800);
   const isPaidEvent = Boolean(event && (event.registrationType === 'PAID' || Number(event.entryFee) > 0) && feeAmount > 0);
   const [isEventPaid, setIsEventPaid] = useState<boolean | null>(null);
 
@@ -1097,7 +1097,7 @@ function HackathonDetailContent({ params }: PageProps) {
                   {(Number(event.entryFee || 0) > 0 || event.registrationType === 'PAID') ? (
                     <div>
                       <span className="text-sm font-black text-[#ea580c] dark:text-[#f97316] font-mono">
-                        ₹{Number(event.entryFee || 99).toLocaleString('en-IN')}
+                        ₹{Number(feeAmount).toLocaleString('en-IN')}
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">per squad</span>
                     </div>
@@ -1225,7 +1225,7 @@ function HackathonDetailContent({ params }: PageProps) {
                     <Rocket className="w-4 h-4" />
                     <span>
                       {(Number(event.entryFee || 0) > 0 || event.registrationType === 'PAID')
-                        ? `Register • ₹${Number(event.entryFee || 99).toLocaleString('en-IN')} / Team`
+                        ? `Register • ₹${Number(feeAmount).toLocaleString('en-IN')} / Team`
                         : 'Register for Hackathon'}
                     </span>
                   </Link>
