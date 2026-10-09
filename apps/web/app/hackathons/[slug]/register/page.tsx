@@ -198,8 +198,39 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     };
   }, [event?.id, isPaidEvent, createdTeamId, selectedTeamId, supabaseUser?.id, user?.id]);
 
+  // Squad role determination: Only squad leader (or solo registrant) can make payment
+  const currentUserId = supabaseUser?.id || user?.id;
+  const isSquad = Boolean(
+    createdTeamId ||
+    createdTeamData ||
+    selectedTeamId ||
+    mode === 'CREATE_TEAM' ||
+    mode === 'JOIN_TEAM' ||
+    (registeredRole && registeredRole.toLowerCase().includes('squad'))
+  );
+
+  const isSquadLeader = Boolean(
+    isSquad &&
+    (
+      (createdTeamData?.leader_id && currentUserId && createdTeamData.leader_id === currentUserId) ||
+      mode === 'CREATE_TEAM' ||
+      (registeredRole && registeredRole.toLowerCase().includes('leader'))
+    )
+  );
+
+  const isSquadMember = Boolean(isSquad && !isSquadLeader);
+  const canMakePayment = !isSquadMember;
+  const squadLeaderName =
+    createdTeamData?.profiles?.name ||
+    (isSquadLeader ? fullName : 'Squad Leader');
+
   const handlePayNow = async () => {
     if (!event || isProcessingPayment) return;
+
+    if (isSquadMember) {
+      setPaymentError(`Only the squad leader (${squadLeaderName}) is authorized to make payments for this squad.`);
+      return;
+    }
     setIsProcessingPayment(true);
     setPaymentError(null);
 
@@ -1059,9 +1090,15 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
 
                 <div
                   onClick={() => {
-                    if (currentStep >= 3 || isAlreadyRegistered) setCurrentStep(4);
+                    if ((currentStep >= 3 || isAlreadyRegistered) && (!isSquadMember || paymentStatus === 'PAID')) {
+                      setCurrentStep(4);
+                    }
                   }}
-                  className={`flex items-center gap-2 sm:gap-3 ${currentStep >= 3 || isAlreadyRegistered ? 'cursor-pointer' : ''}`}
+                  className={`flex items-center gap-2 sm:gap-3 ${
+                    (currentStep >= 3 || isAlreadyRegistered) && (!isSquadMember || paymentStatus === 'PAID')
+                      ? 'cursor-pointer'
+                      : 'cursor-not-allowed opacity-60'
+                  }`}
                 >
                   <div
                     className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
@@ -1838,7 +1875,9 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                   {isPaymentPending
-                    ? `Your registration details for ${event.title} are recorded. Please complete the entry fee below to confirm your slot.`
+                    ? isSquadMember
+                      ? `Your squad registration for ${event.title} is recorded. Waiting for your Squad Leader (${squadLeaderName}) to complete the entry fee to confirm your squad's slot.`
+                      : `Your registration details for ${event.title} are recorded. Please complete the entry fee below to confirm your slot.`
                     : isAlreadyRegistered
                     ? `You are currently registered for ${event.title}. Manage your squad and teammates below.`
                     : `You are registered for ${event.title} as `}
@@ -2091,6 +2130,22 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                         <span>View Payment Receipt & Details →</span>
                       </button>
                     </div>
+                  ) : isSquadMember ? (
+                    <div className="space-y-3">
+                      <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 text-xs space-y-1.5">
+                        <div className="flex items-center gap-2 font-black text-amber-800 dark:text-amber-300">
+                          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Squad Leader Payment Required</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                          To avoid duplicate transactions, only your squad leader{' '}
+                          <strong className="text-slate-900 dark:text-white">
+                            ({squadLeaderName})
+                          </strong>{' '}
+                          can complete the entry fee of <strong className="text-slate-900 dark:text-white">₹{feeAmount}</strong>. You do not need to make any payment. Once your leader completes it, the entire squad will be confirmed automatically.
+                        </p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -2112,7 +2167,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
 
               {/* Navigation CTAs */}
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                {isPaidEvent && paymentStatus !== 'PAID' ? (
+                {isPaidEvent && paymentStatus !== 'PAID' && canMakePayment ? (
                   <button
                     type="button"
                     onClick={() => setCurrentStep(4)}
@@ -2124,7 +2179,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                 ) : (
                   <Link
                     href={`/hackathons/${event.slug}`}
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs shadow-md shadow-sky-500/20 transition-all"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs shadow-md shadow-sky-500/20 transition-all text-center"
                   >
                     View Hackathon Arena
                   </Link>
@@ -2239,6 +2294,27 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                     >
                       <Receipt className="w-4 h-4 text-[#0099e6] dark:text-[#38bdf8]" />
                       <span>View & Download Receipt</span>
+                    </button>
+                  </div>
+                ) : isSquadMember ? (
+                  <div className="pt-2 space-y-4 border-t border-slate-100 dark:border-white/[0.08]">
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
+                        <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>Squad Leader Payment Required</span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        You are registered as a <strong>Squad Member</strong>. Only your squad leader{' '}
+                        <strong>({squadLeaderName})</strong> can complete the payment of <strong>₹{feeAmount}</strong>. Team members cannot pay to prevent duplicate transactions.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="w-full py-3 rounded-2xl bg-white dark:bg-[#121824] border border-slate-200 dark:border-white/[0.1] hover:bg-slate-50 dark:hover:bg-white/[0.05] text-slate-800 dark:text-slate-200 text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      ← Back to Squad Details
                     </button>
                   </div>
                 ) : (

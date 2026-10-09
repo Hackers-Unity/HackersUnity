@@ -56,6 +56,43 @@ export async function POST(req: Request) {
       });
     }
 
+    // Resolve team ID: from body, registration record, or team_members
+    let targetTeamId = teamId || null;
+
+    // Check registration record for phone/name and squad status
+    const { data: regData } = await serverSupabase
+      .from('registrations')
+      .select('id, user_name, user_email, phone, team_name, role, is_team, team_id')
+      .eq('event_id', resolvedEventId)
+      .eq('user_id', auth.userId)
+      .maybeSingle();
+
+    if (!targetTeamId && regData?.team_id) {
+      targetTeamId = regData.team_id;
+    }
+
+    if (!targetTeamId) {
+      // Check if user is in any team for this event via team_members
+      const { data: memberTeam } = await serverSupabase
+        .from('team_members')
+        .select('team_id, role, teams!inner(id, event_id, leader_id, name)')
+        .eq('user_id', auth.userId)
+        .eq('teams.event_id', resolvedEventId)
+        .maybeSingle();
+
+      if (memberTeam?.teams) {
+        targetTeamId = (memberTeam.teams as any).id;
+      }
+    }
+
+    // Strict guard: if user is part of a squad, ONLY the squad leader can make the payment!
+    if (regData?.is_team && regData.role && !regData.role.toLowerCase().includes('lead')) {
+      return NextResponse.json(
+        { error: 'Only the squad leader is authorized to complete the payment for this squad. Team members cannot pay to prevent duplicate payments.' },
+        { status: 403 }
+      );
+    }
+
     // 3. Double-payment guard: check if already paid
     let existingPaidPaymentQuery = serverSupabase
       .from('payments')
@@ -63,8 +100,8 @@ export async function POST(req: Request) {
       .eq('event_id', resolvedEventId)
       .eq('status', 'PAID');
 
-    if (teamId) {
-      existingPaidPaymentQuery = existingPaidPaymentQuery.eq('team_id', teamId);
+    if (targetTeamId) {
+      existingPaidPaymentQuery = existingPaidPaymentQuery.eq('team_id', targetTeamId);
     } else {
       existingPaidPaymentQuery = existingPaidPaymentQuery.eq('user_id', auth.userId);
     }
@@ -86,14 +123,22 @@ export async function POST(req: Request) {
     let leaderEmail = (auth.email || '').toLowerCase().trim();
     let leaderPhone = auth.user.user_metadata?.phone || null;
 
-    if (teamId) {
+    if (targetTeamId) {
       const { data: teamData } = await serverSupabase
         .from('teams')
         .select('*, profiles:leader_id(name, email, phone), team_members(id)')
-        .eq('id', teamId)
+        .eq('id', targetTeamId)
         .maybeSingle();
 
       if (teamData) {
+        // Enforce: only squad leader can initiate payment for the squad!
+        if (teamData.leader_id && teamData.leader_id !== auth.userId) {
+          return NextResponse.json(
+            { error: 'Only the squad leader is authorized to complete the payment for this squad. Team members cannot pay to prevent duplicate payments.' },
+            { status: 403 }
+          );
+        }
+
         teamName = teamData.name || 'Squad';
         teamType = 'Squad';
         teamSize = Array.isArray(teamData.team_members) ? teamData.team_members.length : 1;
@@ -103,19 +148,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Also check registration record for phone/name if available
-    const { data: regData } = await serverSupabase
-      .from('registrations')
-      .select('id, user_name, user_email, phone, team_name')
-      .eq('event_id', resolvedEventId)
-      .eq('user_id', auth.userId)
-      .maybeSingle();
-
     if (regData) {
       if (regData.user_name) leaderName = regData.user_name;
       if (regData.user_email) leaderEmail = regData.user_email;
       if (regData.phone) leaderPhone = regData.phone;
-      if (!teamId && regData.team_name) teamName = regData.team_name;
+      if (!targetTeamId && regData.team_name) teamName = regData.team_name;
     }
 
     // 5. Convert to paise (e.g. ₹59 = 5900 paise)
