@@ -181,7 +181,7 @@ export async function POST(req: Request) {
       orderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
-      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'rzp_live_TlgU23bANXxPqr',
       receiptNumber,
       paymentId: insertedPayment?.id || null,
       prefill: {

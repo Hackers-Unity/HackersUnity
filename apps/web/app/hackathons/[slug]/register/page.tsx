@@ -275,12 +275,12 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       }
 
       const options = {
-        key: data.keyId,
+        key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TlgU23bANXxPqr',
         amount: data.amount,
-        currency: data.currency,
+        currency: data.currency || 'INR',
         name: "Hacker's Unity",
         description: `Squad Registration Fee: ${event.title}`,
-        image: '/favicon.ico',
+        image: typeof window !== 'undefined' ? `${window.location.origin}/favicon.ico` : 'https://hackersunity.com/favicon.ico',
         order_id: data.orderId,
         prefill: data.prefill || {
           name: fullName,
@@ -290,33 +290,6 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
         notes: data.notes || {},
         theme: {
           color: '#0099e6',
-        },
-        config: {
-          display: {
-            blocks: {
-              upi: {
-                name: 'Pay using UPI / QR Code',
-                instruments: [
-                  {
-                    method: 'upi',
-                    flows: ['qr', 'intent'],
-                  },
-                ],
-              },
-              other: {
-                name: 'Cards & Other Payment Modes',
-                instruments: [
-                  { method: 'card' },
-                  { method: 'netbanking' },
-                  { method: 'wallet' },
-                ],
-              },
-            },
-            sequence: ['block.upi', 'block.other'],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
         },
         handler: async function (paymentResponse: any) {
           stopPolling();

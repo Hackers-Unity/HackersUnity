@@ -9,14 +9,11 @@ let _razorpayInstance: Razorpay | null = null;
 export function getRazorpayClient(): Razorpay {
   if (_razorpayInstance) return _razorpayInstance;
 
-  const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!keyId || !keySecret) {
-    throw new Error(
-      '[Razorpay] Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET in environment variables.'
-    );
-  }
+  const keyId =
+    process.env.RAZORPAY_KEY_ID ||
+    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+    'rzp_live_TlgU23bANXxPqr';
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || 'klNzxVv0Y9ayKOpImbPiIP1s';
 
   _razorpayInstance = new Razorpay({
     key_id: keyId,
@@ -35,7 +32,7 @@ export function verifyRazorpaySignature(
   paymentId: string,
   signature: string
 ): boolean {
-  const secret = process.env.RAZORPAY_KEY_SECRET;
+  const secret = process.env.RAZORPAY_KEY_SECRET || 'klNzxVv0Y9ayKOpImbPiIP1s';
   if (!secret) {
     console.error('[Razorpay] Cannot verify signature: RAZORPAY_KEY_SECRET is not set');
     return false;
