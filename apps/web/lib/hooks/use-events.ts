@@ -75,8 +75,18 @@ export function useEvent(slugOrId: string) {
       loadEvent();
     });
 
+    const handleStorageChange = () => {
+      loadEvent();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hackers_unity_storage_change', handleStorageChange);
+    }
+
     return () => {
       unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('hackers_unity_storage_change', handleStorageChange);
+      }
     };
   }, [slugOrId, loadEvent]);
 

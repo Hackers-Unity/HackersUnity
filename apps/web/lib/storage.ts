@@ -227,6 +227,9 @@ export function updateHostedEvent(event: ExtendedEvent): void {
     const rawOverrides = localStorage.getItem(STORAGE_KEYS_EVENTS_OVERRIDE);
     const overrides: Record<string, ExtendedEvent> = rawOverrides ? JSON.parse(rawOverrides) : {};
     overrides[sanitized.id] = sanitized;
+    if (sanitized.slug) {
+      overrides[sanitized.slug] = sanitized;
+    }
     safeLocalStorageSet(STORAGE_KEYS_EVENTS_OVERRIDE, JSON.stringify(overrides));
 
     // Also update in hosted events if present, or add if not already in local storage

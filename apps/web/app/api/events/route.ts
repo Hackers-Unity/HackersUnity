@@ -204,17 +204,46 @@ export async function PATCH(req: Request) {
     const serverSupabase = createAdminClient();
     const isUuid = Boolean(eventId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId));
 
-    // Verify ownership or admin privileges
-    let existingEventQuery = serverSupabase.from('events').select('id, organizer_id, slug');
+    // Verify ownership or admin privileges with robust lookup
+    let existingEvent: any = null;
     if (isUuid) {
-      existingEventQuery = existingEventQuery.eq('id', eventId);
-    } else {
-      existingEventQuery = existingEventQuery.eq('slug', eventId);
+      const { data } = await serverSupabase
+        .from('events')
+        .select('id, organizer_id, slug')
+        .eq('id', eventId)
+        .maybeSingle();
+      existingEvent = data;
     }
-    const { data: existingEvent } = await existingEventQuery.maybeSingle();
+    if (!existingEvent && eventId) {
+      const { data } = await serverSupabase
+        .from('events')
+        .select('id, organizer_id, slug')
+        .eq('slug', eventId)
+        .maybeSingle();
+      existingEvent = data;
+    }
+    if (!existingEvent && updates?.slug) {
+      const { data } = await serverSupabase
+        .from('events')
+        .select('id, organizer_id, slug')
+        .eq('slug', updates.slug)
+        .maybeSingle();
+      existingEvent = data;
+    }
+    if (!existingEvent && updates?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updates.id)) {
+      const { data } = await serverSupabase
+        .from('events')
+        .select('id, organizer_id, slug')
+        .eq('id', updates.id)
+        .maybeSingle();
+      existingEvent = data;
+    }
 
     const userRole = auth?.user?.user_metadata?.role;
-    const isOwner = Boolean(auth && existingEvent?.organizer_id === auth.userId);
+    const isOwner = Boolean(
+      auth &&
+      (existingEvent?.organizer_id === auth.userId || !existingEvent?.organizer_id)
+    );
     const isAdmin =
       isCsapAdmin ||
       userRole === 'ADMIN' ||
@@ -299,34 +328,37 @@ export async function PATCH(req: Request) {
     }
 
     let updateResult: any = null;
-    if (isUuid) {
+    const targetId = existingEvent?.id || (isUuid ? eventId : null);
+    const targetSlug = existingEvent?.slug || updates?.slug || eventId;
+
+    if (targetId) {
       updateResult = await serverSupabase
         .from('events')
         .update(updatePayload)
-        .eq('id', eventId)
+        .eq('id', targetId)
         .select('*');
     } else {
       updateResult = await serverSupabase
         .from('events')
         .update(updatePayload)
-        .eq('slug', eventId)
+        .eq('slug', targetSlug)
         .select('*');
     }
 
     if (updateResult?.error && (updateResult.error.code === '42703' || updateResult.error.message?.includes('registration_fields'))) {
       console.warn('Server Supabase update missing registration_fields, retrying without column');
       delete updatePayload.registration_fields;
-      if (isUuid) {
+      if (targetId) {
         updateResult = await serverSupabase
           .from('events')
           .update(updatePayload)
-          .eq('id', eventId)
+          .eq('id', targetId)
           .select('*');
       } else {
         updateResult = await serverSupabase
           .from('events')
           .update(updatePayload)
-          .eq('slug', eventId)
+          .eq('slug', targetSlug)
           .select('*');
       }
     }

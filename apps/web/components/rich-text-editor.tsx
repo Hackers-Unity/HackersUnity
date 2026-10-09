@@ -65,24 +65,60 @@ export function RichTextEditor({
     quote: false,
   });
 
+  // Ensure default paragraph separator is <p> on mount
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      try {
+        document.execCommand('defaultParagraphSeparator', false, 'p');
+      } catch {}
+    }
+  }, []);
+
   // Save current selection range inside editor
-  const saveSelection = () => {
+  const saveSelection = useCallback(() => {
     if (typeof window === 'undefined') return;
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0 && editorRef.current && sel.anchorNode && editorRef.current.contains(sel.anchorNode)) {
-      savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
-    }
-  };
+    if (!sel || sel.rangeCount === 0 || !editorRef.current) return;
 
-  // Restore saved selection range
-  const restoreSelection = () => {
-    if (typeof window === 'undefined' || !savedSelectionRef.current) return;
+    try {
+      const range = sel.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer) || editorRef.current === range.commonAncestorContainer) {
+        savedSelectionRef.current = range.cloneRange();
+      }
+    } catch {}
+  }, []);
+
+  // Restore saved selection range if needed
+  const restoreSelection = useCallback(() => {
+    if (typeof window === 'undefined' || !savedSelectionRef.current || !editorRef.current) return;
     const sel = window.getSelection();
-    if (sel) {
+    if (!sel) return;
+
+    // If selection is already active inside this editor, don't disturb it
+    try {
+      if (
+        sel.rangeCount > 0 &&
+        (editorRef.current.contains(sel.getRangeAt(0).commonAncestorContainer) ||
+          editorRef.current === sel.getRangeAt(0).commonAncestorContainer)
+      ) {
+        return;
+      }
+    } catch {}
+
+    try {
       sel.removeAllRanges();
       sel.addRange(savedSelectionRef.current);
+    } catch {}
+  }, []);
+
+  // Ensure editor is focused and selection is valid before running commands
+  const ensureEditorFocus = useCallback(() => {
+    if (typeof document === 'undefined' || !editorRef.current) return;
+    if (document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+      restoreSelection();
     }
-  };
+  }, [restoreSelection]);
 
   // Check which formatting states are currently active
   const checkActiveFormats = useCallback(() => {
@@ -91,7 +127,11 @@ export function RichTextEditor({
       const sel = window.getSelection();
 
       // If selection is not inside this editor, turn off all highlights
-      if (!sel || !sel.anchorNode || !editorRef.current.contains(sel.anchorNode)) {
+      if (
+        !sel ||
+        !sel.anchorNode ||
+        (!editorRef.current.contains(sel.anchorNode) && editorRef.current !== sel.anchorNode)
+      ) {
         setActiveFormats({
           bold: false,
           italic: false,
@@ -106,22 +146,30 @@ export function RichTextEditor({
         return;
       }
 
-      let bold = document.queryCommandState('bold');
-      let italic = document.queryCommandState('italic');
-      let underline = document.queryCommandState('underline');
-      let strikethrough = document.queryCommandState('strikeThrough');
-      let ul = document.queryCommandState('insertUnorderedList');
-      let ol = document.queryCommandState('insertOrderedList');
+      let bold = false;
+      let italic = false;
+      let underline = false;
+      let strikethrough = false;
+      let ul = false;
+      let ol = false;
       let h1 = false;
       let h2 = false;
       let quote = false;
+
+      try { bold = document.queryCommandState('bold'); } catch {}
+      try { italic = document.queryCommandState('italic'); } catch {}
+      try { underline = document.queryCommandState('underline'); } catch {}
+      try { strikethrough = document.queryCommandState('strikeThrough'); } catch {}
+      try { ul = document.queryCommandState('insertUnorderedList'); } catch {}
+      try { ol = document.queryCommandState('insertOrderedList'); } catch {}
 
       // Strictly bounded DOM ancestor traversal within editorRef.current
       let el: Node | null = sel.anchorNode;
       while (el && el !== editorRef.current) {
         if (el.nodeType === Node.ELEMENT_NODE) {
           const tag = (el as HTMLElement).tagName.toUpperCase();
-          if (tag === 'H1' || tag === 'H2') h1 = true;
+          if (tag === 'H1') h1 = true;
+          if (tag === 'H2') h2 = true;
           if (tag === 'H3' || tag === 'H4') h2 = true;
           if (tag === 'BLOCKQUOTE') quote = true;
           if (tag === 'UL') ul = true;
@@ -143,11 +191,17 @@ export function RichTextEditor({
   // Sync initial and external changes safely
   useEffect(() => {
     if (editorRef.current) {
-      const isFocused = typeof document !== 'undefined' && document.activeElement === editorRef.current;
+      const isFocused =
+        typeof document !== 'undefined' &&
+        (document.activeElement === editorRef.current || editorRef.current.contains(document.activeElement));
 
       // If internal change by typing or focused, do not overwrite DOM
       if (!isInitialMountRef.current) {
-        if (value === lastEmittedValueRef.current || (value === '' && (lastEmittedValueRef.current === '' || lastEmittedValueRef.current === null))) {
+        if (
+          value === lastEmittedValueRef.current ||
+          editorRef.current.innerHTML === value ||
+          (value === '' && (lastEmittedValueRef.current === '' || lastEmittedValueRef.current === null))
+        ) {
           return;
         }
         if (isFocused) {
@@ -169,7 +223,7 @@ export function RichTextEditor({
     const handleSelectionChange = () => {
       if (typeof window !== 'undefined' && editorRef.current) {
         const sel = window.getSelection();
-        if (sel && sel.anchorNode && editorRef.current.contains(sel.anchorNode)) {
+        if (sel && sel.anchorNode && (editorRef.current.contains(sel.anchorNode) || editorRef.current === sel.anchorNode)) {
           saveSelection();
           checkActiveFormats();
         }
@@ -178,13 +232,19 @@ export function RichTextEditor({
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
-  }, [checkActiveFormats]);
+  }, [checkActiveFormats, saveSelection]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       const html = editorRef.current.innerHTML;
       const text = editorRef.current.innerText.trim();
-      const empty = !text && !html.includes('<img') && !html.includes('<li>') && html !== '<p><br></p>' && html !== '<div><br></div>' && html !== '<br>';
+      const empty =
+        !text &&
+        !html.includes('<img') &&
+        !html.includes('<li>') &&
+        html !== '<p><br></p>' &&
+        html !== '<div><br></div>' &&
+        html !== '<br>';
       setIsEmpty(empty);
       const emittedValue = empty ? '' : html;
       lastEmittedValueRef.current = emittedValue;
@@ -196,8 +256,7 @@ export function RichTextEditor({
   // Execute standard formatting commands (Bold, Italic, Underline, Strikethrough)
   const executeCommand = (command: string, arg?: string) => {
     if (typeof document !== 'undefined' && editorRef.current) {
-      editorRef.current.focus();
-      restoreSelection();
+      ensureEditorFocus();
 
       try {
         document.execCommand(command, false, arg);
@@ -211,34 +270,37 @@ export function RichTextEditor({
     }
   };
 
-  // Toggle heading on and off
+  // Cross-browser formatBlock helper
+  const applyFormatBlock = (tagName: string) => {
+    const upper = `<${tagName.toUpperCase()}>`;
+    const lower = `<${tagName.toLowerCase()}>`;
+    try {
+      if (document.execCommand('formatBlock', false, upper)) return true;
+    } catch {}
+    try {
+      if (document.execCommand('formatBlock', false, lower)) return true;
+    } catch {}
+    try {
+      if (document.execCommand('formatBlock', false, tagName)) return true;
+    } catch {}
+    return false;
+  };
+
+  // Toggle heading on and off (h1, h2, normal paragraph)
   const toggleHeading = (level: 'H1' | 'H2' | 'P') => {
     if (typeof document === 'undefined' || !editorRef.current) return;
-    editorRef.current.focus();
-    restoreSelection();
+    ensureEditorFocus();
 
     let targetTag = 'p';
     if (level === 'H1') {
-      targetTag = activeFormats.h1 ? 'p' : 'h2';
+      targetTag = activeFormats.h1 ? 'p' : 'h1';
     } else if (level === 'H2') {
-      targetTag = activeFormats.h2 ? 'p' : 'h3';
+      targetTag = activeFormats.h2 ? 'p' : 'h2';
     } else {
       targetTag = 'p';
     }
 
-    try {
-      const success = document.execCommand('formatBlock', false, targetTag);
-      if (!success) {
-        document.execCommand('formatBlock', false, `<${targetTag}>`);
-      }
-    } catch {
-      try {
-        document.execCommand('formatBlock', false, `<${targetTag}>`);
-      } catch (err) {
-        console.warn('formatBlock error:', err);
-      }
-    }
-
+    applyFormatBlock(targetTag);
     saveSelection();
     checkActiveFormats();
     handleInput();
@@ -247,24 +309,10 @@ export function RichTextEditor({
   // Toggle quote block on and off
   const toggleQuote = () => {
     if (typeof document === 'undefined' || !editorRef.current) return;
-    editorRef.current.focus();
-    restoreSelection();
+    ensureEditorFocus();
 
     const targetTag = activeFormats.quote ? 'p' : 'blockquote';
-
-    try {
-      const success = document.execCommand('formatBlock', false, targetTag);
-      if (!success) {
-        document.execCommand('formatBlock', false, `<${targetTag}>`);
-      }
-    } catch {
-      try {
-        document.execCommand('formatBlock', false, `<${targetTag}>`);
-      } catch (err) {
-        console.warn('toggleQuote error:', err);
-      }
-    }
-
+    applyFormatBlock(targetTag);
     saveSelection();
     checkActiveFormats();
     handleInput();
@@ -273,8 +321,7 @@ export function RichTextEditor({
   // Toggle List (Bullet or Numbered)
   const toggleList = (type: 'ul' | 'ol') => {
     if (typeof document === 'undefined' || !editorRef.current) return;
-    editorRef.current.focus();
-    restoreSelection();
+    ensureEditorFocus();
 
     const command = type === 'ul' ? 'insertUnorderedList' : 'insertOrderedList';
     try {
@@ -329,8 +376,7 @@ export function RichTextEditor({
 
     setShowLinkDialog(false);
     if (editorRef.current) {
-      editorRef.current.focus();
-      restoreSelection();
+      ensureEditorFocus();
 
       if (linkText.trim()) {
         const sel = window.getSelection();
@@ -351,6 +397,36 @@ export function RichTextEditor({
 
       handleInput();
       checkActiveFormats();
+    }
+  };
+
+  // Keyboard shortcut handlers (Ctrl+B, Ctrl+I, Ctrl+U, Tab)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+    if (modKey && !e.shiftKey && !e.altKey) {
+      if (e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        executeCommand('bold');
+        return;
+      }
+      if (e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        executeCommand('italic');
+        return;
+      }
+      if (e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        executeCommand('underline');
+        return;
+      }
+    }
+
+    // Support indent with tab
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      executeCommand('insertText', '    ');
     }
   };
 
@@ -375,11 +451,18 @@ export function RichTextEditor({
               margin: 0.25rem 0 !important;
               list-style-position: outside !important;
             }
-            .wysiwyg-surface h1,
-            .wysiwyg-surface h2 {
-              font-size: 1.25rem !important;
+            .wysiwyg-surface h1 {
+              font-size: 1.35rem !important;
               font-weight: 900 !important;
               color: #0f172a !important;
+              margin: 0.75rem 0 0.35rem 0 !important;
+              line-height: 1.3 !important;
+              display: block !important;
+            }
+            .wysiwyg-surface h2 {
+              font-size: 1.2rem !important;
+              font-weight: 800 !important;
+              color: #1e293b !important;
               margin: 0.6rem 0 0.25rem 0 !important;
               line-height: 1.3 !important;
               display: block !important;
@@ -422,12 +505,15 @@ export function RichTextEditor({
               text-decoration: underline !important;
             }
             .wysiwyg-surface strike,
-            .wysiwyg-surface s {
+            .wysiwyg-surface s,
+            .wysiwyg-surface del {
               text-decoration: line-through !important;
             }
-            .dark .wysiwyg-surface h1,
-            .dark .wysiwyg-surface h2 {
+            .dark .wysiwyg-surface h1 {
               color: #f8fafc !important;
+            }
+            .dark .wysiwyg-surface h2 {
+              color: #f1f5f9 !important;
             }
             .dark .wysiwyg-surface h3,
             .dark .wysiwyg-surface h4 {
@@ -450,7 +536,8 @@ export function RichTextEditor({
           <button
             type="button"
             title="Bold (Ctrl+B)"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               executeCommand('bold');
             }}
@@ -467,14 +554,15 @@ export function RichTextEditor({
           <button
             type="button"
             title="Italic (Ctrl+I)"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               executeCommand('italic');
             }}
             className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               activeFormats.italic
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-700'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300'
             }`}
           >
             <Italic className="w-4 h-4" />
@@ -484,14 +572,15 @@ export function RichTextEditor({
           <button
             type="button"
             title="Underline (Ctrl+U)"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               executeCommand('underline');
             }}
             className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               activeFormats.underline
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-700'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300'
             }`}
           >
             <UnderlineIcon className="w-4 h-4" />
@@ -501,33 +590,35 @@ export function RichTextEditor({
           <button
             type="button"
             title="Strikethrough"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               executeCommand('strikeThrough');
             }}
             className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               activeFormats.strikethrough
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-700'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300'
             }`}
           >
             <Strikethrough className="w-4 h-4" />
           </button>
 
-          <div className="h-5 w-px bg-slate-300 mx-1" />
+          <div className="h-5 w-px bg-slate-300 dark:bg-white/10 mx-1" />
 
           {/* H1 Heading */}
           <button
             type="button"
-            title="Large Heading (H1)"
-            onMouseDown={(e) => {
+            title="Heading 1"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               toggleHeading('H1');
             }}
             className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
               activeFormats.h1
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-800'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-800 dark:text-slate-200'
             }`}
           >
             H1
@@ -536,15 +627,16 @@ export function RichTextEditor({
           {/* H2 Heading */}
           <button
             type="button"
-            title="Medium Heading (H2)"
-            onMouseDown={(e) => {
+            title="Heading 2"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               toggleHeading('H2');
             }}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeFormats.h2
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-800'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-800 dark:text-slate-200'
             }`}
           >
             H2
@@ -554,33 +646,35 @@ export function RichTextEditor({
           <button
             type="button"
             title="Normal Body Text"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               toggleHeading('P');
             }}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               !activeFormats.h1 && !activeFormats.h2 && !activeFormats.quote
-                ? 'bg-slate-200/80 text-slate-900 font-bold'
-                : 'hover:bg-slate-200 text-slate-600'
+                ? 'bg-slate-200/80 dark:bg-white/[0.15] text-slate-900 dark:text-white font-bold'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-400'
             }`}
           >
             Normal
           </button>
 
-          <div className="h-5 w-px bg-slate-300 mx-1" />
+          <div className="h-5 w-px bg-slate-300 dark:bg-white/10 mx-1" />
 
           {/* Bullet List */}
           <button
             type="button"
             title="Bullet Points List"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               toggleList('ul');
             }}
-            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               activeFormats.ul
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-700'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300'
             }`}
           >
             <List className="w-4 h-4" />
@@ -590,14 +684,15 @@ export function RichTextEditor({
           <button
             type="button"
             title="Numbered List"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               toggleList('ol');
             }}
-            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               activeFormats.ol
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-700'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300'
             }`}
           >
             <ListOrdered className="w-4 h-4" />
@@ -607,14 +702,15 @@ export function RichTextEditor({
           <button
             type="button"
             title="Quote Block"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               toggleQuote();
             }}
-            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               activeFormats.quote
                 ? 'bg-[#0099e6] text-white shadow-2xs'
-                : 'hover:bg-slate-200 text-slate-700'
+                : 'hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300'
             }`}
           >
             <Quote className="w-4 h-4" />
@@ -624,11 +720,12 @@ export function RichTextEditor({
           <button
             type="button"
             title="Insert Website Link"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               openLinkDialog();
             }}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <LinkIcon className="w-4 h-4" />
           </button>
@@ -637,12 +734,13 @@ export function RichTextEditor({
           <button
             type="button"
             title="Clear Formatting"
-            onMouseDown={(e) => {
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
               e.preventDefault();
               executeCommand('removeFormat');
               toggleHeading('P');
             }}
-            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer ml-auto"
+            className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/[0.08] text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer ml-auto"
           >
             <Eraser className="w-4 h-4" />
           </button>
@@ -650,13 +748,13 @@ export function RichTextEditor({
 
         {/* Link Insertion Modal / Inline Popover */}
         {showLinkDialog && (
-          <div className="p-3 bg-sky-50 border-b border-sky-200 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-in slide-in-from-top-2">
+          <div className="p-3 bg-sky-50 dark:bg-sky-950/60 border-b border-sky-200 dark:border-sky-800/60 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-in slide-in-from-top-2">
             <input
               type="text"
               placeholder="Display text (optional)"
               value={linkText}
               onChange={(e) => setLinkText(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-[#0099e6]"
+              className="px-3 py-1.5 bg-white dark:bg-[#121824] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]"
             />
             <input
               type="url"
@@ -665,7 +763,7 @@ export function RichTextEditor({
               placeholder="Paste URL (e.g. https://github.com/...)"
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-[#0099e6]"
+              className="flex-1 px-3 py-1.5 bg-white dark:bg-[#121824] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-[#0099e6]"
             />
             <div className="flex items-center gap-1.5">
               <button
@@ -679,7 +777,7 @@ export function RichTextEditor({
               <button
                 type="button"
                 onClick={() => setShowLinkDialog(false)}
-                className="p-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-500 text-xs font-bold border border-slate-200 cursor-pointer"
+                className="p-1.5 rounded-xl bg-white dark:bg-[#121824] hover:bg-slate-100 dark:hover:bg-white/[0.06] text-slate-500 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-white/10 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -690,7 +788,7 @@ export function RichTextEditor({
         {/* Live Visual ContentEditable Area */}
         <div className="relative">
           {isEmpty && (
-            <div className="absolute top-3.5 left-4 pointer-events-none text-xs text-slate-400 select-none">
+            <div className="absolute top-3.5 left-4 pointer-events-none text-xs text-slate-400 dark:text-slate-500 select-none">
               {placeholder}
             </div>
           )}
@@ -700,6 +798,7 @@ export function RichTextEditor({
             onInput={handleInput}
             onBlur={handleInput}
             onPaste={handlePaste}
+            onKeyDown={handleKeyDown}
             onKeyUp={() => {
               saveSelection();
               checkActiveFormats();
@@ -727,7 +826,7 @@ export function RichTextEditor({
         </div>
       </div>
 
-      {helperText && <p className="text-[10px] text-slate-400">{helperText}</p>}
+      {helperText && <p className="text-[10px] text-slate-400 dark:text-slate-500">{helperText}</p>}
     </div>
   );
 }

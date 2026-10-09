@@ -519,7 +519,20 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
     }
 
     if (data) {
-      return mapDbEventToExtended(data);
+      const mapped = mapDbEventToExtended(data);
+      if (typeof window !== 'undefined') {
+        try {
+          const rawOverrides = localStorage.getItem('hackers_unity_events_override');
+          if (rawOverrides) {
+            const overrides = JSON.parse(rawOverrides);
+            const override = overrides[mapped.id] || (mapped.slug ? overrides[mapped.slug] : null);
+            if (override) {
+              return { ...mapped, ...override };
+            }
+          }
+        } catch {}
+      }
+      return mapped;
     }
 
     // Check custom events in local storage
@@ -834,14 +847,24 @@ export async function updateEventInSupabase(
     // 1. Try server API route first
     if (typeof window !== 'undefined') {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
         const response = await fetch('/api/events', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
           body: JSON.stringify({ eventId, updates }),
         });
         if (response.ok) {
           const resData = await response.json();
           if (resData.success) {
+            try {
+              window.dispatchEvent(new Event('hackers_unity_storage_change'));
+            } catch {}
             return { success: true };
           }
         }
