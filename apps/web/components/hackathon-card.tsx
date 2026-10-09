@@ -14,7 +14,7 @@ import {
 import { EventCategory, EventStatus } from '@hackers-unity/shared-types';
 import { ExtendedEvent } from '@/lib/mock-data';
 import { EVENT_IMAGE_MAP, getEventImageSrc } from '@/lib/event-images';
-import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, formatRegistrationCount, getEffectiveEventStatus, calculateEventDuration } from '@/lib/utils';
+import { formatCurrency, getDaysLeft, getStatusBadge, getCategoryBadge, formatRegistrationCount, getEffectiveEventStatus, calculateEventDuration, formatDate } from '@/lib/utils';
 import { toggleBookmarkEvent, getBookmarkedEventIds } from '@/lib/storage';
 import { useAuth } from '@/lib/auth-context';
 import { useEffect } from 'react';
@@ -53,6 +53,11 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
   const categoryInfo = getCategoryBadge(event.category);
   const deadlineInfo = getDaysLeft(event.registrationDeadline);
   const eventDuration = calculateEventDuration(event.startDate, event.endDate);
+  const cardDuration = eventDuration
+    ? eventDuration.includes('(')
+      ? eventDuration.replace(/.*?\((.*?)\)/, '$1').replace(/^~/, '')
+      : eventDuration
+    : null;
 
   const isRedirectAllowed = Boolean(
     event.allowExternalRedirect === true ||
@@ -128,19 +133,34 @@ export function HackathonCard({ event, isBookmarked, onBookmarkChange }: Hackath
         <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
           <div>
             {/* Status & Deadline pill */}
-            <div className="flex items-center justify-between gap-2 mb-2 text-xs">
-              <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusInfo.color}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`} />
+            <div className="flex items-center justify-between gap-1.5 mb-2.5 text-xs flex-nowrap">
+              <div
+                className={`h-6 inline-flex items-center gap-1.5 px-2.5 rounded-full text-[10.5px] font-semibold border whitespace-nowrap shrink-0 ${statusInfo.color}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusInfo.dot}`} />
                 <span>{statusInfo.label}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                {eventDuration && (
-                  <span className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.08]">
-                    {eventDuration}
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {cardDuration && (
+                  <span
+                    title={eventDuration ? `Duration: ${eventDuration}` : undefined}
+                    className="h-6 inline-flex items-center px-2 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.08] whitespace-nowrap shrink-0"
+                  >
+                    {cardDuration}
                   </span>
                 )}
-                <div className={`flex items-center gap-1 text-[11px] font-medium ${deadlineInfo.urgent ? 'text-[#ea580c] font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
-                  <Clock className="w-3.5 h-3.5" />
+                <div
+                  title={event.registrationDeadline ? `Registration Deadline: ${formatDate(event.registrationDeadline)}` : undefined}
+                  className={`h-6 inline-flex items-center gap-1 px-2 rounded-full text-[10.5px] font-medium whitespace-nowrap shrink-0 border ${
+                    deadlineInfo.urgent
+                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold'
+                      : deadlineInfo.past
+                      ? 'bg-slate-100/70 dark:bg-white/[0.04] text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/[0.08]'
+                      : 'bg-slate-100/70 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-white/[0.08]'
+                  }`}
+                >
+                  <Clock className="w-3 h-3 shrink-0" />
                   <span>{deadlineInfo.text}</span>
                 </div>
               </div>
