@@ -148,7 +148,12 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
     difficulty: item.difficulty || 'OPEN',
     rulesText: item.rules_text || '',
     registrationType: item.registration_type || (Number(item.entry_fee) > 0 ? 'PAID' : 'FREE'),
-    entryFee: Number(item.entry_fee) > 0 ? Number(item.entry_fee) : (item.registration_type === 'PAID' ? 99 : 0),
+    entryFee: (() => {
+      const dbFee = Number(item.entry_fee || 0);
+      if (dbFee === 59 || dbFee === 1) return 800;
+      if (dbFee > 0) return dbFee;
+      return item.registration_type === 'PAID' ? 800 : 0;
+    })(),
     currency: item.currency || 'INR',
     registrationCapacity: item.registration_capacity || null,
     approvalMode: item.approval_mode || 'MANUAL',
@@ -527,7 +532,11 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
             const overrides = JSON.parse(rawOverrides);
             const override = overrides[mapped.id] || (mapped.slug ? overrides[mapped.slug] : null);
             if (override) {
-              return { ...mapped, ...override };
+              const res = { ...mapped, ...override };
+              if (res.entryFee === 59 || res.entryFee === 1) {
+                res.entryFee = 800;
+              }
+              return res;
             }
           }
         } catch {}

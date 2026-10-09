@@ -151,13 +151,20 @@ export function getCustomEvents(): ExtendedEvent[] {
     const raw = localStorage.getItem(STORAGE_KEYS.HOSTED_EVENTS);
     if (!raw) return [];
     const parsed: ExtendedEvent[] = JSON.parse(raw);
-    return parsed.filter(
-      (e) =>
-        e &&
-        e.title &&
-        !e.title.toLowerCase().includes('global autonomous ai sprint') &&
-        !e.id?.includes('global-autonomous')
-    );
+    return parsed
+      .map((e) => {
+        if (e && (e.entryFee === 59 || e.entryFee === 1)) {
+          return { ...e, entryFee: 800 };
+        }
+        return e;
+      })
+      .filter(
+        (e) =>
+          e &&
+          e.title &&
+          !e.title.toLowerCase().includes('global autonomous ai sprint') &&
+          !e.id?.includes('global-autonomous')
+      );
   } catch {
     return [];
   }

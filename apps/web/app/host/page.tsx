@@ -555,7 +555,8 @@ function HostHackathonContent() {
             setRegistrationType(found.registrationType as 'FREE' | 'PAID');
           }
           if (found.entryFee !== undefined && found.entryFee !== null) {
-            setEntryFee(found.entryFee);
+            const rawVal = Number(found.entryFee);
+            setEntryFee(rawVal === 59 || rawVal === 1 ? 800 : rawVal);
           }
           if (found.registrationCapacity) {
             setRegistrationCapacity(found.registrationCapacity);
@@ -1247,14 +1248,25 @@ ${organizerName || 'Organizer'}`;
         </div>
 
         {isEditMode && (
-          <button
-            type="button"
-            onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 rounded-2xl bg-white dark:bg-[#0c1017] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/[0.1] font-bold text-xs flex items-center gap-2 shadow-2xs self-start md:self-auto cursor-pointer transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <span>Back to Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isSaving || !title.trim()}
+              className="px-5 py-2.5 rounded-2xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-sky-500/20 cursor-pointer transition-all disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{isSaving ? 'Saving Changes...' : 'Save Changes'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard')}
+              className="px-4 py-2.5 rounded-2xl bg-white dark:bg-[#0c1017] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/[0.1] font-bold text-xs flex items-center gap-2 shadow-2xs cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <span>Back to Dashboard</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -2768,7 +2780,7 @@ ${organizerName || 'Organizer'}`;
                   </div>
 
                   {/* Navigation Buttons */}
-                  <div className="pt-2 flex justify-between">
+                  <div className="pt-2 flex items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={goBack}
@@ -2776,13 +2788,26 @@ ${organizerName || 'Organizer'}`;
                     >
                       <ArrowLeft className="w-3.5 h-3.5" /> <span>Back</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={goNext}
-                      className="px-5 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                    >
-                      <span>Continue to Team</span> <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={handlePublish}
+                          disabled={isSaving}
+                          className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                        >
+                          {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                          <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        className="px-5 py-2 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                      >
+                        <span>Continue to Team</span> <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
