@@ -193,14 +193,24 @@ export default function DashboardPage() {
       }
 
       const isDbUser = Boolean(userId && userId.length > 10 && userId.includes('-'));
+      const userEmail = user?.email || supabaseUser?.email || '';
+      const isAdminOrOrganizer = Boolean(
+        userEmail === 'chinmaybhatt26@gmail.com' ||
+        user?.role === UserRole.ADMIN ||
+        user?.role === UserRole.SUPER_ADMIN ||
+        user?.role === UserRole.ORGANIZER
+      );
 
       // Parallel remote fetch for maximum load speed
       const [published, remoteRegs, hosted, userPayments] = await Promise.all([
         fetchPublishedEvents(),
         isDbUser ? fetchUserRegistrations(userId!) : Promise.resolve([]),
         isDbUser ? fetchOrganizerEvents(userId!) : Promise.resolve([]),
-        (isDbUser || user?.email)
-          ? fetchUserPaymentsSupabase(userId || '', user?.email || '')
+        (isDbUser || userEmail)
+          ? fetchUserPaymentsSupabase(userId || '', userEmail, {
+              isAdmin: isAdminOrOrganizer,
+              scope: isAdminOrOrganizer ? 'all' : 'user',
+            })
           : Promise.resolve([]),
       ]);
 
@@ -219,7 +229,19 @@ export default function DashboardPage() {
       setAllEvents(combinedEvents);
 
       // 2. User Registrations & Payments
-      setPayments(userPayments || []);
+      let finalPayments = userPayments || [];
+      if (!isAdminOrOrganizer && hosted && hosted.length > 0) {
+        try {
+          const hostPayments = await fetchUserPaymentsSupabase(userId || '', userEmail, {
+            isAdmin: true,
+            scope: 'all',
+          });
+          if (hostPayments && hostPayments.length > 0) {
+            finalPayments = hostPayments;
+          }
+        } catch {}
+      }
+      setPayments(finalPayments);
 
       if (remoteRegs && remoteRegs.length > 0) {
         const userRegs: UserRegistrationItem[] = remoteRegs.map((r: any) => ({
@@ -456,7 +478,7 @@ export default function DashboardPage() {
     return list;
   })();
 
-  const pendingPaymentsCount = allPaymentsList.filter((p) => p.status === 'PENDING').length;
+  const pendingPaymentsCount = allPaymentsList.filter((p) => p.status === 'PENDING' || p.status === 'CREATED').length;
   const paidPaymentsCount = allPaymentsList.filter((p) => p.status === 'PAID').length;
   const failedPaymentsCount = allPaymentsList.filter((p) => p.status === 'FAILED').length;
   const totalAmountPaid = allPaymentsList
@@ -465,17 +487,19 @@ export default function DashboardPage() {
 
   const filteredPayments = allPaymentsList.filter((p) => {
     if (paymentFilter === 'PAID' && p.status !== 'PAID') return false;
-    if (paymentFilter === 'PENDING' && p.status !== 'PENDING') return false;
+    if (paymentFilter === 'PENDING' && (p.status !== 'PENDING' && p.status !== 'CREATED')) return false;
     if (paymentFilter === 'FAILED' && p.status !== 'FAILED') return false;
 
     if (paymentSearch.trim()) {
       const q = paymentSearch.toLowerCase();
-      const matchName = (p.event_name || p.eventName || '').toLowerCase().includes(q);
+      const matchName = (p.event_name || p.eventName || p.events?.title || '').toLowerCase().includes(q);
       const matchTeam = (p.team_name || p.teamName || '').toLowerCase().includes(q);
       const matchRec = (p.receipt_number || p.receiptNumber || '').toLowerCase().includes(q);
       const matchPayId = (p.razorpay_payment_id || '').toLowerCase().includes(q);
       const matchUtr = (p.utr_number || '').toLowerCase().includes(q);
-      return matchName || matchTeam || matchRec || matchPayId || matchUtr;
+      const matchEmail = (p.team_leader_email || '').toLowerCase().includes(q);
+      const matchLeader = (p.team_leader_name || '').toLowerCase().includes(q);
+      return matchName || matchTeam || matchRec || matchPayId || matchUtr || matchEmail || matchLeader;
     }
     return true;
   });
@@ -1935,12 +1959,27 @@ export default function DashboardPage() {
             <div className="p-7 rounded-3xl bg-white dark:bg-[#0c1017] border border-slate-200 dark:border-white/[0.08] shadow-sm space-y-6 animate-in fade-in duration-150">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/[0.08] pb-4">
                 <div>
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-[#0099e6]" />
-                    <span>Payments, Receipts & Invoices</span>
-                  </h2>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[#0099e6]" />
+                      <span>Payments, Receipts & Invoices</span>
+                    </h2>
+                    {(user?.email === 'chinmaybhatt26@gmail.com' ||
+                      supabaseUser?.email === 'chinmaybhatt26@gmail.com' ||
+                      user?.role === UserRole.ADMIN ||
+                      myHostedEvents.length > 0) && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-50 dark:bg-sky-950/40 text-[#0099e6] border border-sky-200 dark:border-sky-800/40">
+                        PLATFORM & EVENT REVENUE
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Track hackathon entry fee payments, view bank UTR references, and download official receipts.
+                    {(user?.email === 'chinmaybhatt26@gmail.com' ||
+                      supabaseUser?.email === 'chinmaybhatt26@gmail.com' ||
+                      user?.role === UserRole.ADMIN ||
+                      myHostedEvents.length > 0)
+                      ? 'Live overview of all hackathon participant payments, bank UTR references, and verified transactions.'
+                      : 'Track hackathon entry fee payments, view bank UTR references, and download official receipts.'}
                   </p>
                 </div>
 
@@ -2058,7 +2097,7 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   {filteredPayments.map((p) => {
                     const isPaid = p.status === 'PAID';
-                    const isPending = p.status === 'PENDING';
+                    const isPending = p.status === 'PENDING' || p.status === 'CREATED';
                     const isFailed = p.status === 'FAILED';
                     const eventSlug = p.slug || p.events?.slug || p.event_id;
 
@@ -2107,7 +2146,7 @@ export default function DashboardPage() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <h4 className="text-base font-black text-slate-900 dark:text-white">
-                                {p.event_name || p.eventName || 'Hackathon Arena'}
+                                {p.event_name || p.eventName || p.events?.title || 'Hackathon Arena'}
                               </h4>
                               {eventSlug && (
                                 <Link
@@ -2119,13 +2158,16 @@ export default function DashboardPage() {
                                 </Link>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Users className="w-3.5 h-3.5 text-[#0099e6]" />
                                 <span>Squad: <strong className="text-slate-800 dark:text-slate-200">{p.team_name || p.teamName || 'Solo Builder'}</strong></span>
                               </span>
                               <span>•</span>
-                              <span>Leader: {p.team_leader_name || user?.name || 'Hacker'}</span>
+                              <span>Leader: <strong className="text-slate-800 dark:text-slate-200">{p.team_leader_name || user?.name || 'Hacker'}</strong></span>
+                              {p.team_leader_email && (
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">({p.team_leader_email})</span>
+                              )}
                             </div>
                           </div>
 

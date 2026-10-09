@@ -3685,11 +3685,41 @@ export function subscribeToProfilesRealtime(onChange: () => void): () => void {
 /**
  * ─── PAYMENTS: FETCH USER PAYMENTS ──────────────────────────────────────────
  */
-export async function fetchUserPaymentsSupabase(userId: string, email?: string): Promise<any[]> {
-  if (!userId && !email) return [];
+export async function fetchUserPaymentsSupabase(
+  userId: string,
+  email?: string,
+  options?: { isAdmin?: boolean; scope?: 'all' | 'user'; eventId?: string }
+): Promise<any[]> {
+  if (!userId && !email && !options?.isAdmin && options?.scope !== 'all') return [];
+
+  // 1. Try server-side API first (bypasses RLS with service-role client, supports admin & all view)
+  if (typeof window !== 'undefined') {
+    try {
+      const params = new URLSearchParams();
+      if (userId) params.set('userId', userId);
+      if (email) params.set('email', email);
+      if (options?.isAdmin) params.set('isAdmin', 'true');
+      if (options?.scope) params.set('scope', options.scope);
+      if (options?.eventId) params.set('eventId', options.eventId);
+
+      const res = await fetch(`/api/payments?${params.toString()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.payments)) {
+          return json.payments;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('[Payments] API fetch fallback to direct supabase query:', apiErr);
+    }
+  }
+
+  // 2. Direct Supabase query fallback
   try {
     let query = supabase.from('payments').select('*, events(slug, title, banner_url)');
-    if (userId && email) {
+    if (options?.scope === 'all' || options?.isAdmin) {
+      // Admin query without user-specific filter
+    } else if (userId && email) {
       query = query.or(`user_id.eq.${userId},team_leader_email.eq.${email}`);
     } else if (userId) {
       query = query.eq('user_id', userId);
@@ -3702,7 +3732,9 @@ export async function fetchUserPaymentsSupabase(userId: string, email?: string):
     if (error) {
       // Fallback without events relation join in case table relationships aren't cached
       let fallbackQuery = supabase.from('payments').select('*');
-      if (userId && email) {
+      if (options?.scope === 'all' || options?.isAdmin) {
+        // Admin query without filter
+      } else if (userId && email) {
         fallbackQuery = fallbackQuery.or(`user_id.eq.${userId},team_leader_email.eq.${email}`);
       } else if (userId) {
         fallbackQuery = fallbackQuery.eq('user_id', userId);
