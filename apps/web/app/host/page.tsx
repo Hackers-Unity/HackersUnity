@@ -2245,7 +2245,7 @@ ${organizerName || 'Organizer'}`;
                                 required={registrationMode === 'EXTERNAL'}
                                 value={registrationLink}
                                 onChange={(e) => setRegistrationLink(e.target.value)}
-                                placeholder="https://unstop.com/... or https://devfolio.co/... or https://forms.gle/..."
+                                placeholder="https://... or https://forms.gle/..."
                                 className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-white/[0.1] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0099e6]"
                               />
                             </div>

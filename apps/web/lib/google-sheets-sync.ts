@@ -325,6 +325,63 @@ function formatValueForSheet(val: any): string {
   return String(val);
 }
 
+/**
+ * Normalizes and enriches a payment record with full UTR, payment proof link, and contact details
+ */
+export function formatPaymentRecordForSheet(payment: Record<string, any>) {
+  const raw = payment.raw_response || {};
+  const acquirer = raw.acquirer_data || {};
+
+  // Extract UTR / RRN (Bank Reference Number)
+  const utr =
+    payment.utr_number ||
+    acquirer.rrn ||
+    acquirer.upi_transaction_id ||
+    acquirer.bank_transaction_id ||
+    acquirer.auth_code ||
+    (payment.status === 'PAID' ? payment.razorpay_payment_id : 'PENDING');
+
+  const paymentId = payment.razorpay_payment_id || raw.id || (payment.status === 'PAID' ? 'N/A' : 'UNPAID');
+  const orderId = payment.razorpay_order_id || raw.order_id || '';
+  const vpa = raw.vpa || raw.upi?.vpa || '';
+  const phone = payment.team_leader_phone || raw.contact || '';
+  const email = payment.team_leader_email || raw.email || '';
+
+  const proofLink =
+    paymentId && paymentId !== 'UNPAID' && paymentId !== 'N/A'
+      ? `https://dashboard.razorpay.com/app/payments/${paymentId}`
+      : utr && utr !== 'PENDING' && utr !== 'N/A'
+      ? `UTR Ref: ${utr}`
+      : 'Pending Payment';
+
+  const dateStr = payment.transaction_date || payment.created_at || new Date().toISOString();
+
+  return {
+    id: payment.id,
+    transaction_date: dateStr,
+    team_leader_name: payment.team_leader_name || 'Hacker',
+    team_leader_email: email,
+    team_leader_phone: phone,
+    amount: payment.amount ? `₹${payment.amount}` : '₹1',
+    currency: payment.currency || 'INR',
+    status: payment.status || 'PAID',
+    utr_number: utr,
+    razorpay_payment_id: paymentId,
+    payment_proof_link: proofLink,
+    payment_method: (payment.payment_method || raw.method || 'UPI').toUpperCase(),
+    payer_vpa: vpa,
+    event_name: payment.event_name || 'Hackathon Event',
+    team_name: payment.team_name || 'Solo Builder',
+    team_type: payment.team_type || 'Solo',
+    team_size: payment.team_size || 1,
+    razorpay_order_id: orderId,
+    receipt_number: payment.receipt_number || '',
+    user_id: payment.user_id || '',
+    event_id: payment.event_id || '',
+    team_id: payment.team_id || '',
+  };
+}
+
 // ─── 6. FULL SYNCHRONIZATION ENGINE ──────────────────────────────────────────
 export interface TableSyncResult {
   table: string;
@@ -358,34 +415,74 @@ export async function syncFullTable(tableName: string): Promise<TableSyncResult>
   const tabInfo = await ensureSheetTabExists(config.sheetName);
   const records = rows || [];
 
-  // Determine headers (primary key first, then other fields alphabetically)
   let headers: string[] = [config.primaryKey];
+  let values: string[][] = [];
 
-  if (records.length > 0) {
-    const allKeys = new Set<string>();
-    records.forEach((row) => {
-      Object.keys(row).forEach((k) => allKeys.add(k));
+  if (tableName === 'payments') {
+    // Sort so confirmed PAID records are listed first, sorted newest first
+    records.sort((a, b) => {
+      const aPaid = a.status === 'PAID' ? 1 : 0;
+      const bPaid = b.status === 'PAID' ? 1 : 0;
+      if (bPaid !== aPaid) return bPaid - aPaid;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
 
-    const otherKeys = Array.from(allKeys)
-      .filter((k) => k !== config.primaryKey)
-      .sort();
+    headers = [
+      'id',
+      'transaction_date',
+      'team_leader_name',
+      'team_leader_email',
+      'team_leader_phone',
+      'amount',
+      'currency',
+      'status',
+      'utr_number',
+      'razorpay_payment_id',
+      'payment_proof_link',
+      'payment_method',
+      'payer_vpa',
+      'event_name',
+      'team_name',
+      'team_type',
+      'team_size',
+      'razorpay_order_id',
+      'receipt_number',
+      'user_id',
+      'event_id',
+      'team_id',
+    ];
 
-    headers = [config.primaryKey, ...otherKeys];
+    values = [headers];
+    records.forEach((record) => {
+      const formatted = formatPaymentRecordForSheet(record);
+      values.push(headers.map((h) => formatValueForSheet((formatted as any)[h])));
+    });
   } else {
-    // Empty table fallback: if we have known common columns or at least primaryKey
-    headers = [config.primaryKey, 'created_at', 'updated_at'];
-  }
+    // Determine headers (primary key first, then other fields alphabetically)
+    if (records.length > 0) {
+      const allKeys = new Set<string>();
+      records.forEach((row) => {
+        Object.keys(row).forEach((k) => allKeys.add(k));
+      });
 
-  // 2. Build rows matrix
-  const values: string[][] = [headers];
+      const otherKeys = Array.from(allKeys)
+        .filter((k) => k !== config.primaryKey)
+        .sort();
 
-  records.forEach((record) => {
-    const rowValues = headers.map((header) => {
-      return formatValueForSheet(record[header]);
+      headers = [config.primaryKey, ...otherKeys];
+    } else {
+      // Empty table fallback: if we have known common columns or at least primaryKey
+      headers = [config.primaryKey, 'created_at', 'updated_at'];
+    }
+
+    values = [headers];
+    records.forEach((record) => {
+      const rowValues = headers.map((header) => {
+        return formatValueForSheet(record[header]);
+      });
+      values.push(rowValues);
     });
-    values.push(rowValues);
-  });
+  }
 
   // If using Google Apps Script Web App alternative
   const appsScriptUrl = getAppsScriptUrl();
@@ -737,33 +834,37 @@ export async function handleDatabaseWebhook(
  */
 export async function syncPaymentToGoogleSheets(payment: Record<string, any>): Promise<any> {
   try {
+    const formatted = formatPaymentRecordForSheet(payment);
+
+    // Provide both standard database keys and Title Case aliases
+    // so any custom header configuration on the Google Sheet tab matches 100%
+    const recordPayload: Record<string, any> = {
+      ...formatted,
+      'Transaction Date': formatted.transaction_date,
+      'Participant Name': formatted.team_leader_name,
+      'Email': formatted.team_leader_email,
+      'Phone': formatted.team_leader_phone,
+      'Amount': formatted.amount,
+      'Status': formatted.status,
+      'UTR Number': formatted.utr_number,
+      'UTR / Bank Ref': formatted.utr_number,
+      'Razorpay Payment ID': formatted.razorpay_payment_id,
+      'Payment Proof': formatted.payment_proof_link,
+      'Payment Proof Link': formatted.payment_proof_link,
+      'Payment Method': formatted.payment_method,
+      'UPI ID': formatted.payer_vpa,
+      'Event Name': formatted.event_name,
+      'Squad Name': formatted.team_name,
+      'Order ID': formatted.razorpay_order_id,
+      'Receipt Number': formatted.receipt_number,
+    };
+
     return await handleDatabaseWebhook({
-      type: 'INSERT',
+      type: 'UPDATE', // Upsert in Apps Script: updates if row exists, appends if new
       table: 'payments',
       schema: 'public',
       old_record: null,
-      record: {
-        id: payment.id,
-        team_name: payment.team_name,
-        team_leader_name: payment.team_leader_name,
-        team_leader_email: payment.team_leader_email,
-        team_leader_phone: payment.team_leader_phone || '',
-        transaction_date: payment.transaction_date || payment.created_at || new Date().toISOString(),
-        utr_number: payment.utr_number || 'N/A',
-        amount: payment.amount,
-        currency: payment.currency || 'INR',
-        event_name: payment.event_name,
-        event_id: payment.event_id,
-        team_id: payment.team_id || '',
-        team_type: payment.team_type || 'Squad',
-        team_size: payment.team_size || 1,
-        razorpay_order_id: payment.razorpay_order_id,
-        razorpay_payment_id: payment.razorpay_payment_id || '',
-        payment_method: payment.payment_method || 'upi',
-        status: payment.status || 'PAID',
-        receipt_number: payment.receipt_number || '',
-        created_at: payment.created_at || new Date().toISOString(),
-      },
+      record: recordPayload,
     });
   } catch (err: any) {
     console.warn('[SheetsSync] Failed to sync payment to Google Sheets:', err?.message || err);
