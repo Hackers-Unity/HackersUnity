@@ -59,7 +59,7 @@ import { RegistrationModal } from '@/components/registration-modal';
 import { TeamRegistrationModal } from '@/components/team-registration-modal';
 import { ProjectSubmissionModal } from '@/components/project-submission-modal';
 import { RichDescription } from '@/components/rich-description';
-import { fetchUserTeamForEvent, fetchLiveRegistrationCount } from '@/lib/supabase-service';
+import { fetchUserTeamForEvent, fetchLiveRegistrationCount, checkPaymentStatusSupabase } from '@/lib/supabase-service';
 import { EventStatus } from '@hackers-unity/shared-types';
 import { useAuth } from '@/lib/auth-context';
 
@@ -91,6 +91,25 @@ function HackathonDetailContent({ params }: PageProps) {
   const { isRegistered } = useEventRegistration(event?.id || '');
   const { user, supabaseUser } = useAuth();
   const [userSquad, setUserSquad] = useState<any | null>(null);
+
+  const rawFee = Number(event?.entryFee || (event?.registrationType === 'PAID' ? 1 : 0));
+  const feeAmount = rawFee === 59 ? 1 : rawFee;
+  const isPaidEvent = Boolean(event && (event.registrationType === 'PAID' || Number(event.entryFee) > 0) && feeAmount > 0);
+  const [isEventPaid, setIsEventPaid] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!event || !isPaidEvent || !isRegistered) {
+      setIsEventPaid(null);
+      return;
+    }
+    const userId = supabaseUser?.id || user?.id;
+    const teamId = userSquad?.id || null;
+    checkPaymentStatusSupabase(event.id, teamId, userId).then(res => {
+      setIsEventPaid(res.isPaid);
+    });
+  }, [event?.id, isPaidEvent, isRegistered, userSquad?.id, supabaseUser?.id, user?.id]);
+
+  const isPendingPayment = isPaidEvent && isRegistered && isEventPaid === false;
 
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
   const [liveParticipantCount, setLiveParticipantCount] = useState<number>(0);
@@ -356,9 +375,15 @@ function HackathonDetailContent({ params }: PageProps) {
               </span>
             )}
             {isRegistered && (
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/40 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Registered
-              </span>
+              isPendingPayment ? (
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800/40 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Payment Pending
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/40 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Registered
+                </span>
+              )
             )}
           </div>
 
@@ -1108,22 +1133,34 @@ function HackathonDetailContent({ params }: PageProps) {
                 </div>
               ) : isRegistered ? (
                 <div className="space-y-2.5">
-                  <Link
-                    href={`/hackathons/${event.slug}/register`}
-                    className="w-full py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 font-extrabold text-xs text-center flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>You Are Registered • View Squad →</span>
-                  </Link>
+                  {isPendingPayment ? (
+                    <Link
+                      href={`/hackathons/${event.slug}/register`}
+                      className="w-full py-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-300 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 font-extrabold text-xs text-center flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Payment Pending • Complete Entry Fee (₹{feeAmount}) →</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/hackathons/${event.slug}/register`}
+                      className="w-full py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 font-extrabold text-xs text-center flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>You Are Registered • View Squad →</span>
+                    </Link>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setShowSubmissionModal(true)}
-                    className="w-full py-3 rounded-2xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-extrabold text-xs text-center flex items-center justify-center gap-2 transition-all shadow-md shadow-sky-500/20 cursor-pointer"
-                  >
-                    <Rocket className="w-4 h-4" />
-                    <span>{userSubmission ? '✓ View / Edit Submission' : 'Submit Project 🚀'}</span>
-                  </button>
+                  {!isPendingPayment && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSubmissionModal(true)}
+                      className="w-full py-3 rounded-2xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-extrabold text-xs text-center flex items-center justify-center gap-2 transition-all shadow-md shadow-sky-500/20 cursor-pointer"
+                    >
+                      <Rocket className="w-4 h-4" />
+                      <span>{userSubmission ? '✓ View / Edit Submission' : 'Submit Project 🚀'}</span>
+                    </button>
+                  )}
                 </div>
               ) : effectiveStatus === EventStatus.COMPLETED ? (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] text-center space-y-2">

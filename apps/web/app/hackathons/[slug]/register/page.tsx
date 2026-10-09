@@ -152,6 +152,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
   const feeAmount = rawFee === 59 ? 1 : rawFee;
   const isPaidEvent = Boolean(event && (event.registrationType === 'PAID' || Number(event.entryFee) > 0) && feeAmount > 0);
   const [paymentStatus, setPaymentStatus] = useState<'UNPAID' | 'PAID' | 'LOADING'>('LOADING');
+  const isPaymentPending = isPaidEvent && paymentStatus !== 'PAID';
   const [paymentData, setPaymentData] = useState<any | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -1021,16 +1022,28 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
               <div
                 className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
                   currentStep === 3
-                    ? 'bg-emerald-500 text-white ring-4 ring-emerald-100 dark:ring-emerald-950'
+                    ? isPaymentPending
+                      ? 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-950'
+                      : 'bg-emerald-500 text-white ring-4 ring-emerald-100 dark:ring-emerald-950'
                     : currentStep > 3
-                    ? 'bg-emerald-500 text-white'
+                    ? isPaymentPending
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-emerald-500 text-white'
                     : 'bg-slate-200 dark:bg-white/[0.1] text-slate-600 dark:text-slate-400'
                 }`}
               >
-                {currentStep >= 3 ? <Check className="w-4 h-4" /> : '3'}
+                {currentStep >= 3 ? (
+                  isPaymentPending ? (
+                    <Clock className="w-3.5 h-3.5" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )
+                ) : (
+                  '3'
+                )}
               </div>
               <span className={`text-[11px] sm:text-xs font-bold ${currentStep === 3 ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                3. Confirmed
+                {isPaymentPending ? '3. Pending' : '3. Confirmed'}
               </span>
             </div>
 
@@ -1788,22 +1801,50 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           {/* ═════════ STEP 3: REGISTRATION CONFIRMED / TICKET ═════════ */}
           {currentStep === 3 && (
             <div className="p-8 sm:p-12 text-center space-y-6 animate-in zoom-in-95">
-              <div className="w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-sm">
-                <CheckCircle2 className="w-10 h-10" />
+              <div
+                className={`w-20 h-20 rounded-full border-2 flex items-center justify-center mx-auto shadow-sm ${
+                  isPaymentPending
+                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 text-amber-600 dark:text-amber-400'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {isPaymentPending ? (
+                  <Clock className="w-10 h-10 animate-pulse" />
+                ) : (
+                  <CheckCircle2 className="w-10 h-10" />
+                )}
               </div>
 
               <div className="space-y-2">
-                <span className="inline-block px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold uppercase tracking-wider">
-                  {isAlreadyRegistered ? 'Already Registered' : 'Registration Confirmed'}
+                <span
+                  className={`inline-block px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+                    isPaymentPending
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/60'
+                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                  }`}
+                >
+                  {isPaymentPending
+                    ? 'Payment Pending'
+                    : isAlreadyRegistered
+                    ? 'Already Registered'
+                    : 'Registration Confirmed'}
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                  {isAlreadyRegistered ? 'Your Registration & Squad' : 'You Are Officially In!'}
+                  {isPaymentPending
+                    ? 'Registration Pending Payment'
+                    : isAlreadyRegistered
+                    ? 'Your Registration & Squad'
+                    : 'You Are Officially In!'}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                  {isAlreadyRegistered
+                  {isPaymentPending
+                    ? `Your registration details for ${event.title} are recorded. Please complete the entry fee below to confirm your slot.`
+                    : isAlreadyRegistered
                     ? `You are currently registered for ${event.title}. Manage your squad and teammates below.`
                     : `You are registered for ${event.title} as `}
-                  {!isAlreadyRegistered && <strong className="text-slate-900 dark:text-white">{registeredRole || 'Participant'}</strong>}
+                  {!isAlreadyRegistered && !isPaymentPending && (
+                    <strong className="text-slate-900 dark:text-white">{registeredRole || 'Participant'}</strong>
+                  )}
                 </p>
               </div>
 
@@ -1911,9 +1952,15 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">Status</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
-                    {event.approvalMode === 'MANUAL' ? 'Pending Approval' : 'Confirmed Entry'}
-                  </span>
+                  {isPaymentPending ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60 font-bold text-[10px]">
+                      Payment Pending
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
+                      {event.approvalMode === 'MANUAL' ? 'Pending Approval' : 'Confirmed Entry'}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -2001,7 +2048,13 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
 
               {/* ─── Payment Callout for Paid Events ─── */}
               {isPaidEvent && (
-                <div className="max-w-md mx-auto p-5 rounded-2xl border transition-all text-left space-y-3 bg-white dark:bg-[#0c1017] border-sky-200 dark:border-sky-800/50 shadow-sm">
+                <div
+                  className={`max-w-md mx-auto p-5 rounded-2xl border transition-all text-left space-y-3 bg-white dark:bg-[#0c1017] shadow-sm ${
+                    isPaymentPending
+                      ? 'border-amber-300 dark:border-amber-700/60 ring-2 ring-amber-400/20'
+                      : 'border-sky-200 dark:border-sky-800/50'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-[#0099e6] dark:text-[#38bdf8]" />
