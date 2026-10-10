@@ -4089,6 +4089,25 @@ export async function checkPaymentStatusSupabase(
 ): Promise<{ isPaid: boolean; payment?: any }> {
   if (!eventId) return { isPaid: false };
   try {
+    // 1. Try server-side status API first (bypasses RLS so squad members can see leader payment)
+    try {
+      const params = new URLSearchParams();
+      if (eventId) params.set('eventId', eventId);
+      if (teamId) params.set('teamId', teamId);
+      if (userId) params.set('userId', userId);
+
+      const res = await fetch(`/api/payments/status?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.isPaid) {
+        return { isPaid: true, payment: data.payment };
+      }
+    } catch (apiErr) {
+      // Fallback to client query if API call fails
+    }
+
     let query = supabase
       .from('payments')
       .select('*')

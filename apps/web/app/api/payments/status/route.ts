@@ -9,14 +9,136 @@ export async function GET(req: NextRequest) {
     const orderId = searchParams.get('orderId');
     const eventId = searchParams.get('eventId');
     const teamId = searchParams.get('teamId');
+    const userId = searchParams.get('userId');
 
-    if (!orderId && !eventId && !teamId) {
+    if (!orderId && !eventId && !teamId && !userId) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
     const serverSupabase = createAdminClient();
 
-    // 1. Check Supabase for existing payment
+    // 1. If teamId is specified, check team status and leader payment first
+    if (teamId) {
+      const { data: teamData } = await serverSupabase
+        .from('teams')
+        .select('id, leader_id, payment_status, payment_id')
+        .eq('id', teamId)
+        .maybeSingle();
+
+      if (teamData && teamData.payment_status === 'PAID') {
+        let p = null;
+        if (teamData.payment_id) {
+          const { data: payRow } = await serverSupabase
+            .from('payments')
+            .select('*')
+            .eq('id', teamData.payment_id)
+            .maybeSingle();
+          p = payRow;
+        }
+        return NextResponse.json({
+          isPaid: true,
+          payment: p || {
+            id: teamData.payment_id || `pay_${teamId}`,
+            status: 'PAID',
+            team_id: teamId,
+            event_id: eventId,
+          },
+        });
+      }
+
+      // Check if squad leader completed payment for this event
+      if (teamData?.leader_id && eventId) {
+        const { data: leaderPay } = await serverSupabase
+          .from('payments')
+          .select('*')
+          .eq('event_id', eventId)
+          .eq('user_id', teamData.leader_id)
+          .eq('status', 'PAID')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (leaderPay) {
+          // Link this team to the leader's payment
+          await serverSupabase
+            .from('teams')
+            .update({ payment_status: 'PAID', payment_id: leaderPay.id })
+            .eq('id', teamId);
+          await serverSupabase
+            .from('payments')
+            .update({ team_id: teamId })
+            .eq('id', leaderPay.id);
+          await serverSupabase
+            .from('registrations')
+            .update({ payment_status: 'PAID', payment_id: leaderPay.id })
+            .eq('team_id', teamId);
+
+          return NextResponse.json({ isPaid: true, payment: leaderPay });
+        }
+      }
+    }
+
+    // 2. If userId is specified, check if user is in a squad whose leader paid
+    if (userId && eventId) {
+      // Direct user payment
+      const { data: userDirectPay } = await serverSupabase
+        .from('payments')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .eq('status', 'PAID')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (userDirectPay) {
+        return NextResponse.json({ isPaid: true, payment: userDirectPay });
+      }
+
+      // Check user team membership
+      const { data: memberships } = await serverSupabase
+        .from('team_members')
+        .select('team_id, teams(id, leader_id, payment_status, payment_id, event_id)')
+        .eq('user_id', userId);
+
+      if (memberships && memberships.length > 0) {
+        for (const m of memberships) {
+          const t: any = Array.isArray(m.teams) ? m.teams[0] : m.teams;
+          if (t && (t.event_id === eventId || !eventId)) {
+            if (t.payment_status === 'PAID') {
+              return NextResponse.json({
+                isPaid: true,
+                payment: {
+                  id: t.payment_id,
+                  status: 'PAID',
+                  team_id: t.id,
+                  event_id: eventId,
+                },
+              });
+            }
+            if (t.leader_id) {
+              const { data: leaderPay } = await serverSupabase
+                .from('payments')
+                .select('*')
+                .eq('event_id', eventId)
+                .eq('user_id', t.leader_id)
+                .eq('status', 'PAID')
+                .maybeSingle();
+
+              if (leaderPay) {
+                await serverSupabase
+                  .from('teams')
+                  .update({ payment_status: 'PAID', payment_id: leaderPay.id })
+                  .eq('id', t.id);
+                return NextResponse.json({ isPaid: true, payment: leaderPay });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Check Supabase for existing payment by orderId or teamId
     let query = serverSupabase.from('payments').select('*');
     if (orderId) {
       query = query.eq('razorpay_order_id', orderId);
@@ -24,6 +146,8 @@ export async function GET(req: NextRequest) {
       query = query.eq('event_id', eventId).eq('team_id', teamId);
     } else if (teamId) {
       query = query.eq('team_id', teamId);
+    } else if (userId && eventId) {
+      query = query.eq('event_id', eventId).eq('user_id', userId);
     }
 
     const { data: payments } = await query;

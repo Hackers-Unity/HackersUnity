@@ -181,12 +181,16 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     }
 
     const currentEventId = event.id;
-    const targetTeamId = createdTeamId || selectedTeamId || null;
+    const targetTeamId = createdTeamId || createdTeamData?.id || selectedTeamId || null;
     const currentUserId = supabaseUser?.id || user?.id || null;
 
     if (!currentUserId && !targetTeamId) {
       setPaymentStatus('UNPAID');
       return;
+    }
+
+    if (createdTeamData?.payment_status === 'PAID') {
+      setPaymentStatus('PAID');
     }
 
     let isMounted = true;
@@ -197,12 +201,12 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           if (res.isPaid && res.payment) {
             setPaymentStatus('PAID');
             setPaymentData(res.payment);
-          } else {
+          } else if (createdTeamData?.payment_status !== 'PAID') {
             setPaymentStatus('UNPAID');
           }
         }
       } catch {
-        if (isMounted) setPaymentStatus('UNPAID');
+        if (isMounted && createdTeamData?.payment_status !== 'PAID') setPaymentStatus('UNPAID');
       }
     }
 
@@ -210,7 +214,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     return () => {
       isMounted = false;
     };
-  }, [event?.id, isPaidEvent, createdTeamId, selectedTeamId, supabaseUser?.id, user?.id]);
+  }, [event?.id, isPaidEvent, createdTeamId, createdTeamData?.id, createdTeamData?.payment_status, selectedTeamId, supabaseUser?.id, user?.id]);
 
   // Squad role determination: Only squad leader (or solo registrant) can make payment
   const currentUserId = supabaseUser?.id || user?.id;
@@ -457,6 +461,17 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           );
           setMode(squad.leader_id === userId ? 'CREATE_TEAM' : 'JOIN_TEAM');
           setCurrentStep(3);
+
+          if (squad.payment_status === 'PAID') {
+            setPaymentStatus('PAID');
+          } else {
+            checkPaymentStatusSupabase(currentEvent.id, squad.id, userId).then((pRes) => {
+              if (pRes.isPaid && pRes.payment) {
+                setPaymentStatus('PAID');
+                setPaymentData(pRes.payment);
+              }
+            });
+          }
 
           if (squad.leader_id === userId) {
             fetchTeamJoinRequestsSupabase(squad.id).then((r) => {
