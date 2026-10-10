@@ -20,8 +20,12 @@ import {
 } from 'lucide-react';
 import { useNotifications } from '@/lib/notification-context';
 import { useAuth } from '@/lib/auth-context';
-import { formatRelativeTime } from '@/lib/notification-service';
-import { acceptTeamInvite, declineTeamInvite } from '@/lib/supabase-service';
+import {
+  acceptTeamInvite,
+  declineTeamInvite,
+  approveTeamJoinRequestSupabase,
+  declineTeamJoinRequestSupabase,
+} from '@/lib/supabase-service';
 import { NotificationDbType, UserNotification } from '@hackers-unity/shared-types';
 
 interface NotificationPanelProps {
@@ -37,6 +41,26 @@ function stripEmojis(str: string): string {
     .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function formatRelativeTime(dateString?: string): string {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return '';
+  }
 }
 
 function isHostAlert(n: UserNotification): boolean {
@@ -247,6 +271,33 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
   const handleAcceptInvite = async (e: React.MouseEvent, notif: UserNotification) => {
     e.stopPropagation();
+    const isJoinRequest = Boolean(notif.notification.metadata?.isJoinRequest);
+    const meta = notif.notification.metadata;
+
+    if (isJoinRequest && meta?.teamId && meta?.requesterId) {
+      setActionLoading((prev) => ({ ...prev, [notif.id]: 'accept' }));
+      try {
+        const res = await approveTeamJoinRequestSupabase(
+          meta.teamId,
+          meta.requestId || notif.id,
+          meta.requesterId,
+          { name: meta.requesterName, email: meta.requesterEmail }
+        );
+        if (res.success) {
+          setActionResults((prev) => ({ ...prev, [notif.id]: 'accepted' }));
+          await markAsRead(notif.id);
+          refreshNotifications();
+        } else {
+          alert(res.error || 'Failed to approve join request');
+        }
+      } catch (err: any) {
+        console.error('Failed to approve join request:', err);
+      } finally {
+        setActionLoading((prev) => ({ ...prev, [notif.id]: null }));
+      }
+      return;
+    }
+
     const token = notif.notification.metadata?.inviteToken;
     if (!token) {
       if (notif.notification.actionUrl) {
@@ -277,6 +328,33 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
   const handleDeclineInvite = async (e: React.MouseEvent, notif: UserNotification) => {
     e.stopPropagation();
+    const isJoinRequest = Boolean(notif.notification.metadata?.isJoinRequest);
+    const meta = notif.notification.metadata;
+
+    if (isJoinRequest && meta?.teamId && meta?.requesterId) {
+      setActionLoading((prev) => ({ ...prev, [notif.id]: 'decline' }));
+      try {
+        const res = await declineTeamJoinRequestSupabase(
+          meta.teamId,
+          meta.requestId || notif.id,
+          meta.requesterId,
+          meta.requesterEmail
+        );
+        if (res.success) {
+          setActionResults((prev) => ({ ...prev, [notif.id]: 'declined' }));
+          await markAsRead(notif.id);
+          refreshNotifications();
+        } else {
+          alert(res.error || 'Failed to decline join request');
+        }
+      } catch (err: any) {
+        console.error('Failed to decline join request:', err);
+      } finally {
+        setActionLoading((prev) => ({ ...prev, [notif.id]: null }));
+      }
+      return;
+    }
+
     const token = notif.notification.metadata?.inviteToken;
     if (!token) return;
 
@@ -410,9 +488,11 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
             {filteredNotifications.map((notif) => {
+              const isJoinReq = Boolean(notif.notification.metadata?.isJoinRequest);
               const isTeamInvite =
                 notif.notification.type === NotificationDbType.TEAM ||
                 Boolean(notif.notification.metadata?.inviteToken) ||
+                isJoinReq ||
                 notif.id.startsWith('invite-');
               const inviteToken = notif.notification.metadata?.inviteToken;
               const resultState = actionResults[notif.id];
@@ -432,7 +512,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                     {/* SVG Icon Box */}
                     <div className="w-9 h-9 rounded-xl bg-white dark:bg-[#151c28] border border-slate-200/90 dark:border-white/[0.1] flex items-center justify-center shrink-0 shadow-2xs mt-0.5 group-hover:scale-105 transition-transform">
                       {isTeamInvite ? (
-                        <Users className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                        <Users className={`w-4 h-4 ${isJoinReq ? 'text-amber-500 dark:text-amber-400' : 'text-violet-600 dark:text-violet-400'}`} />
                       ) : (
                         getNotificationIcon(notif.notification.type)
                       )}
@@ -442,11 +522,15 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {isTeamInvite && (
+                          {isJoinReq ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 tracking-wide uppercase">
+                              Join Request
+                            </span>
+                          ) : isTeamInvite ? (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 tracking-wide uppercase">
                               Squad Invite
                             </span>
-                          )}
+                          ) : null}
                           {notif.notification.type === NotificationDbType.REGISTRATION && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 tracking-wide uppercase">
                               New Registration
@@ -481,16 +565,16 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                         {stripEmojis(notif.notification.message)}
                       </p>
 
-                      {/* Interactive Invite Actions */}
-                      {isTeamInvite && inviteToken && (
+                      {/* Interactive Invite / Request Actions */}
+                      {isTeamInvite && (inviteToken || isJoinReq) && (
                         <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-white/[0.08] flex items-center justify-between gap-2 flex-wrap">
                           {resultState === 'accepted' ? (
                             <span className="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
-                              <Check className="w-3.5 h-3.5" /> Joined Squad!
+                              <Check className="w-3.5 h-3.5" /> {isJoinReq ? 'Approved & Added to Squad!' : 'Joined Squad!'}
                             </span>
                           ) : resultState === 'declined' ? (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.06] px-2.5 py-1 rounded-lg">
-                              <X className="w-3.5 h-3.5" /> Invite Declined
+                              <X className="w-3.5 h-3.5" /> {isJoinReq ? 'Request Declined' : 'Invite Declined'}
                             </span>
                           ) : (
                             <div className="flex items-center gap-1.5">
@@ -505,7 +589,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                                 ) : (
                                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                                 )}
-                                <span>Accept</span>
+                                <span>{isJoinReq ? 'Approve' : 'Accept'}</span>
                               </button>
 
                               <button
@@ -519,7 +603,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                                 ) : (
                                   <X className="w-3.5 h-3.5" />
                                 )}
-                                <span>Reject</span>
+                                <span>{isJoinReq ? 'Decline' : 'Reject'}</span>
                               </button>
                             </div>
                           )}

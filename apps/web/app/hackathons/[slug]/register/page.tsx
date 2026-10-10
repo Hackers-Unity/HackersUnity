@@ -41,6 +41,7 @@ import {
   QrCode,
   Smartphone,
   Globe,
+  X,
 } from 'lucide-react';
 import { useEvent } from '@/lib/hooks/use-events';
 import { useAuth } from '@/lib/auth-context';
@@ -54,6 +55,12 @@ import {
   removeTeamMemberSupabase,
   fetchTeamByInviteCode,
   checkPaymentStatusSupabase,
+  requestJoinTeamSupabase,
+  fetchTeamJoinRequestsSupabase,
+  approveTeamJoinRequestSupabase,
+  declineTeamJoinRequestSupabase,
+  cancelTeamJoinRequestSupabase,
+  fetchUserPendingTeamRequest,
 } from '@/lib/supabase-service';
 import { formatCurrency, formatDate, formatDateTime, getDaysLeft, downloadReceiptPdf, isEventRegistrationClosed } from '@/lib/utils';
 import { EventStatus } from '@hackers-unity/shared-types';
@@ -111,6 +118,13 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [showDeleteSquadModal, setShowDeleteSquadModal] = useState(false);
   const [deletingSquad, setDeletingSquad] = useState(false);
+
+  // Squad Join Requests State (Leader Approval Workflow)
+  const [pendingJoinRequests, setPendingJoinRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [actionPendingRequestId, setActionPendingRequestId] = useState<string | null>(null);
+  const [applicantPendingRequest, setApplicantPendingRequest] = useState<any | null>(null);
+  const [cancellingRequest, setCancellingRequest] = useState(false);
 
   // Step 2: Participant details (Pre-filled from auth profile)
   const [fullName, setFullName] = useState(user?.name || '');
@@ -443,12 +457,44 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           );
           setMode(squad.leader_id === userId ? 'CREATE_TEAM' : 'JOIN_TEAM');
           setCurrentStep(3);
+
+          if (squad.leader_id === userId) {
+            fetchTeamJoinRequestsSupabase(squad.id).then((r) => {
+              if (r.success) setPendingJoinRequests(r.requests || []);
+            });
+          }
           return;
         }
 
-        // 2. Check registration record
+        // 2. Check if user has an active pending request to join a squad
+        if (userId) {
+          const pendingCheck = await fetchUserPendingTeamRequest(currentEvent.id, userId);
+          if (pendingCheck.hasPendingRequest && pendingCheck.requestData) {
+            setIsAlreadyRegistered(true);
+            setApplicantPendingRequest(pendingCheck.requestData);
+            setTeamName(pendingCheck.requestData.team_name || pendingCheck.requestData.teams?.name || 'Squad');
+            setRegisteredRole('Squad Member (Pending Approval)');
+            setCurrentStep(3);
+            return;
+          }
+        }
+
+        // 3. Check registration record
         const reg = await checkUserRegistration(currentEvent.id, userId, userEmail);
         if (reg.isRegistered && reg.registration) {
+          // If pending approval squad member
+          if (
+            reg.registration.status === 'PENDING' ||
+            (reg.registration.role && reg.registration.role.toLowerCase().includes('pending'))
+          ) {
+            setIsAlreadyRegistered(true);
+            setApplicantPendingRequest(reg.registration);
+            setTeamName(reg.registration.team_name || 'Squad');
+            setRegisteredRole(reg.registration.role || 'Squad Member (Pending Approval)');
+            setCurrentStep(3);
+            return;
+          }
+
           // If the registration was marked as a team, but the team no longer exists (squad was deleted):
           if (reg.registration.is_team) {
             // Delete orphaned registration record so it never continues showing deleted team!
@@ -474,7 +520,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           return;
         }
 
-        // 3. Not registered & no squad
+        // 4. Not registered & no squad
         setIsAlreadyRegistered(false);
         setCreatedTeamId(null);
         setCreatedTeamData(null);
@@ -685,57 +731,90 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           return;
         }
 
-        // 1. Join team
-        const joinRes = await joinTeam(selectedTeamId, maxTeam, {
-          name: fullName.trim(),
-          email: userEmail,
-        });
-        if (!joinRes.success) {
-          setErrorMsg(joinRes.error || 'Failed to join squad.');
-          setSubmitting(false);
-          return;
-        }
-
         const teamObj = teams.find((t) => t.id === selectedTeamId) || resolvedSquadFromLink;
-        if (selectedTeamId) {
-          setCreatedTeamId(selectedTeamId);
-          setCreatedTeamData(teamObj);
+        const isDirectVerifiedLink = Boolean(
+          resolvedSquadFromLink && resolvedSquadFromLink.id === selectedTeamId
+        );
+
+        if (isDirectVerifiedLink) {
+          // 1. Direct join via explicit verified squad invitation code
+          const joinRes = await joinTeam(selectedTeamId, maxTeam, {
+            name: fullName.trim(),
+            email: userEmail,
+          });
+          if (!joinRes.success) {
+            setErrorMsg(joinRes.error || 'Failed to join squad.');
+            setSubmitting(false);
+            return;
+          }
+
+          if (selectedTeamId) {
+            setCreatedTeamId(selectedTeamId);
+            setCreatedTeamData(teamObj);
+          }
+
+          // 2. Register member
+          const regRes = await registerForEventSupabase({
+            eventId: event.id,
+            eventName: event.title,
+            userId,
+            userEmail,
+            userName: fullName.trim(),
+            phone: phone.trim() || undefined,
+            college: college.trim() || undefined,
+            city: city.trim() || undefined,
+            githubUrl: githubUrl.trim() || undefined,
+            linkedinUrl: linkedinUrl.trim() || undefined,
+            skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+            portfolioUrl: portfolioUrl.trim() || undefined,
+            resumeUrl: resumeUrl.trim() || undefined,
+            discordHandle: discordHandle.trim() || undefined,
+            twitterUrl: twitterUrl.trim() || undefined,
+            tshirtSize: tshirtSize || undefined,
+            dietaryPreference: dietaryPreference || undefined,
+            experienceLevel: experienceLevel || undefined,
+            customAnswers,
+            isTeam: true,
+            teamName: teamObj?.name || 'Squad Member',
+            role: 'Squad Member',
+            status,
+          } as any);
+
+          if (!regRes.success) {
+            setErrorMsg(regRes.error || 'Registration failed.');
+            setSubmitting(false);
+            return;
+          }
+
+          setRegisteredRole(`Squad Member (${teamObj?.name || 'Squad'})`);
+        } else {
+          // 2. Selected from Open Squads list -> REQUIRES SQUAD LEADER APPROVAL!
+          const reqRes = await requestJoinTeamSupabase(selectedTeamId, userId || '', {
+            name: fullName.trim(),
+            email: userEmail,
+            phone: phone.trim() || undefined,
+            college: college.trim() || undefined,
+            skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+          });
+
+          if (!reqRes.success) {
+            setErrorMsg(reqRes.error || 'Failed to send join request to squad leader.');
+            setSubmitting(false);
+            return;
+          }
+
+          setApplicantPendingRequest({
+            teamId: selectedTeamId,
+            teamName: teamObj?.name || 'Squad',
+            leaderName: teamObj?.profiles?.name || 'Squad Leader',
+            requestId: reqRes.requestId,
+          });
+          setRegisteredRole(`Squad Member (Pending Approval)`);
+          if (selectedTeamId) {
+            setCreatedTeamId(selectedTeamId);
+            setCreatedTeamData(teamObj);
+          }
         }
-
-        // 2. Register member
-        const regRes = await registerForEventSupabase({
-          eventId: event.id,
-          eventName: event.title,
-          userId,
-          userEmail,
-          userName: fullName.trim(),
-          phone: phone.trim() || undefined,
-          college: college.trim() || undefined,
-          city: city.trim() || undefined,
-          githubUrl: githubUrl.trim() || undefined,
-          linkedinUrl: linkedinUrl.trim() || undefined,
-          skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-          portfolioUrl: portfolioUrl.trim() || undefined,
-          resumeUrl: resumeUrl.trim() || undefined,
-          discordHandle: discordHandle.trim() || undefined,
-          twitterUrl: twitterUrl.trim() || undefined,
-          tshirtSize: tshirtSize || undefined,
-          dietaryPreference: dietaryPreference || undefined,
-          experienceLevel: experienceLevel || undefined,
-          customAnswers,
-          isTeam: true,
-          teamName: teamObj?.name || 'Squad Member',
-          role: 'Squad Member',
-          status,
-        } as any);
-
-        if (!regRes.success) {
-          setErrorMsg(regRes.error || 'Registration failed.');
-          setSubmitting(false);
-          return;
-        }
-
-        setRegisteredRole(`Squad Member (${teamObj?.name || 'Squad'})`);
       } else {
         // Solo registration
         const regRes = await registerForEventSupabase({
@@ -887,6 +966,100 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       setLinkResolveError(err.message || 'Failed to resolve invitation link.');
     } finally {
       setResolvingLink(false);
+    }
+  };
+
+  const loadLeaderRequests = async (tId: string) => {
+    if (!tId) return;
+    setLoadingRequests(true);
+    try {
+      const res = await fetchTeamJoinRequestsSupabase(tId);
+      if (res.success) {
+        setPendingJoinRequests(res.requests || []);
+      }
+    } catch (e) {
+      console.warn('Failed to load squad join requests:', e);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    if (createdTeamId && isSquadLeader) {
+      loadLeaderRequests(createdTeamId);
+    }
+  }, [createdTeamId, isSquadLeader]);
+
+  const handleApproveRequest = async (req: any) => {
+    if (!createdTeamId) return;
+    setActionPendingRequestId(req.id);
+    setInviteErrorMsg(null);
+    setInviteSuccessMsg(null);
+    try {
+      const res = await approveTeamJoinRequestSupabase(
+        createdTeamId,
+        req.id,
+        req.userId,
+        { name: req.userName, email: req.userEmail }
+      );
+      if (res.success) {
+        setInviteSuccessMsg(`${req.userName} has been approved and added to your squad!`);
+        const updatedTeam = await fetchUserTeamForEvent(event.id, user?.id || supabaseUser?.id || '');
+        if (updatedTeam) setCreatedTeamData(updatedTeam);
+        setPendingJoinRequests((prev) => prev.filter((r) => r.id !== req.id && r.userId !== req.userId));
+        refreshTeams();
+      } else {
+        setInviteErrorMsg(res.error || 'Failed to approve join request');
+      }
+    } catch (err: any) {
+      setInviteErrorMsg(err.message || 'Failed to approve join request');
+    } finally {
+      setActionPendingRequestId(null);
+    }
+  };
+
+  const handleDeclineRequest = async (req: any) => {
+    if (!createdTeamId) return;
+    setActionPendingRequestId(req.id);
+    setInviteErrorMsg(null);
+    try {
+      const res = await declineTeamJoinRequestSupabase(
+        createdTeamId,
+        req.id,
+        req.userId,
+        req.userEmail
+      );
+      if (res.success) {
+        setPendingJoinRequests((prev) => prev.filter((r) => r.id !== req.id && r.userId !== req.userId));
+      } else {
+        setInviteErrorMsg(res.error || 'Failed to decline request');
+      }
+    } catch (err: any) {
+      setInviteErrorMsg(err.message || 'Failed to decline request');
+    } finally {
+      setActionPendingRequestId(null);
+    }
+  };
+
+  const handleCancelJoinRequest = async () => {
+    const targetId = applicantPendingRequest?.teamId || applicantPendingRequest?.team_id || selectedTeamId;
+    if (!targetId) return;
+    setCancellingRequest(true);
+    try {
+      const res = await cancelTeamJoinRequestSupabase(targetId, event.id);
+      if (res.success) {
+        setApplicantPendingRequest(null);
+        setSelectedTeamId(null);
+        setIsAlreadyRegistered(false);
+        setRegisteredRole('');
+        setCurrentStep(1);
+      } else {
+        setErrorMsg(res.error || 'Failed to cancel join request');
+      }
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to cancel join request');
+    } finally {
+      setCancellingRequest(false);
     }
   };
 
@@ -1348,10 +1521,13 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                                     }`}
                                   >
                                     <div>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
                                         <h4 className="text-xs font-bold text-slate-900 dark:text-white">{t.name}</h4>
                                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 font-semibold">
                                           {memberCount}/{maxTeam} Members
+                                        </span>
+                                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-bold border border-amber-200 dark:border-amber-900/40">
+                                          Requires Approval
                                         </span>
                                       </div>
                                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -1370,6 +1546,15 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                                 );
                               })}
                             </div>
+
+                            {selectedTeamId && (!resolvedSquadFromLink || resolvedSquadFromLink.id !== selectedTeamId) && (
+                              <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2 animate-in fade-in">
+                                <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <span>
+                                  <strong>Squad Leader Approval Required:</strong> You will send a join request to the squad leader. Once they review and approve, you will be officially enrolled into the squad.
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1826,6 +2011,8 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                   <span>
                     {submitting
                       ? 'Submitting Registration...'
+                      : mode === 'JOIN_TEAM' && (!resolvedSquadFromLink || resolvedSquadFromLink.id !== selectedTeamId)
+                      ? 'Send Join Request to Squad Leader →'
                       : event.approvalMode === 'MANUAL'
                       ? 'Submit Application for Review'
                       : 'Complete Registration'}
@@ -1838,54 +2025,112 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
           {/* ═════════ STEP 3: REGISTRATION CONFIRMED / TICKET ═════════ */}
           {currentStep === 3 && (
             <div className="p-8 sm:p-12 text-center space-y-6 animate-in zoom-in-95">
-              <div
-                className={`w-20 h-20 rounded-full border-2 flex items-center justify-center mx-auto shadow-sm ${
-                  isPaymentPending
-                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 text-amber-600 dark:text-amber-400'
-                    : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400'
-                }`}
-              >
-                {isPaymentPending ? (
-                  <Clock className="w-10 h-10 animate-pulse" />
-                ) : (
-                  <CheckCircle2 className="w-10 h-10" />
-                )}
-              </div>
+              {applicantPendingRequest ? (
+                /* ─── APPLICANT PENDING APPROVAL VIEW ─── */
+                <>
+                  <div className="w-20 h-20 rounded-full border-2 border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-sm">
+                    <Clock className="w-10 h-10 animate-pulse" />
+                  </div>
 
-              <div className="space-y-2">
-                <span
-                  className={`inline-block px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
-                    isPaymentPending
-                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/60'
-                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                  }`}
-                >
-                  {isPaymentPending
-                    ? 'Payment Pending'
-                    : isAlreadyRegistered
-                    ? 'Already Registered'
-                    : 'Registration Confirmed'}
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                  {isPaymentPending
-                    ? 'Registration Pending Payment'
-                    : isAlreadyRegistered
-                    ? 'Your Registration & Squad'
-                    : 'You Are Officially In!'}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                  {isPaymentPending
-                    ? isSquadMember
-                      ? `Your squad registration for ${event.title} is recorded. Waiting for your Squad Leader (${squadLeaderName}) to complete the entry fee to confirm your squad's slot.`
-                      : `Your registration details for ${event.title} are recorded. Please complete the entry fee below to confirm your slot.`
-                    : isAlreadyRegistered
-                    ? `You are currently registered for ${event.title}. Manage your squad and teammates below.`
-                    : `You are registered for ${event.title} as `}
-                  {!isAlreadyRegistered && !isPaymentPending && (
-                    <strong className="text-slate-900 dark:text-white">{registeredRole || 'Participant'}</strong>
-                  )}
-                </p>
-              </div>
+                  <div className="space-y-2">
+                    <span className="inline-block px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/60">
+                      Join Request Pending
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                      Request Sent to Squad Leader
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                      Your request to join <strong className="text-slate-900 dark:text-white">{applicantPendingRequest.teamName || applicantPendingRequest.team_name || teamName || 'the squad'}</strong> has been sent to the Squad Leader (<strong className="text-slate-900 dark:text-white">{applicantPendingRequest.leaderName || 'Squad Leader'}</strong>). Once they approve your request, you will automatically be added to the squad.
+                    </p>
+                  </div>
+
+                  {/* Card with Squad Info & Cancel Request Button */}
+                  <div className="max-w-md mx-auto p-5 rounded-2xl bg-white dark:bg-[#0c1017] border-2 border-amber-200 dark:border-amber-900/50 shadow-sm text-left space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.08] pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white text-base font-black shadow-md shadow-amber-500/25">
+                          {(applicantPendingRequest.teamName || applicantPendingRequest.team_name || teamName || 'S').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                            {applicantPendingRequest.teamName || applicantPendingRequest.team_name || teamName}
+                          </h4>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            Leader: {applicantPendingRequest.leaderName || 'Squad Leader'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold uppercase">
+                        Awaiting Leader
+                      </span>
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={handleCancelJoinRequest}
+                        disabled={cancellingRequest}
+                        className="w-full py-2.5 px-4 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {cancellingRequest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
+                        <span>Cancel Join Request</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* ─── CONFIRMED / LEADER / SOLO VIEW ─── */
+                <>
+                  <div
+                    className={`w-20 h-20 rounded-full border-2 flex items-center justify-center mx-auto shadow-sm ${
+                      isPaymentPending
+                        ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 text-amber-600 dark:text-amber-400'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400'
+                    }`}
+                  >
+                    {isPaymentPending ? (
+                      <Clock className="w-10 h-10 animate-pulse" />
+                    ) : (
+                      <CheckCircle2 className="w-10 h-10" />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <span
+                      className={`inline-block px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+                        isPaymentPending
+                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/60'
+                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                      }`}
+                    >
+                      {isPaymentPending
+                        ? 'Payment Pending'
+                        : isAlreadyRegistered
+                        ? 'Already Registered'
+                        : 'Registration Confirmed'}
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                      {isPaymentPending
+                        ? 'Registration Pending Payment'
+                        : isAlreadyRegistered
+                        ? 'Your Registration & Squad'
+                        : 'You Are Officially In!'}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                      {isPaymentPending
+                        ? isSquadMember
+                          ? `Your squad registration for ${event.title} is recorded. Waiting for your Squad Leader (${squadLeaderName}) to complete the entry fee to confirm your squad's slot.`
+                          : `Your registration details for ${event.title} are recorded. Please complete the entry fee below to confirm your slot.`
+                        : isAlreadyRegistered
+                        ? `You are currently registered for ${event.title}. Manage your squad and teammates below.`
+                        : `You are registered for ${event.title} as `}
+                      {!isAlreadyRegistered && !isPaymentPending && (
+                        <strong className="text-slate-900 dark:text-white">{registeredRole || 'Participant'}</strong>
+                      )}
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* Squad Details Card (if part of a squad) */}
               {(createdTeamData || teamName) && (
@@ -1968,6 +2213,101 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Pending Join Requests (Squad Leader Only) */}
+                  {(mode === 'CREATE_TEAM' || createdTeamData?.leader_id === (supabaseUser?.id || user?.id)) && (
+                    <div className="pt-3 border-t border-slate-100 dark:border-white/[0.08] space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                            Pending Join Requests
+                          </span>
+                          {pendingJoinRequests.length > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-black">
+                              {pendingJoinRequests.length}
+                            </span>
+                          )}
+                        </div>
+                        {loadingRequests && (
+                          <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+                        )}
+                      </div>
+
+                      {pendingJoinRequests.length === 0 ? (
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 italic py-0.5">
+                          No pending join requests right now.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {pendingJoinRequests.map((req: any) => (
+                            <div
+                              key={req.id || req.userId}
+                              className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/40 text-xs space-y-2"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                    <span>{req.userName || 'Applicant'}</span>
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                                      Needs Approval
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                    {req.userEmail}
+                                  </div>
+                                  {req.college && (
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                      🎓 {req.college}
+                                    </div>
+                                  )}
+                                  {req.skills && Array.isArray(req.skills) && req.skills.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                      {req.skills.slice(0, 4).map((sk: string, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-[9px] font-semibold text-slate-600 dark:text-slate-300"
+                                        >
+                                          {sk}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveRequest(req)}
+                                  disabled={actionPendingRequestId === req.id}
+                                  className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                                >
+                                  {actionPendingRequestId === req.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Approve</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeclineRequest(req)}
+                                  disabled={actionPendingRequestId === req.id}
+                                  className="py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-white/[0.06] hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 text-slate-600 dark:text-slate-300 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Decline</span>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

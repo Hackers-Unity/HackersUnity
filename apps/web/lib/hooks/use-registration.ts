@@ -9,6 +9,7 @@ import {
   fetchEventTeams,
   createTeamSupabase,
   joinTeamSupabase,
+  requestJoinTeamSupabase,
 } from '@/lib/supabase-service';
 
 /**
@@ -146,5 +147,42 @@ export function useEventTeams(eventId: string) {
     return res;
   };
 
-  return { teams, loading, createTeam, joinTeam, refresh: loadTeams };
+  const requestJoinTeam = async (
+    teamId: string,
+    userDetails?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      college?: string;
+      city?: string;
+      skills?: string[];
+      githubUrl?: string;
+      linkedinUrl?: string;
+      message?: string;
+      customAnswers?: any;
+    }
+  ) => {
+    const userId = supabaseUser?.id || user?.id || 'usr_me';
+    const userName = userDetails?.name || user?.name || supabaseUser?.user_metadata?.name || 'Squad Member';
+    const userEmail = userDetails?.email || user?.email || supabaseUser?.email || '';
+
+    const res = await requestJoinTeamSupabase(teamId, userId, {
+      name: userName,
+      email: userEmail,
+      phone: userDetails?.phone,
+      college: userDetails?.college,
+      city: userDetails?.city,
+      skills: userDetails?.skills,
+      githubUrl: userDetails?.githubUrl,
+      linkedinUrl: userDetails?.linkedinUrl,
+      customAnswers: userDetails?.customAnswers,
+      message: userDetails?.message,
+    });
+    if (res.success) {
+      await loadTeams();
+    }
+    return res;
+  };
+
+  return { teams, loading, createTeam, joinTeam, requestJoinTeam, refresh: loadTeams };
 }

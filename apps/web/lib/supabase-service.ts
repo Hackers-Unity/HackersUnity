@@ -1768,6 +1768,267 @@ export async function joinTeamSupabase(
 }
 
 /**
+ * ─── 6.45 TEAM JOIN REQUESTS (LEADER APPROVAL WORKFLOW) ────────────────────────
+ */
+
+export async function requestJoinTeamSupabase(
+  teamId: string,
+  userId: string,
+  details?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    college?: string;
+    city?: string;
+    skills?: string[];
+    githubUrl?: string;
+    linkedinUrl?: string;
+    message?: string;
+    customAnswers?: any;
+  }
+): Promise<{ success: boolean; requestId?: string; message?: string; error?: string }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch('/api/teams', {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'request_join',
+        teamId,
+        userId,
+        userName: details?.name,
+        userEmail: details?.email,
+        phone: details?.phone,
+        college: details?.college,
+        city: details?.city,
+        skills: details?.skills,
+        githubUrl: details?.githubUrl,
+        linkedinUrl: details?.linkedinUrl,
+        customAnswers: details?.customAnswers,
+        message: details?.message,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hackers_unity_storage_change'));
+      }
+      return { success: true, requestId: data.requestId, message: data.message };
+    }
+
+    return {
+      success: false,
+      error: data.error || data.message || `Error (${res.status}) sending join request`,
+    };
+  } catch (err: any) {
+    console.error('requestJoinTeamSupabase error:', err);
+    return { success: false, error: err.message || 'Failed to send join request' };
+  }
+}
+
+export async function fetchTeamJoinRequestsSupabase(
+  teamId: string
+): Promise<{ success: boolean; requests: any[]; error?: string }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`/api/teams?action=get_join_requests&teamId=${encodeURIComponent(teamId)}`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      return { success: true, requests: data.requests || [] };
+    }
+
+    return { success: false, requests: [], error: data.error || 'Failed to fetch join requests' };
+  } catch (err: any) {
+    console.warn('fetchTeamJoinRequestsSupabase error:', err);
+    return { success: false, requests: [], error: err.message };
+  }
+}
+
+export async function approveTeamJoinRequestSupabase(
+  teamId: string,
+  requestId: string,
+  requesterId: string,
+  requesterDetails?: { name?: string; email?: string }
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch('/api/teams', {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'approve_join_request',
+        teamId,
+        requestId,
+        requesterId,
+        requesterName: requesterDetails?.name,
+        requesterEmail: requesterDetails?.email,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hackers_unity_storage_change'));
+      }
+      return { success: true, message: data.message };
+    }
+
+    return { success: false, error: data.error || 'Failed to approve join request' };
+  } catch (err: any) {
+    console.error('approveTeamJoinRequestSupabase error:', err);
+    return { success: false, error: err.message || 'Failed to approve request' };
+  }
+}
+
+export async function declineTeamJoinRequestSupabase(
+  teamId: string,
+  requestId: string,
+  requesterId: string,
+  requesterEmail?: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch('/api/teams', {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'decline_join_request',
+        teamId,
+        requestId,
+        requesterId,
+        requesterEmail,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hackers_unity_storage_change'));
+      }
+      return { success: true, message: data.message };
+    }
+
+    return { success: false, error: data.error || 'Failed to decline join request' };
+  } catch (err: any) {
+    console.error('declineTeamJoinRequestSupabase error:', err);
+    return { success: false, error: err.message || 'Failed to decline request' };
+  }
+}
+
+export async function cancelTeamJoinRequestSupabase(
+  teamId: string,
+  eventId: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch('/api/teams', {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'cancel_join_request',
+        teamId,
+        eventId,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hackers_unity_storage_change'));
+      }
+      return { success: true, message: data.message };
+    }
+
+    return { success: false, error: data.error || 'Failed to cancel join request' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to cancel request' };
+  }
+}
+
+export async function fetchUserPendingTeamRequest(
+  eventId: string,
+  userId: string
+): Promise<{ hasPendingRequest: boolean; requestData?: any }> {
+  try {
+    // 1. Check registrations table for pending squad role
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (
+      reg &&
+      (reg.status === 'PENDING' ||
+        (reg.role && reg.role.toLowerCase().includes('pending')) ||
+        (reg.status && reg.status.toLowerCase().includes('pending')))
+    ) {
+      return { hasPendingRequest: true, requestData: reg };
+    }
+
+    // 2. Check team_join_requests if available
+    try {
+      const { data: req } = await supabase
+        .from('team_join_requests')
+        .select('*, teams(id, name, leader_id, profiles:leader_id(name, email))')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .eq('status', 'PENDING')
+        .maybeSingle();
+
+      if (req) {
+        return { hasPendingRequest: true, requestData: req };
+      }
+    } catch {}
+
+    return { hasPendingRequest: false };
+  } catch {
+    return { hasPendingRequest: false };
+  }
+}
+
+/**
  * ─── 6.5 TEAM INVITATIONS ─────────────────────────────────────────────────────
  */
 

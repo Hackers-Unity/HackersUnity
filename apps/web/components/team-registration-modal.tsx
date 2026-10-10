@@ -16,7 +16,7 @@ interface TeamRegistrationModalProps {
 
 export function TeamRegistrationModal({ event, isOpen, onClose, onSuccess }: TeamRegistrationModalProps) {
   const { user, supabaseUser } = useAuth();
-  const { teams, loading: teamsLoading, createTeam, joinTeam, refresh } = useEventTeams(event.id);
+  const { teams, loading: teamsLoading, createTeam, joinTeam, requestJoinTeam, refresh } = useEventTeams(event.id);
 
   const [tab, setTab] = useState<'create' | 'join'>('create');
   const [teamName, setTeamName] = useState('');
@@ -125,39 +125,29 @@ export function TeamRegistrationModal({ event, isOpen, onClose, onSuccess }: Tea
         return;
       }
 
-      // 1. Join team
-      const joinRes = await joinTeam(selectedTeamId, maxTeam);
-      if (!joinRes.success) {
-        setErrorMsg(joinRes.error || 'Failed to join team');
-        setSubmitting(false);
-        return;
-      }
-
-      const teamObj = teams.find((t) => t.id === selectedTeamId);
-
-      // 2. Register member for event
-      await registerForEventSupabase({
-        eventId: event.id,
-        userId,
-        userEmail,
-        userName: fullName || user?.name || 'Squad Member',
+      // 1. Send join request to squad leader
+      const reqRes = await requestJoinTeam(selectedTeamId, {
+        name: fullName || user?.name || 'Squad Member',
+        email: userEmail,
         phone,
         college,
         city,
         skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-        isTeam: true,
-        teamName: teamObj?.name || 'Squad Member',
-        role: 'Team Member',
-        status: 'CONFIRMED',
       });
+
+      if (!reqRes.success) {
+        setErrorMsg(reqRes.error || 'Failed to send join request');
+        setSubmitting(false);
+        return;
+      }
 
       setSuccess(true);
       await refresh();
       setTimeout(() => {
         onSuccess?.();
-      }, 1500);
+      }, 2000);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to join team');
+      setErrorMsg(err.message || 'Failed to send join request');
     } finally {
       setSubmitting(false);
     }
@@ -197,9 +187,13 @@ export function TeamRegistrationModal({ event, isOpen, onClose, onSuccess }: Tea
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-black text-slate-900">Squad Registered!</h3>
+                <h3 className="text-xl font-black text-slate-900">
+                  {tab === 'join' ? 'Join Request Sent!' : 'Squad Registered!'}
+                </h3>
                 <p className="text-xs text-slate-600 max-w-sm">
-                  You are registered for <span className="font-bold text-[#0099e6]">{event.title}</span>. Teammates can now discover and join your squad.
+                  {tab === 'join'
+                    ? `Your request to join has been sent to the squad leader. You will be added to the squad once they approve.`
+                    : <>You are registered for <span className="font-bold text-[#0099e6]">{event.title}</span>. Teammates can now discover and join your squad.</>}
                 </p>
               </div>
               <button
@@ -401,6 +395,9 @@ export function TeamRegistrationModal({ event, isOpen, onClose, onSuccess }: Tea
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
                                   {memberCount}/{maxTeam} Members
                                 </span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200/60">
+                                  Approval Required
+                                </span>
                               </div>
                               <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
                                 Leader: {t.profiles?.name || 'Hacker'} {t.description && `• ${t.description}`}
@@ -457,7 +454,7 @@ export function TeamRegistrationModal({ event, isOpen, onClose, onSuccess }: Tea
                       className="flex-[2] py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       <ArrowRight className="w-4 h-4" />
-                      <span>{submitting ? 'Joining Squad...' : 'Join Selected Squad'}</span>
+                      <span>{submitting ? 'Sending Request...' : 'Send Join Request to Squad Leader'}</span>
                     </button>
                   </div>
                 </form>

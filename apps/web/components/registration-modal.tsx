@@ -34,7 +34,7 @@ type RegistrationMode = 'CREATE_TEAM' | 'JOIN_TEAM' | 'SOLO';
 
 export function RegistrationModal({ event, isOpen, onClose, onSuccess }: RegistrationModalProps) {
   const { user, supabaseUser } = useAuth();
-  const { teams, loading: teamsLoading, createTeam, joinTeam, refresh: refreshTeams } = useEventTeams(event.id);
+  const { teams, loading: teamsLoading, createTeam, joinTeam, requestJoinTeam, refresh: refreshTeams } = useEventTeams(event.id);
 
   const minTeam = event.minTeamSize || 1;
   const maxTeam = event.maxTeamSize || 4;
@@ -176,35 +176,20 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }: Registr
           return;
         }
 
-        const joinRes = await joinTeam(selectedTeamId, maxTeam);
-        if (!joinRes.success) {
-          setErrorMsg(joinRes.error || 'Failed to join squad');
-          setSubmitting(false);
-          return;
-        }
-
-        const teamObj = teams.find((t) => t.id === selectedTeamId);
-
-        const regRes = await registerForEventSupabase({
-          eventId: event.id,
-          userId,
-          userEmail,
-          userName: fullName.trim(),
+        const reqRes = await requestJoinTeam(selectedTeamId, {
+          name: fullName.trim(),
+          email: userEmail,
           phone,
           college,
           city,
+          skills: skillsInput.split(',').map((s) => s.trim()).filter(Boolean),
           githubUrl: githubUrl.trim(),
           linkedinUrl: linkedinUrl.trim(),
-          skills: skillsInput.split(',').map((s) => s.trim()).filter(Boolean),
           customAnswers,
-          isTeam: true,
-          teamName: teamObj?.name || 'Squad Member',
-          role: 'Squad Member',
-          status,
         });
 
-        if (!regRes.success) {
-          setErrorMsg(regRes.error || 'Registration failed');
+        if (!reqRes.success) {
+          setErrorMsg(reqRes.error || 'Failed to submit join request');
           setSubmitting(false);
           return;
         }
@@ -310,13 +295,17 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }: Registr
               </div>
               <div className="space-y-1">
                 <div className="inline-block px-3 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800/40">
-                  {event.approvalMode === 'MANUAL' ? 'REGISTRATION SUBMITTED' : 'REGISTRATION CONFIRMED'}
+                  {mode === 'JOIN_TEAM' ? 'JOIN REQUEST SENT' : event.approvalMode === 'MANUAL' ? 'REGISTRATION SUBMITTED' : 'REGISTRATION CONFIRMED'}
                 </div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                  {event.approvalMode === 'MANUAL' ? 'Application Submitted!' : 'You are in!'}
+                  {mode === 'JOIN_TEAM' ? 'Join Request Sent!' : event.approvalMode === 'MANUAL' ? 'Application Submitted!' : 'You are in!'}
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm">
-                  You are officially registered for <span className="text-[#0099e6] font-bold">{event.title}</span>.
+                  {mode === 'JOIN_TEAM' ? (
+                    <>Your request to join the squad has been submitted to the squad leader. You will be added once approved!</>
+                  ) : (
+                    <>You are officially registered for <span className="text-[#0099e6] font-bold">{event.title}</span>.</>
+                  )}
                 </p>
               </div>
               <button
@@ -413,7 +402,12 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }: Registr
                                     : 'border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#121824] text-slate-700 dark:text-slate-300'
                                 }`}
                               >
-                                <span>{t.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span>{t.name}</span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-bold border border-amber-200/60 dark:border-amber-800/40">
+                                    Approval Required
+                                  </span>
+                                </div>
                                 <input type="radio" name="squad_sel" checked={selectedTeamId === t.id} onChange={() => setSelectedTeamId(t.id)} />
                               </div>
                             ))}
@@ -645,7 +639,15 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }: Registr
                   className="flex-[2] py-2.5 rounded-xl bg-[#0099e6] hover:bg-[#0284c7] text-white font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Rocket className="w-4 h-4" />
-                  <span>{submitting ? 'Registering...' : 'Confirm Registration'}</span>
+                  <span>
+                    {submitting
+                      ? mode === 'JOIN_TEAM'
+                        ? 'Sending Request...'
+                        : 'Registering...'
+                      : mode === 'JOIN_TEAM'
+                      ? 'Send Join Request to Leader'
+                      : 'Confirm Registration'}
+                  </span>
                 </button>
               </div>
             </form>
