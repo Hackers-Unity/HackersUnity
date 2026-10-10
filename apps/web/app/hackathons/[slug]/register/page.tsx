@@ -548,6 +548,102 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
     }
   }, [event, isAlreadyRegistered]);
 
+  // Load join requests for squad leader
+  const loadLeaderRequests = async (tId: string) => {
+    if (!tId) return;
+    setLoadingRequests(true);
+    try {
+      const res = await fetchTeamJoinRequestsSupabase(tId);
+      if (res.success) {
+        setPendingJoinRequests(res.requests || []);
+      }
+    } catch (e) {
+      console.warn('Failed to load squad join requests:', e);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    if (createdTeamId && isSquadLeader) {
+      loadLeaderRequests(createdTeamId);
+    }
+  }, [createdTeamId, isSquadLeader]);
+
+  const handleApproveRequest = async (req: any) => {
+    if (!createdTeamId) return;
+    setActionPendingRequestId(req.id);
+    setInviteErrorMsg(null);
+    setInviteSuccessMsg(null);
+    try {
+      const res = await approveTeamJoinRequestSupabase(
+        createdTeamId,
+        req.id,
+        req.userId,
+        { name: req.userName, email: req.userEmail }
+      );
+      if (res.success) {
+        setInviteSuccessMsg(`${req.userName} has been approved and added to your squad!`);
+        const targetEventId = event?.id || '';
+        const updatedTeam = await fetchUserTeamForEvent(targetEventId, user?.id || supabaseUser?.id || '');
+        if (updatedTeam) setCreatedTeamData(updatedTeam);
+        setPendingJoinRequests((prev) => prev.filter((r) => r.id !== req.id && r.userId !== req.userId));
+        refreshTeams();
+      } else {
+        setInviteErrorMsg(res.error || 'Failed to approve join request');
+      }
+    } catch (err: any) {
+      setInviteErrorMsg(err.message || 'Failed to approve join request');
+    } finally {
+      setActionPendingRequestId(null);
+    }
+  };
+
+  const handleDeclineRequest = async (req: any) => {
+    if (!createdTeamId) return;
+    setActionPendingRequestId(req.id);
+    setInviteErrorMsg(null);
+    try {
+      const res = await declineTeamJoinRequestSupabase(
+        createdTeamId,
+        req.id,
+        req.userId,
+        req.userEmail
+      );
+      if (res.success) {
+        setPendingJoinRequests((prev) => prev.filter((r) => r.id !== req.id && r.userId !== req.userId));
+      } else {
+        setInviteErrorMsg(res.error || 'Failed to decline request');
+      }
+    } catch (err: any) {
+      setInviteErrorMsg(err.message || 'Failed to decline request');
+    } finally {
+      setActionPendingRequestId(null);
+    }
+  };
+
+  const handleCancelJoinRequest = async () => {
+    const targetId = applicantPendingRequest?.teamId || applicantPendingRequest?.team_id || selectedTeamId;
+    if (!targetId || !event?.id) return;
+    setCancellingRequest(true);
+    try {
+      const res = await cancelTeamJoinRequestSupabase(targetId, event.id);
+      if (res.success) {
+        setApplicantPendingRequest(null);
+        setSelectedTeamId(null);
+        setIsAlreadyRegistered(false);
+        setRegisteredRole('');
+        setCurrentStep(1);
+      } else {
+        setErrorMsg(res.error || 'Failed to cancel join request');
+      }
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to cancel join request');
+    } finally {
+      setCancellingRequest(false);
+    }
+  };
+
   if (eventLoading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
@@ -966,100 +1062,6 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
       setLinkResolveError(err.message || 'Failed to resolve invitation link.');
     } finally {
       setResolvingLink(false);
-    }
-  };
-
-  const loadLeaderRequests = async (tId: string) => {
-    if (!tId) return;
-    setLoadingRequests(true);
-    try {
-      const res = await fetchTeamJoinRequestsSupabase(tId);
-      if (res.success) {
-        setPendingJoinRequests(res.requests || []);
-      }
-    } catch (e) {
-      console.warn('Failed to load squad join requests:', e);
-    } finally {
-      setLoadingRequests(false);
-    }
-  };
-
-  useEffect(() => {
-    if (createdTeamId && isSquadLeader) {
-      loadLeaderRequests(createdTeamId);
-    }
-  }, [createdTeamId, isSquadLeader]);
-
-  const handleApproveRequest = async (req: any) => {
-    if (!createdTeamId) return;
-    setActionPendingRequestId(req.id);
-    setInviteErrorMsg(null);
-    setInviteSuccessMsg(null);
-    try {
-      const res = await approveTeamJoinRequestSupabase(
-        createdTeamId,
-        req.id,
-        req.userId,
-        { name: req.userName, email: req.userEmail }
-      );
-      if (res.success) {
-        setInviteSuccessMsg(`${req.userName} has been approved and added to your squad!`);
-        const updatedTeam = await fetchUserTeamForEvent(event.id, user?.id || supabaseUser?.id || '');
-        if (updatedTeam) setCreatedTeamData(updatedTeam);
-        setPendingJoinRequests((prev) => prev.filter((r) => r.id !== req.id && r.userId !== req.userId));
-        refreshTeams();
-      } else {
-        setInviteErrorMsg(res.error || 'Failed to approve join request');
-      }
-    } catch (err: any) {
-      setInviteErrorMsg(err.message || 'Failed to approve join request');
-    } finally {
-      setActionPendingRequestId(null);
-    }
-  };
-
-  const handleDeclineRequest = async (req: any) => {
-    if (!createdTeamId) return;
-    setActionPendingRequestId(req.id);
-    setInviteErrorMsg(null);
-    try {
-      const res = await declineTeamJoinRequestSupabase(
-        createdTeamId,
-        req.id,
-        req.userId,
-        req.userEmail
-      );
-      if (res.success) {
-        setPendingJoinRequests((prev) => prev.filter((r) => r.id !== req.id && r.userId !== req.userId));
-      } else {
-        setInviteErrorMsg(res.error || 'Failed to decline request');
-      }
-    } catch (err: any) {
-      setInviteErrorMsg(err.message || 'Failed to decline request');
-    } finally {
-      setActionPendingRequestId(null);
-    }
-  };
-
-  const handleCancelJoinRequest = async () => {
-    const targetId = applicantPendingRequest?.teamId || applicantPendingRequest?.team_id || selectedTeamId;
-    if (!targetId) return;
-    setCancellingRequest(true);
-    try {
-      const res = await cancelTeamJoinRequestSupabase(targetId, event.id);
-      if (res.success) {
-        setApplicantPendingRequest(null);
-        setSelectedTeamId(null);
-        setIsAlreadyRegistered(false);
-        setRegisteredRole('');
-        setCurrentStep(1);
-      } else {
-        setErrorMsg(res.error || 'Failed to cancel join request');
-      }
-    } catch (e: any) {
-      setErrorMsg(e.message || 'Failed to cancel join request');
-    } finally {
-      setCancellingRequest(false);
     }
   };
 
