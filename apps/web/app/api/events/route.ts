@@ -298,7 +298,12 @@ export async function PATCH(req: Request) {
     if (updates.featured !== undefined) updatePayload.featured = updates.featured;
     if (updates.tagline !== undefined) updatePayload.tagline = updates.tagline;
     if (updates.logoUrl !== undefined) updatePayload.logo_url = updates.logoUrl;
+    else if ((updates as any).logo_url !== undefined) updatePayload.logo_url = (updates as any).logo_url;
+
     if (updates.bannerUrl !== undefined) updatePayload.banner_url = updates.bannerUrl;
+    else if ((updates as any).banner_url !== undefined) updatePayload.banner_url = (updates as any).banner_url;
+    else if (updates.image !== undefined) updatePayload.banner_url = updates.image;
+
     if (updates.bannerGradient !== undefined) updatePayload.banner_gradient = updates.bannerGradient;
     if (updates.registrationStart !== undefined) updatePayload.registration_start = updates.registrationStart;
     if (updates.timezone !== undefined) updatePayload.timezone = updates.timezone;

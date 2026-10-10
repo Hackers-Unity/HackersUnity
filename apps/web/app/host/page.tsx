@@ -699,6 +699,9 @@ function HostHackathonContent() {
         const { url } = await uploadHackathonAsset(file, 'logos');
         if (url) {
           setLogoPreview(url);
+          if (isEditMode && editingEventId) {
+            updateEventInSupabase(editingEventId, { logoUrl: url } as any);
+          }
         }
       } catch (err) {
         console.warn('Storage upload error:', err);
@@ -719,6 +722,9 @@ function HostHackathonContent() {
         const { url } = await uploadHackathonAsset(file, 'banners');
         if (url) {
           setBannerPreview(url);
+          if (isEditMode && editingEventId) {
+            updateEventInSupabase(editingEventId, { bannerUrl: url, image: url } as any);
+          }
         }
       } catch (err) {
         console.warn('Storage upload error:', err);

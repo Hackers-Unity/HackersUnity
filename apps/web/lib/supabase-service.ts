@@ -913,7 +913,12 @@ export async function updateEventInSupabase(
     if (updates.status !== undefined) updatePayload.status = updates.status;
     if (updates.tagline !== undefined) updatePayload.tagline = updates.tagline;
     if (updates.logoUrl !== undefined) updatePayload.logo_url = updates.logoUrl;
+    else if ((updates as any).logo_url !== undefined) updatePayload.logo_url = (updates as any).logo_url;
+
     if (updates.bannerUrl !== undefined) updatePayload.banner_url = updates.bannerUrl;
+    else if ((updates as any).banner_url !== undefined) updatePayload.banner_url = (updates as any).banner_url;
+    else if (updates.image !== undefined) updatePayload.banner_url = updates.image;
+
     if (updates.organizerName !== undefined) updatePayload.organizer_name = updates.organizerName;
     if (updates.organizerAvatar !== undefined) updatePayload.organizer_avatar = updates.organizerAvatar;
     if (updates.organizerId !== undefined) updatePayload.organizer_id = updates.organizerId;

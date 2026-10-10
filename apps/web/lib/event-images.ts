@@ -51,15 +51,19 @@ export function getEventImageSrc(event?: {
   name?: string;
   image?: string | null;
   bannerUrl?: string | null;
+  banner_url?: string | null;
 } | null): string | null {
   if (!event) return null;
 
+  const candidateUrl =
+    (typeof event.bannerUrl === 'string' && event.bannerUrl.trim()) ||
+    (typeof (event as any).banner_url === 'string' && (event as any).banner_url.trim()) ||
+    (typeof event.image === 'string' && event.image.trim()) ||
+    null;
+
   // 1. Direct valid http/https/data URLs
-  if (event.image && (event.image.startsWith('http://') || event.image.startsWith('https://') || event.image.startsWith('data:'))) {
-    return event.image;
-  }
-  if (event.bannerUrl && (event.bannerUrl.startsWith('http://') || event.bannerUrl.startsWith('https://') || event.bannerUrl.startsWith('data:'))) {
-    return event.bannerUrl;
+  if (candidateUrl && (candidateUrl.startsWith('http://') || candidateUrl.startsWith('https://') || candidateUrl.startsWith('data:'))) {
+    return candidateUrl;
   }
 
   // 2. Lookup by id or slug
@@ -85,9 +89,8 @@ export function getEventImageSrc(event?: {
   if (title.includes('hackstorm') || title.includes('storm')) return hackstormImg.src;
   if (title.includes('wchl') || title.includes('league')) return wchlImg.src;
 
-  // 4. Return event.image or bannerUrl if available
-  if (event.image && event.image.trim()) return event.image;
-  if (event.bannerUrl && event.bannerUrl.trim()) return event.bannerUrl;
+  // 4. Return candidate if non-empty string
+  if (candidateUrl) return candidateUrl;
 
   return null;
 }
