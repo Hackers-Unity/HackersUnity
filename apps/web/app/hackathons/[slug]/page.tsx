@@ -665,7 +665,7 @@ function HackathonDetailContent({ params }: PageProps) {
                             Stage {stage.stageOrder}: {stage.stageName}
                           </h4>
                           <span className="text-xs text-[#0099e6] dark:text-[#38bdf8] font-mono font-bold">
-                            {formatDate(stage.startDate || event.startDate)} - {formatDate(stage.endDate || event.endDate)}
+                            {formatDate(stage.startDate || event.startDate, event.timezone)} - {formatDate(stage.endDate || event.endDate, event.timezone)}
                           </span>
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{stage.description}</p>
@@ -677,14 +677,14 @@ function HackathonDetailContent({ params }: PageProps) {
                         <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[#0099e6] border-4 border-white dark:border-[#0c1017] shadow-xs" />
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">Registration Phase</h4>
                         <span className="text-xs text-[#0099e6] dark:text-[#38bdf8] font-mono font-bold">
-                          Deadline: {formatDate(event.registrationDeadline)}
+                          Deadline: {formatDate(event.registrationDeadline, event.timezone)}
                         </span>
                       </div>
                       <div className="relative space-y-1">
                         <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[#ea580c] border-4 border-white dark:border-[#0c1017] shadow-xs" />
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">Hacking Sprint</h4>
                         <span className="text-xs text-[#ea580c] dark:text-orange-400 font-mono font-bold">
-                          {formatDate(event.startDate)} - {formatDate(event.endDate)}
+                          {formatDate(event.startDate, event.timezone)} - {formatDate(event.endDate, event.timezone)}
                         </span>
                       </div>
                     </div>
@@ -1083,7 +1083,7 @@ function HackathonDetailContent({ params }: PageProps) {
                   <span className="text-[#ea580c] font-black">{deadlineInfo.text}</span>
                 </div>
                 <div className="text-xs font-mono text-[#0099e6] dark:text-[#38bdf8] font-bold">
-                  {formatDateTime(event.registrationDeadline)}
+                  {formatDateTime(event.registrationDeadline, event.timezone)}
                 </div>
               </div>
 
@@ -1277,11 +1277,11 @@ function HackathonDetailContent({ params }: PageProps) {
                 </div>
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span className="font-medium">Starts</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatEventDateTime(event.startDate)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatEventDateTime(event.startDate, event.timezone)}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span className="font-medium">Ends</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{formatEventDateTime(event.endDate)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{formatEventDateTime(event.endDate, event.timezone)}</span>
                 </div>
                 {calculateEventDuration(event.startDate, event.endDate) && (
                   <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">

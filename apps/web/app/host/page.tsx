@@ -73,7 +73,7 @@ import {
   removeEventAdmin,
   EventTeamData,
 } from '@/lib/supabase-service';
-import { getEventPreviewToken, getEventPrivateLink, calculateEventDuration } from '@/lib/utils';
+import { getEventPreviewToken, getEventPrivateLink, calculateEventDuration, toUTCISO, fromUTCISO } from '@/lib/utils';
 import { HackathonCard } from '@/components/hackathon-card';
 import { getEventImageSrc } from '@/lib/event-images';
 import { RichTextEditor } from '@/components/rich-text-editor';
@@ -486,34 +486,32 @@ function HostHackathonContent() {
             }
           }
 
+          const eventTz = found.timezone || 'Asia/Kolkata';
+          if (found.timezone) {
+            setTimezone(found.timezone);
+          }
+
           if (found.startDate) {
-            const [d, t] = found.startDate.split('T');
-            setStartDate(d || '');
-            if (t) {
-              const timePart = t.slice(0, 5);
-              if (/^\d{2}:\d{2}$/.test(timePart)) {
-                setStartTime(timePart);
-              }
+            const { date, time } = fromUTCISO(found.startDate, eventTz);
+            setStartDate(date || '');
+            if (time) {
+              setStartTime(time);
             }
           }
           if (found.endDate) {
-            const [d, t] = found.endDate.split('T');
-            setEndDate(d || '');
-            if (t) {
-              const timePart = t.slice(0, 5);
-              if (/^\d{2}:\d{2}$/.test(timePart)) {
-                setEndTime(timePart);
-              }
+            const { date, time } = fromUTCISO(found.endDate, eventTz);
+            setEndDate(date || '');
+            if (time) {
+              setEndTime(time);
             }
           }
           if (found.registrationDeadline) {
-            setRegistrationDeadline(found.registrationDeadline.split('T')[0] || '');
+            const { date } = fromUTCISO(found.registrationDeadline, eventTz);
+            setRegistrationDeadline(date || '');
           }
           if (found.registrationStart) {
-            setRegistrationStart(found.registrationStart.split('T')[0] || '');
-          }
-          if (found.timezone) {
-            setTimezone(found.timezone);
+            const { date } = fromUTCISO(found.registrationStart, eventTz);
+            setRegistrationStart(date || '');
           }
           if (found.minTeamSize) {
             setMinTeamSize(found.minTeamSize);
@@ -618,10 +616,15 @@ function HostHackathonContent() {
   // ─── Pure Date Validation Calculation ────────────────────
   const dateErrors = useMemo(() => {
     const errors: Record<string, string> = {};
-    const regStart = registrationStart ? new Date(`${registrationStart}T00:00:00`) : null;
-    const regEnd = registrationDeadline ? new Date(`${registrationDeadline}T23:59:59`) : null;
-    const hackStart = startDate ? new Date(`${startDate}T${startTime || '09:00'}:00`) : null;
-    const hackEnd = endDate ? new Date(`${endDate}T${endTime || '18:00'}:00`) : null;
+    const regStartIso = registrationStart ? toUTCISO(registrationStart, '00:00', timezone) : null;
+    const regEndIso = registrationDeadline ? toUTCISO(registrationDeadline, '23:59', timezone) : null;
+    const hackStartIso = startDate ? toUTCISO(startDate, startTime || '09:00', timezone) : null;
+    const hackEndIso = endDate ? toUTCISO(endDate, endTime || '18:00', timezone) : null;
+
+    const regStart = regStartIso ? new Date(regStartIso) : null;
+    const regEnd = regEndIso ? new Date(regEndIso) : null;
+    const hackStart = hackStartIso ? new Date(hackStartIso) : null;
+    const hackEnd = hackEndIso ? new Date(hackEndIso) : null;
 
     if (regStart && regEnd && regStart >= regEnd) {
       errors.registrationDeadline = 'Registration deadline must be after registration start';
@@ -633,15 +636,14 @@ function HostHackathonContent() {
       errors.endDate = 'Hackathon end must be after hackathon start (check date & time)';
     }
     return errors;
-  }, [registrationStart, registrationDeadline, startDate, startTime, endDate, endTime]);
+  }, [registrationStart, registrationDeadline, startDate, startTime, endDate, endTime, timezone]);
 
   const eventDuration = useMemo(() => {
     if (!startDate || !endDate) return null;
-    return calculateEventDuration(
-      `${startDate}T${startTime || '09:00'}:00`,
-      `${endDate}T${endTime || '18:00'}:00`
-    );
-  }, [startDate, startTime, endDate, endTime]);
+    const startIso = toUTCISO(startDate, startTime || '09:00', timezone);
+    const endIso = toUTCISO(endDate, endTime || '18:00', timezone);
+    return calculateEventDuration(startIso, endIso);
+  }, [startDate, startTime, endDate, endTime, timezone]);
 
   // Check if current event is already approved / published by admins
   const isAlreadyApproved = useMemo(() => {
@@ -790,10 +792,18 @@ function HostHackathonContent() {
       description: description || 'Join this hackathon to innovate, build real-world solutions, and compete for prizes.',
       category,
       eventType,
-      startDate: startDate ? `${startDate}T${startTime || '09:00'}:00Z` : new Date(Date.now() + 30 * 86400000).toISOString(),
-      endDate: endDate ? `${endDate}T${endTime || '18:00'}:00Z` : new Date(Date.now() + 45 * 86400000).toISOString(),
-      registrationDeadline: registrationDeadline ? `${registrationDeadline}T23:59:59Z` : new Date(Date.now() + 28 * 86400000).toISOString(),
-      registrationStart: registrationStart ? `${registrationStart}T00:00:00Z` : undefined,
+      startDate: startDate
+        ? (toUTCISO(startDate, startTime || '09:00', timezone) || `${startDate}T${startTime || '09:00'}:00Z`)
+        : new Date(Date.now() + 30 * 86400000).toISOString(),
+      endDate: endDate
+        ? (toUTCISO(endDate, endTime || '18:00', timezone) || `${endDate}T${endTime || '18:00'}:00Z`)
+        : new Date(Date.now() + 45 * 86400000).toISOString(),
+      registrationDeadline: registrationDeadline
+        ? (toUTCISO(registrationDeadline, '23:59:59', timezone) || `${registrationDeadline}T23:59:59Z`)
+        : new Date(Date.now() + 28 * 86400000).toISOString(),
+      registrationStart: registrationStart
+        ? (toUTCISO(registrationStart, '00:00:00', timezone) || `${registrationStart}T00:00:00Z`)
+        : undefined,
       timezone,
       eligibilityRules: { openGlobally: true, eligibility },
       eligibility,
@@ -844,8 +854,8 @@ function HostHackathonContent() {
           eventId: 'preview',
           stageName: 'Registration',
           stageOrder: 1,
-          startDate: registrationStart ? `${registrationStart}T00:00:00Z` : null,
-          endDate: registrationDeadline ? `${registrationDeadline}T23:59:59Z` : null,
+          startDate: registrationStart ? toUTCISO(registrationStart, '00:00:00', timezone) : null,
+          endDate: registrationDeadline ? toUTCISO(registrationDeadline, '23:59:59', timezone) : null,
           description: 'Squad formation and track selection',
         },
         {
@@ -853,8 +863,8 @@ function HostHackathonContent() {
           eventId: 'preview',
           stageName: 'Hacking Sprint & Submissions',
           stageOrder: 2,
-          startDate: startDate ? `${startDate}T${startTime || '09:00'}:00Z` : null,
-          endDate: endDate ? `${endDate}T${endTime || '18:00'}:00Z` : null,
+          startDate: startDate ? toUTCISO(startDate, startTime || '09:00', timezone) : null,
+          endDate: endDate ? toUTCISO(endDate, endTime || '18:00', timezone) : null,
           description: 'Ship working code, repos, and demo videos',
         },
       ],

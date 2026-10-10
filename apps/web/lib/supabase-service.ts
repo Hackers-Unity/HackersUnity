@@ -533,6 +533,11 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
             const override = overrides[mapped.id] || (mapped.slug ? overrides[mapped.slug] : null);
             if (override) {
               const res = { ...mapped, ...override };
+              // Ensure verified database schedule takes precedence over stale client overrides
+              if (mapped.startDate) res.startDate = mapped.startDate;
+              if (mapped.endDate) res.endDate = mapped.endDate;
+              if (mapped.registrationDeadline) res.registrationDeadline = mapped.registrationDeadline;
+              if (mapped.registrationStart) res.registrationStart = mapped.registrationStart;
               if (res.entryFee === 59 || res.entryFee === 1) {
                 res.entryFee = 800;
               }

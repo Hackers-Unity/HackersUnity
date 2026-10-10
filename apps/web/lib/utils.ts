@@ -24,34 +24,43 @@ export function formatCurrency(amount: number | null | undefined, currency: 'USD
   }).format(amount);
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string, timeZone?: string | null): string {
   try {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
+    const options: Intl.DateTimeFormatOptions = {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-    }).format(date);
+    };
+    if (timeZone) {
+      options.timeZone = timeZone;
+    }
+    return new Intl.DateTimeFormat('en-US', options).format(date);
   } catch {
     return dateString;
   }
 }
 
-export function formatDateTime(dateString: string): string {
+export function formatDateTime(dateString: string, timeZone?: string | null): string {
   try {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
+    const options: Intl.DateTimeFormatOptions = {
       month: 'short',
       day: 'numeric',
+      year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-    }).format(date);
+    };
+    if (timeZone) {
+      options.timeZone = timeZone;
+    }
+    return new Intl.DateTimeFormat('en-US', options).format(date);
   } catch {
     return dateString;
   }
 }
 
-export function formatEventDateTime(dateString?: string | null): string {
+export function formatEventDateTime(dateString?: string | null, timeZone?: string | null): string {
   if (!dateString) return 'TBA';
   try {
     const date = new Date(dateString);
@@ -59,23 +68,112 @@ export function formatEventDateTime(dateString?: string | null): string {
     const hasTime =
       dateString.includes('T') &&
       !dateString.endsWith('T00:00:00Z') &&
-      !dateString.endsWith('T00:00:00.000Z');
-    if (hasTime) {
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(date);
-    }
-    return new Intl.DateTimeFormat('en-US', {
+      !dateString.endsWith('T00:00:00.000Z') &&
+      !dateString.endsWith('T00:00:00+00:00');
+    const options: Intl.DateTimeFormatOptions = {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-    }).format(date);
+    };
+    if (hasTime) {
+      options.hour = 'numeric';
+      options.minute = '2-digit';
+    }
+    if (timeZone) {
+      options.timeZone = timeZone;
+    }
+    return new Intl.DateTimeFormat('en-US', options).format(date);
   } catch {
     return dateString || 'TBA';
+  }
+}
+
+/**
+ * Converts a local date string (YYYY-MM-DD), time string (HH:mm), and IANA timezone into a UTC ISO string.
+ * Example: toUTCISO("2026-10-30", "14:00", "Asia/Kolkata") -> "2026-10-30T08:30:00.000Z"
+ */
+export function toUTCISO(
+  dateStr?: string | null,
+  timeStr?: string | null,
+  timeZone = 'Asia/Kolkata'
+): string | null {
+  if (!dateStr || !dateStr.trim()) return null;
+  const cleanDate = dateStr.trim();
+  const time = timeStr && timeStr.trim() ? timeStr.trim() : '00:00';
+  const fullTime = time.length === 5 ? `${time}:00` : time;
+
+  if (!timeZone || timeZone === 'UTC') {
+    return `${cleanDate}T${fullTime}Z`;
+  }
+
+  try {
+    const invDate = new Date(`${cleanDate}T${fullTime}Z`);
+    if (isNaN(invDate.getTime())) return `${cleanDate}T${fullTime}Z`;
+
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    });
+
+    const parts = formatter.formatToParts(invDate);
+    const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    const tzAsUtc = new Date(
+      Date.UTC(
+        Number(map.year),
+        Number(map.month) - 1,
+        Number(map.day),
+        Number(map.hour),
+        Number(map.minute),
+        Number(map.second)
+      )
+    );
+    const offsetMs = tzAsUtc.getTime() - invDate.getTime();
+    return new Date(invDate.getTime() - offsetMs).toISOString();
+  } catch {
+    return `${cleanDate}T${fullTime}Z`;
+  }
+}
+
+/**
+ * Converts a UTC ISO timestamp into { date: 'YYYY-MM-DD', time: 'HH:mm' } in the specified timezone.
+ * Example: fromUTCISO("2026-10-30T08:30:00.000Z", "Asia/Kolkata") -> { date: "2026-10-30", time: "14:00" }
+ */
+export function fromUTCISO(
+  isoString?: string | null,
+  timeZone = 'Asia/Kolkata'
+): { date: string; time: string } {
+  if (!isoString) return { date: '', time: '09:00' };
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+        return { date: isoString, time: '09:00' };
+      }
+      return { date: '', time: '09:00' };
+    }
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timeZone || 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = formatter.formatToParts(d);
+    const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    return {
+      date: `${map.year}-${map.month}-${map.day}`,
+      time: `${map.hour}:${map.minute}`,
+    };
+  } catch {
+    return { date: '', time: '09:00' };
   }
 }
 

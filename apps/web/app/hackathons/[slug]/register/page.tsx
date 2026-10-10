@@ -1986,7 +1986,7 @@ export default function HackathonRegistrationPage({ params }: RegisterPageProps)
                 <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-white/[0.08] pb-2">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">Hackathon Dates</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">
-                    {formatDate(event.startDate)} - {formatDate(event.endDate)}
+                    {formatDate(event.startDate, event.timezone)} - {formatDate(event.endDate, event.timezone)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
