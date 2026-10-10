@@ -76,6 +76,15 @@ export interface EventPublic {
   previewToken?: string;
   registrationLink?: string | null;
   allowExternalRedirect?: boolean;
+  submissionFields?: SubmissionFieldSetting[];
+  submissionGuidelines?: string;
+}
+
+export interface SubmissionFieldSetting {
+  id: string;
+  label?: string;
+  enabled: boolean;
+  required: boolean;
 }
 
 export interface Prize {

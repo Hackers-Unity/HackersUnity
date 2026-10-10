@@ -185,6 +185,42 @@ export function mapDbEventToExtended(item: any): ExtendedEvent {
       }
       return item.registration_fields || ['name', 'email', 'phone', 'college', 'city', 'github', 'linkedin', 'skills'];
     })(),
+    submissionFields: (() => {
+      if (Array.isArray(item.submission_fields) && item.submission_fields.length > 0) {
+        return item.submission_fields;
+      }
+      if (Array.isArray(item.submissionFields) && item.submissionFields.length > 0) {
+        return item.submissionFields;
+      }
+      if (Array.isArray(item.tags)) {
+        const sTag = item.tags.find((t: string) => typeof t === 'string' && t.startsWith('hu_sub_fields:'));
+        if (sTag) {
+          try {
+            return JSON.parse(sTag.substring('hu_sub_fields:'.length));
+          } catch {}
+        }
+      }
+      return undefined;
+    })(),
+    submissionGuidelines: (() => {
+      if (typeof item.submission_guidelines === 'string' && item.submission_guidelines) {
+        return item.submission_guidelines;
+      }
+      if (typeof item.submissionGuidelines === 'string' && item.submissionGuidelines) {
+        return item.submissionGuidelines;
+      }
+      if (Array.isArray(item.tags)) {
+        const gTag = item.tags.find((t: string) => typeof t === 'string' && t.startsWith('hu_sub_guide:'));
+        if (gTag) {
+          try {
+            return JSON.parse(gTag.substring('hu_sub_guide:'.length));
+          } catch {
+            return gTag.substring('hu_sub_guide:'.length);
+          }
+        }
+      }
+      return undefined;
+    })(),
     previewToken: item.preview_token || item.previewToken || (item.slug ? getEventPreviewToken(item) : undefined),
     ctaText: item.cta_text || item.ctaText || undefined,
   };
@@ -533,7 +569,11 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
             const override = overrides[mapped.id] || (mapped.slug ? overrides[mapped.slug] : null);
             if (override) {
               const res = { ...mapped, ...override };
-              // Ensure verified database schedule takes precedence over stale client overrides
+              // Ensure verified database content and schedule take precedence over stale client overrides
+              if (mapped.description) res.description = mapped.description;
+              if (mapped.title) res.title = mapped.title;
+              if (mapped.bannerUrl) res.bannerUrl = mapped.bannerUrl;
+              if (mapped.logoUrl) res.logoUrl = mapped.logoUrl;
               if (mapped.startDate) res.startDate = mapped.startDate;
               if (mapped.endDate) res.endDate = mapped.endDate;
               if (mapped.registrationDeadline) res.registrationDeadline = mapped.registrationDeadline;
@@ -771,12 +811,26 @@ export async function createEventInSupabase(
       registration_link: event.registrationLink || null,
     };
 
-    if (Array.isArray(event.registrationFields)) {
+    if (Array.isArray(event.registrationFields) || event.submissionFields || event.submissionGuidelines) {
       if (!Array.isArray(insertPayload.tags)) insertPayload.tags = [];
-      insertPayload.tags = insertPayload.tags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
-      insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(event.registrationFields));
+      insertPayload.tags = insertPayload.tags.filter(
+        (t: string) =>
+          !t.startsWith('hu_reg_fields:') &&
+          !t.startsWith('hu_custom_q:') &&
+          !t.startsWith('hu_sub_fields:') &&
+          !t.startsWith('hu_sub_guide:')
+      );
+      if (Array.isArray(event.registrationFields)) {
+        insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(event.registrationFields));
+      }
       if (Array.isArray(event.customQuestions) && event.customQuestions.length > 0) {
         insertPayload.tags.push('hu_custom_q:' + JSON.stringify(event.customQuestions));
+      }
+      if (Array.isArray(event.submissionFields) && event.submissionFields.length > 0) {
+        insertPayload.tags.push('hu_sub_fields:' + JSON.stringify(event.submissionFields));
+      }
+      if (typeof event.submissionGuidelines === 'string' && event.submissionGuidelines.trim()) {
+        insertPayload.tags.push('hu_sub_guide:' + JSON.stringify(event.submissionGuidelines.trim()));
       }
     }
 
@@ -877,6 +931,14 @@ export async function updateEventInSupabase(
           const resData = await response.json();
           if (resData.success) {
             try {
+              const rawOverrides = localStorage.getItem('hackers_unity_events_overrides') || localStorage.getItem('hackers_unity_events_override');
+              if (rawOverrides) {
+                const overrides = JSON.parse(rawOverrides);
+                delete overrides[eventId];
+                if (updates.slug) delete overrides[updates.slug];
+                localStorage.setItem('hackers_unity_events_overrides', JSON.stringify(overrides));
+                localStorage.setItem('hackers_unity_events_override', JSON.stringify(overrides));
+              }
               window.dispatchEvent(new Event('hackers_unity_storage_change'));
             } catch {}
             return { success: true };
@@ -935,14 +997,31 @@ export async function updateEventInSupabase(
     if (updates.registrationLink !== undefined) updatePayload.registration_link = updates.registrationLink;
     if (updates.allowExternalRedirect !== undefined) updatePayload.allow_external_redirect = updates.allowExternalRedirect;
 
-    if (updates.registrationFields !== undefined || updates.customQuestions !== undefined) {
+    if (
+      updates.registrationFields !== undefined ||
+      updates.customQuestions !== undefined ||
+      updates.submissionFields !== undefined ||
+      updates.submissionGuidelines !== undefined
+    ) {
       const existingTags = Array.isArray(updates.tags) ? [...updates.tags] : [];
-      let newTags = existingTags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+      let newTags = existingTags.filter(
+        (t: string) =>
+          !t.startsWith('hu_reg_fields:') &&
+          !t.startsWith('hu_custom_q:') &&
+          !t.startsWith('hu_sub_fields:') &&
+          !t.startsWith('hu_sub_guide:')
+      );
       if (updates.registrationFields) {
         newTags.push('hu_reg_fields:' + JSON.stringify(updates.registrationFields));
       }
       if (updates.customQuestions && updates.customQuestions.length > 0) {
         newTags.push('hu_custom_q:' + JSON.stringify(updates.customQuestions));
+      }
+      if (Array.isArray(updates.submissionFields) && updates.submissionFields.length > 0) {
+        newTags.push('hu_sub_fields:' + JSON.stringify(updates.submissionFields));
+      }
+      if (typeof updates.submissionGuidelines === 'string' && updates.submissionGuidelines.trim()) {
+        newTags.push('hu_sub_guide:' + JSON.stringify(updates.submissionGuidelines.trim()));
       }
       updatePayload.tags = newTags;
     }
@@ -958,9 +1037,27 @@ export async function updateEventInSupabase(
     }
     let { error } = await clientQuery;
 
-    if (error && (error.code === '42703' || error.message?.includes('registration_fields'))) {
-      console.warn('DB missing registration_fields column on update, retrying without it');
-      delete updatePayload.registration_fields;
+    let clientColRetries = 0;
+    while (
+      error &&
+      (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column')) &&
+      clientColRetries < 6
+    ) {
+      clientColRetries++;
+      const msg = error.message || '';
+      console.warn(`[Client updateEventInSupabase] DB missing column (attempt ${clientColRetries}):`, msg);
+      const match =
+        msg.match(/'([^']+)' column/) ||
+        msg.match(/column "([^"]+)"/i) ||
+        msg.match(/column ([a-zA-Z0-9_]+)/i);
+      const colName = match ? match[1] : null;
+      if (colName && updatePayload[colName] !== undefined) {
+        delete updatePayload[colName];
+      } else {
+        delete updatePayload.allow_external_redirect;
+        delete updatePayload.registration_link;
+        delete updatePayload.registration_fields;
+      }
       let retryQuery = supabase.from('events').update(updatePayload);
       if (isUuid) retryQuery = retryQuery.eq('id', eventId);
       else retryQuery = retryQuery.eq('slug', eventId);
@@ -970,7 +1067,7 @@ export async function updateEventInSupabase(
 
     if (error) {
       console.warn('Direct Supabase update error:', error.message);
-      return { success: true };
+      return { success: false, error: error.message };
     }
 
     try {

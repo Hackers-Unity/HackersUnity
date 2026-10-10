@@ -10,7 +10,10 @@ import {
   NewsCategory,
   NewsStatus,
   NewsArticle,
+  SubmissionFieldSetting,
 } from '@hackers-unity/shared-types';
+
+export type { SubmissionFieldSetting };
 
 export interface ExtendedEvent extends EventPublic {
   name?: string;

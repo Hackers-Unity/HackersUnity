@@ -112,12 +112,26 @@ export async function POST(req: Request) {
       registration_link: event.registrationLink || null,
     };
 
-    if (Array.isArray(event.registrationFields)) {
+    if (Array.isArray(event.registrationFields) || event.submissionFields || event.submissionGuidelines) {
       if (!Array.isArray(insertPayload.tags)) insertPayload.tags = [];
-      insertPayload.tags = insertPayload.tags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
-      insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(event.registrationFields));
+      insertPayload.tags = insertPayload.tags.filter(
+        (t: string) =>
+          !t.startsWith('hu_reg_fields:') &&
+          !t.startsWith('hu_custom_q:') &&
+          !t.startsWith('hu_sub_fields:') &&
+          !t.startsWith('hu_sub_guide:')
+      );
+      if (Array.isArray(event.registrationFields)) {
+        insertPayload.tags.push('hu_reg_fields:' + JSON.stringify(event.registrationFields));
+      }
       if (Array.isArray(event.customQuestions) && event.customQuestions.length > 0) {
         insertPayload.tags.push('hu_custom_q:' + JSON.stringify(event.customQuestions));
+      }
+      if (Array.isArray(event.submissionFields) && event.submissionFields.length > 0) {
+        insertPayload.tags.push('hu_sub_fields:' + JSON.stringify(event.submissionFields));
+      }
+      if (typeof event.submissionGuidelines === 'string' && event.submissionGuidelines.trim()) {
+        insertPayload.tags.push('hu_sub_guide:' + JSON.stringify(event.submissionGuidelines.trim()));
       }
     }
 
@@ -131,10 +145,24 @@ export async function POST(req: Request) {
       .select('*')
       .single();
 
-    // Resilient fallback: If database schema lacks registration_fields column (code 42703)
-    if (error && (error.code === '42703' || error.message?.includes('registration_fields'))) {
-      console.warn('Server Supabase missing registration_fields column, retrying with tags fallback');
-      delete insertPayload.registration_fields;
+    // Resilient fallback: If database schema lacks any optional column (code 42703 or PGRST204)
+    let insertColRetries = 0;
+    while (error && (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column')) && insertColRetries < 6) {
+      insertColRetries++;
+      const msg = error.message || '';
+      console.warn(`[POST /api/events] Missing column on insert (attempt ${insertColRetries}):`, msg);
+      const match =
+        msg.match(/'([^']+)' column/) ||
+        msg.match(/column "([^"]+)"/i) ||
+        msg.match(/column ([a-zA-Z0-9_]+)/i);
+      const colName = match ? match[1] : null;
+      if (colName && insertPayload[colName] !== undefined) {
+        delete insertPayload[colName];
+      } else {
+        delete insertPayload.allow_external_redirect;
+        delete insertPayload.registration_link;
+        delete insertPayload.registration_fields;
+      }
       const retryCol = await serverSupabase.from('events').insert(insertPayload).select('*').single();
       data = retryCol.data;
       error = retryCol.error;
@@ -320,14 +348,31 @@ export async function PATCH(req: Request) {
     if (updates.registrationLink !== undefined) updatePayload.registration_link = updates.registrationLink;
     if (updates.allowExternalRedirect !== undefined) updatePayload.allow_external_redirect = updates.allowExternalRedirect;
 
-    if (updates.registrationFields !== undefined || updates.customQuestions !== undefined) {
+    if (
+      updates.registrationFields !== undefined ||
+      updates.customQuestions !== undefined ||
+      updates.submissionFields !== undefined ||
+      updates.submissionGuidelines !== undefined
+    ) {
       const existingTags = Array.isArray(updates.tags) ? [...updates.tags] : [];
-      let newTags = existingTags.filter((t: string) => !t.startsWith('hu_reg_fields:') && !t.startsWith('hu_custom_q:'));
+      let newTags = existingTags.filter(
+        (t: string) =>
+          !t.startsWith('hu_reg_fields:') &&
+          !t.startsWith('hu_custom_q:') &&
+          !t.startsWith('hu_sub_fields:') &&
+          !t.startsWith('hu_sub_guide:')
+      );
       if (updates.registrationFields) {
         newTags.push('hu_reg_fields:' + JSON.stringify(updates.registrationFields));
       }
       if (updates.customQuestions && updates.customQuestions.length > 0) {
         newTags.push('hu_custom_q:' + JSON.stringify(updates.customQuestions));
+      }
+      if (Array.isArray(updates.submissionFields) && updates.submissionFields.length > 0) {
+        newTags.push('hu_sub_fields:' + JSON.stringify(updates.submissionFields));
+      }
+      if (typeof updates.submissionGuidelines === 'string' && updates.submissionGuidelines.trim()) {
+        newTags.push('hu_sub_guide:' + JSON.stringify(updates.submissionGuidelines.trim()));
       }
       updatePayload.tags = newTags;
     }
@@ -368,9 +413,34 @@ export async function PATCH(req: Request) {
         .select('*');
     }
 
-    if (updateResult?.error && (updateResult.error.code === '42703' || updateResult.error.message?.includes('registration_fields'))) {
-      console.warn('Server Supabase update missing registration_fields, retrying without column');
-      delete updatePayload.registration_fields;
+    // Resilient fallback: If database schema lacks any optional column (code 42703 or PGRST204)
+    let updateColRetries = 0;
+    while (
+      updateResult?.error &&
+      (updateResult.error.code === '42703' ||
+        updateResult.error.code === 'PGRST204' ||
+        updateResult.error.message?.includes('column')) &&
+      updateColRetries < 6
+    ) {
+      updateColRetries++;
+      const msg = updateResult.error.message || '';
+      console.warn(`[PATCH /api/events] Column error detected (attempt ${updateColRetries}):`, msg);
+
+      const match =
+        msg.match(/'([^']+)' column/) ||
+        msg.match(/column "([^"]+)"/i) ||
+        msg.match(/column ([a-zA-Z0-9_]+)/i);
+      const colName = match ? match[1] : null;
+
+      if (colName && updatePayload[colName] !== undefined) {
+        delete updatePayload[colName];
+      } else {
+        // Fallback: delete common non-standard columns that might be missing
+        delete updatePayload.allow_external_redirect;
+        delete updatePayload.registration_link;
+        delete updatePayload.registration_fields;
+      }
+
       if (targetId) {
         updateResult = await serverSupabase
           .from('events')
@@ -381,7 +451,7 @@ export async function PATCH(req: Request) {
         updateResult = await serverSupabase
           .from('events')
           .update(updatePayload)
-          .eq('slug', targetSlug)
+          .ilike('slug', targetSlug)
           .select('*');
       }
     }

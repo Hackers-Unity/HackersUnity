@@ -2552,6 +2552,8 @@ export default function DashboardPage() {
           eventId={submissionModalEvent.id}
           eventName={submissionModalEvent.title}
           tracks={submissionModalEvent.tracks?.map((t: any) => t.title || t.name || t) || []}
+          submissionFields={submissionModalEvent.submissionFields}
+          submissionGuidelines={submissionModalEvent.submissionGuidelines}
           onSuccess={() => {
             setSubmissionModalEvent(null);
             loadDashboardData();

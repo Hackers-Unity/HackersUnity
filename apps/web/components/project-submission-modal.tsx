@@ -24,6 +24,7 @@ import {
   Mail,
   HelpCircle,
 } from 'lucide-react';
+import { SubmissionFieldSetting } from '@hackers-unity/shared-types';
 import { useAuth } from '@/lib/auth-context';
 import {
   ProjectSubmission,
@@ -40,6 +41,8 @@ interface ProjectSubmissionModalProps {
   eventId: string;
   eventName: string;
   tracks?: string[];
+  submissionFields?: SubmissionFieldSetting[];
+  submissionGuidelines?: string;
   onSuccess?: () => void;
   onDelete?: () => void;
 }
@@ -50,6 +53,8 @@ export function ProjectSubmissionModal({
   eventId,
   eventName,
   tracks = [],
+  submissionFields,
+  submissionGuidelines,
   onSuccess,
   onDelete,
 }: ProjectSubmissionModalProps) {
@@ -132,6 +137,28 @@ export function ProjectSubmissionModal({
     setShowDeleteConfirm(false);
   }, [isOpen, eventId, currentUserId, currentUserName]);
 
+  // Deliverable Configuration based on Host Settings
+  const getFieldConfig = (fieldId: string) => {
+    if (!submissionFields || submissionFields.length === 0) {
+      // Legacy fallback: all 4 are enabled and optional
+      return { enabled: true, required: false };
+    }
+    const match = submissionFields.find((f) => f.id === fieldId);
+    if (!match) return { enabled: false, required: false };
+    return { enabled: Boolean(match.enabled), required: Boolean(match.required) };
+  };
+
+  const demoVideoConfig = getFieldConfig('demoVideo');
+  const presentationConfig = getFieldConfig('presentation');
+  const zipUploadConfig = getFieldConfig('zipUpload');
+  const additionalResourcesConfig = getFieldConfig('additionalResources');
+
+  const hasAnyDeliverables =
+    demoVideoConfig.enabled ||
+    presentationConfig.enabled ||
+    zipUploadConfig.enabled ||
+    additionalResourcesConfig.enabled;
+
   // Validation function
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -157,14 +184,36 @@ export function ProjectSubmissionModal({
       errs.projectLink = 'Please enter a valid URL starting with http:// or https://';
     }
 
-    // 4. Optional: Demo Video URL (if provided, must be valid URL)
-    if (demoVideoUrl.trim() && !/^https?:\/\/.+/i.test(demoVideoUrl.trim())) {
-      errs.demoVideoUrl = 'Please enter a valid video link (e.g. YouTube, Loom, Drive)';
+    // 4. Demo Video URL
+    if (demoVideoConfig.enabled) {
+      if (demoVideoConfig.required && !demoVideoUrl.trim()) {
+        errs.demoVideoUrl = 'Demo Video walkthrough link is required';
+      } else if (demoVideoUrl.trim() && !/^https?:\/\/.+/i.test(demoVideoUrl.trim())) {
+        errs.demoVideoUrl = 'Please enter a valid video link (e.g. YouTube, Loom, Drive)';
+      }
     }
 
-    // 5. Optional: Presentation URL (if provided, must be valid URL)
-    if (presentationUrl.trim() && !/^https?:\/\/.+/i.test(presentationUrl.trim())) {
-      errs.presentationUrl = 'Please enter a valid presentation or slide deck URL';
+    // 5. Presentation URL
+    if (presentationConfig.enabled) {
+      if (presentationConfig.required && !presentationUrl.trim()) {
+        errs.presentationUrl = 'Presentation / Pitch Deck link is required';
+      } else if (presentationUrl.trim() && !/^https?:\/\/.+/i.test(presentationUrl.trim())) {
+        errs.presentationUrl = 'Please enter a valid presentation or slide deck URL';
+      }
+    }
+
+    // 6. ZIP File Upload
+    if (zipUploadConfig.enabled && zipUploadConfig.required) {
+      if (!zipFileName && !zipFile) {
+        errs.zipFile = 'Offline Source Code ZIP archive is required';
+      }
+    }
+
+    // 7. Additional Resources / Links
+    if (additionalResourcesConfig.enabled && additionalResourcesConfig.required) {
+      if (!additionalResources.trim()) {
+        errs.additionalResources = 'Supplemental notes or research links are required';
+      }
     }
 
     setErrors(errs);
@@ -183,6 +232,11 @@ export function ProjectSubmissionModal({
       setZipFileName(file.name);
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
       setZipFileSize(`${sizeMb} MB`);
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.zipFile;
+        return next;
+      });
     }
   };
 
@@ -195,6 +249,11 @@ export function ProjectSubmissionModal({
       setZipFileName(file.name);
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
       setZipFileSize(`${sizeMb} MB`);
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.zipFile;
+        return next;
+      });
     }
   };
 
@@ -204,6 +263,9 @@ export function ProjectSubmissionModal({
     setZipFileSize('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (zipUploadConfig.required) {
+      setErrors((prev) => ({ ...prev, zipFile: 'Offline Source Code ZIP archive is required' }));
     }
   };
 
@@ -215,6 +277,8 @@ export function ProjectSubmissionModal({
       projectLink: true,
       demoVideoUrl: true,
       presentationUrl: true,
+      zipFile: true,
+      additionalResources: true,
     });
 
     if (!validate()) {
@@ -510,6 +574,18 @@ export function ProjectSubmissionModal({
         ) : (
           /* ─── Active Submission / Edit Form ───────────────────────── */
           <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            {submissionGuidelines && (
+              <div className="p-3.5 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40 text-xs text-sky-950 dark:text-sky-200 space-y-1">
+                <div className="font-extrabold flex items-center gap-1.5 text-[#0099e6] dark:text-sky-400">
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Submission Guidelines & Judging Instructions</span>
+                </div>
+                <p className="leading-relaxed text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                  {submissionGuidelines}
+                </p>
+              </div>
+            )}
+
             {/* Section 1: Required Fields */}
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.08] pb-2">
@@ -657,154 +733,248 @@ export function ProjectSubmissionModal({
               </div>
             </div>
 
-            {/* Section 2: Optional Deliverables */}
-            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/[0.08]">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.08] pb-2">
-                <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-[#ea580c]" />
-                  <span>Optional Supporting Deliverables</span>
-                </h4>
-                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">
-                  Optional
-                </span>
-              </div>
+            {/* Section 2: Supporting Deliverables (Configured by Host) */}
+            {hasAnyDeliverables && (
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/[0.08]">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.08] pb-2">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#ea580c]" />
+                    <span>Supporting Deliverables & Materials</span>
+                  </h4>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                    Host Configured
+                  </span>
+                </div>
 
-              {/* Submitter Name Override */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                  <span>Submitter / Team Lead Name</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  value={submitterName}
-                  onChange={(e) => setSubmitterName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
+                {/* Submitter Name Override */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>Submitter / Team Lead Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Your Name"
+                    value={submitterName}
+                    onChange={(e) => setSubmitterName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  />
+                </div>
 
-              {/* Demo Video URL */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Video className="w-3.5 h-3.5 text-[#ea580c]" />
-                  <span>Demo Video Walkthrough (Loom / YouTube / Drive)</span>
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://www.youtube.com/watch?v=... or Loom URL"
-                  value={demoVideoUrl}
-                  onChange={(e) => setDemoVideoUrl(e.target.value)}
-                  onBlur={() => handleBlur('demoVideoUrl')}
-                  className={`w-full px-4 py-2.5 rounded-xl border text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
-                    touched.demoVideoUrl && errors.demoVideoUrl
-                      ? 'border-rose-400 bg-rose-50/20 dark:bg-rose-500/10'
-                      : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017]'
-                  }`}
-                />
-                {touched.demoVideoUrl && errors.demoVideoUrl && (
-                  <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{errors.demoVideoUrl}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Presentation / PPT URL */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Presentation className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Presentation / Pitch Deck (Google Slides / Canva / Pitch.com)</span>
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://docs.google.com/presentation/... or Canva link"
-                  value={presentationUrl}
-                  onChange={(e) => setPresentationUrl(e.target.value)}
-                  onBlur={() => handleBlur('presentationUrl')}
-                  className={`w-full px-4 py-2.5 rounded-xl border text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
-                    touched.presentationUrl && errors.presentationUrl
-                      ? 'border-rose-400 bg-rose-50/20 dark:bg-rose-500/10'
-                      : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017]'
-                  }`}
-                />
-                {touched.presentationUrl && errors.presentationUrl && (
-                  <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{errors.presentationUrl}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* ZIP File Upload */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Archive className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                  <span>Offline Source Code / ZIP Archive</span>
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleZipSelect}
-                  accept=".zip,.tar,.gz,.rar,.7z"
-                  className="hidden"
-                />
-                {zipFileName ? (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 text-xs">
-                    <div className="flex items-center gap-2 truncate">
-                      <Archive className="w-4 h-4 text-[#0099e6] shrink-0" />
-                      <span className="font-bold text-slate-900 dark:text-white truncate">{zipFileName}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">({zipFileSize})</span>
+                {/* Demo Video URL */}
+                {demoVideoConfig.enabled && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Video className="w-3.5 h-3.5 text-[#ea580c]" />
+                        <span>
+                          Demo Video Walkthrough (Loom / YouTube / Drive){' '}
+                          {demoVideoConfig.required && <span className="text-rose-500">*</span>}
+                        </span>
+                      </label>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                          demoVideoConfig.required
+                            ? 'bg-rose-50 dark:bg-rose-500/15 border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400'
+                            : 'bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {demoVideoConfig.required ? 'Required *' : 'Optional'}
+                      </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={removeZipFile}
-                      className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDraggingZip(true);
-                    }}
-                    onDragLeave={() => setIsDraggingZip(false)}
-                    onDrop={handleZipDrop}
-                    className={`p-4 rounded-xl border-2 border-dashed text-center transition-all cursor-pointer ${
-                      isDraggingZip
-                        ? 'border-[#0099e6] bg-sky-50/50 dark:bg-sky-500/10'
-                        : 'border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/[0.03] hover:bg-slate-100/80 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/25'
-                    }`}
-                  >
-                    <UploadCloud className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                    <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Click to upload ZIP or drag and drop
-                    </div>
-                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      Supports .zip, .tar.gz up to 50MB
-                    </div>
+                    <input
+                      type="url"
+                      placeholder="https://www.youtube.com/watch?v=... or Loom URL"
+                      value={demoVideoUrl}
+                      onChange={(e) => {
+                        setDemoVideoUrl(e.target.value);
+                        if (errors.demoVideoUrl) validate();
+                      }}
+                      onBlur={() => handleBlur('demoVideoUrl')}
+                      className={`w-full px-4 py-2.5 rounded-xl border text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+                        touched.demoVideoUrl && errors.demoVideoUrl
+                          ? 'border-rose-400 bg-rose-50/20 dark:bg-rose-500/10'
+                          : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017]'
+                      }`}
+                    />
+                    {touched.demoVideoUrl && errors.demoVideoUrl && (
+                      <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>{errors.demoVideoUrl}</span>
+                      </p>
+                    )}
                   </div>
                 )}
-              </div>
 
-              {/* Additional Resources */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                  <span>Supplemental Notes & Research Links</span>
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Figma prototypes, smart contracts, API docs, dataset sources, or research papers..."
-                  value={additionalResources}
-                  onChange={(e) => setAdditionalResources(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none leading-relaxed"
-                />
+                {/* Presentation / PPT URL */}
+                {presentationConfig.enabled && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Presentation className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          Presentation / Pitch Deck (Google Slides / Canva / Pitch.com){' '}
+                          {presentationConfig.required && <span className="text-rose-500">*</span>}
+                        </span>
+                      </label>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                          presentationConfig.required
+                            ? 'bg-rose-50 dark:bg-rose-500/15 border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400'
+                            : 'bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {presentationConfig.required ? 'Required *' : 'Optional'}
+                      </span>
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="https://docs.google.com/presentation/... or Canva link"
+                      value={presentationUrl}
+                      onChange={(e) => {
+                        setPresentationUrl(e.target.value);
+                        if (errors.presentationUrl) validate();
+                      }}
+                      onBlur={() => handleBlur('presentationUrl')}
+                      className={`w-full px-4 py-2.5 rounded-xl border text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+                        touched.presentationUrl && errors.presentationUrl
+                          ? 'border-rose-400 bg-rose-50/20 dark:bg-rose-500/10'
+                          : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017]'
+                      }`}
+                    />
+                    {touched.presentationUrl && errors.presentationUrl && (
+                      <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>{errors.presentationUrl}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* ZIP File Upload */}
+                {zipUploadConfig.enabled && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Archive className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                        <span>
+                          Offline Source Code / ZIP Archive{' '}
+                          {zipUploadConfig.required && <span className="text-rose-500">*</span>}
+                        </span>
+                      </label>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                          zipUploadConfig.required
+                            ? 'bg-rose-50 dark:bg-rose-500/15 border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400'
+                            : 'bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {zipUploadConfig.required ? 'Required *' : 'Optional'}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleZipSelect}
+                      accept=".zip,.tar,.gz,.rar,.7z"
+                      className="hidden"
+                    />
+                    {zipFileName ? (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 text-xs">
+                        <div className="flex items-center gap-2 truncate">
+                          <Archive className="w-4 h-4 text-[#0099e6] shrink-0" />
+                          <span className="font-bold text-slate-900 dark:text-white truncate">{zipFileName}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">({zipFileSize})</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeZipFile}
+                          className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDraggingZip(true);
+                        }}
+                        onDragLeave={() => setIsDraggingZip(false)}
+                        onDrop={handleZipDrop}
+                        className={`p-4 rounded-xl border-2 border-dashed text-center transition-all cursor-pointer ${
+                          touched.zipFile && errors.zipFile
+                            ? 'border-rose-400 bg-rose-50/20 dark:bg-rose-500/10'
+                            : isDraggingZip
+                            ? 'border-[#0099e6] bg-sky-50/50 dark:bg-sky-500/10'
+                            : 'border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/[0.03] hover:bg-slate-100/80 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/25'
+                        }`}
+                      >
+                        <UploadCloud className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                        <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Click to upload ZIP or drag and drop
+                        </div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                          Supports .zip, .tar.gz up to 50MB
+                        </div>
+                      </div>
+                    )}
+                    {touched.zipFile && errors.zipFile && (
+                      <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>{errors.zipFile}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Additional Resources */}
+                {additionalResourcesConfig.enabled && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Link2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>
+                          Supplemental Notes & Research Links{' '}
+                          {additionalResourcesConfig.required && <span className="text-rose-500">*</span>}
+                        </span>
+                      </label>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                          additionalResourcesConfig.required
+                            ? 'bg-rose-50 dark:bg-rose-500/15 border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400'
+                            : 'bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {additionalResourcesConfig.required ? 'Required *' : 'Optional'}
+                      </span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      placeholder="Figma prototypes, smart contracts, API docs, dataset sources, or research papers..."
+                      value={additionalResources}
+                      onChange={(e) => {
+                        setAdditionalResources(e.target.value);
+                        if (errors.additionalResources) validate();
+                      }}
+                      onBlur={() => handleBlur('additionalResources')}
+                      className={`w-full px-4 py-2.5 rounded-xl border text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none leading-relaxed ${
+                        touched.additionalResources && errors.additionalResources
+                          ? 'border-rose-400 bg-rose-50/20 dark:bg-rose-500/10'
+                          : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 focus:border-[#0099e6] focus:bg-white dark:focus:bg-[#0c1017]'
+                      }`}
+                    />
+                    {touched.additionalResources && errors.additionalResources && (
+                      <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>{errors.additionalResources}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-white/[0.08]">

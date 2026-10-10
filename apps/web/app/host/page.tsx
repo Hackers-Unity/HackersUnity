@@ -60,7 +60,7 @@ import {
   AlertCircle,
   Pencil,
 } from 'lucide-react';
-import { EventCategory, EventStatus, EventType, CustomQuestion } from '@hackers-unity/shared-types';
+import { EventCategory, EventStatus, EventType, CustomQuestion, SubmissionFieldSetting } from '@hackers-unity/shared-types';
 import { ExtendedEvent, MOCK_EVENTS } from '@/lib/mock-data';
 import { saveHostedEvent, saveDraftEvent, updateHostedEvent, getCustomEvents } from '@/lib/storage';
 import {
@@ -296,12 +296,39 @@ function HostHackathonContent() {
   const [submissionGuidelines, setSubmissionGuidelines] = useState(
     'Ensure all GitHub repositories are set to public during the judging window. Demo videos should be 2-3 minutes highlighting key user workflows.'
   );
-  const [enabledSubmissionFields, setEnabledSubmissionFields] = useState<string[]>([]);
+  const [submissionFieldConfigs, setSubmissionFieldConfigs] = useState<
+    Record<string, { enabled: boolean; required: boolean }>
+  >({
+    demoVideo: { enabled: true, required: false },
+    zipUpload: { enabled: true, required: false },
+    presentation: { enabled: true, required: false },
+    additionalResources: { enabled: true, required: false },
+  });
 
-  const toggleSubmissionField = (fieldId: string) => {
-    setEnabledSubmissionFields((prev) =>
-      prev.includes(fieldId) ? prev.filter((id) => id !== fieldId) : [...prev, fieldId]
-    );
+  const toggleSubmissionFieldEnabled = (fieldId: string) => {
+    setSubmissionFieldConfigs((prev) => {
+      const current = prev[fieldId] || { enabled: false, required: false };
+      return {
+        ...prev,
+        [fieldId]: {
+          ...current,
+          enabled: !current.enabled,
+        },
+      };
+    });
+  };
+
+  const setSubmissionFieldRequirement = (fieldId: string, required: boolean) => {
+    setSubmissionFieldConfigs((prev) => {
+      const current = prev[fieldId] || { enabled: true, required: false };
+      return {
+        ...prev,
+        [fieldId]: {
+          enabled: true,
+          required,
+        },
+      };
+    });
   };
 
   const slug = useMemo(() => {
@@ -591,6 +618,47 @@ function HostHackathonContent() {
             }
           }
 
+          if (found.submissionGuidelines) {
+            setSubmissionGuidelines(found.submissionGuidelines);
+          } else if (Array.isArray(found.tags)) {
+            const gTag = found.tags.find((t: string) => typeof t === 'string' && t.startsWith('hu_sub_guide:'));
+            if (gTag) {
+              try {
+                setSubmissionGuidelines(JSON.parse(gTag.substring('hu_sub_guide:'.length)));
+              } catch {}
+            }
+          }
+
+          let foundSubFields: any[] | null = null;
+          if (Array.isArray(found.submissionFields) && found.submissionFields.length > 0) {
+            foundSubFields = found.submissionFields;
+          } else if (Array.isArray(found.tags)) {
+            const sTag = found.tags.find((t: string) => typeof t === 'string' && t.startsWith('hu_sub_fields:'));
+            if (sTag) {
+              try {
+                foundSubFields = JSON.parse(sTag.substring('hu_sub_fields:'.length));
+              } catch {}
+            }
+          }
+
+          if (foundSubFields && Array.isArray(foundSubFields)) {
+            const configs: Record<string, { enabled: boolean; required: boolean }> = {
+              demoVideo: { enabled: false, required: false },
+              zipUpload: { enabled: false, required: false },
+              presentation: { enabled: false, required: false },
+              additionalResources: { enabled: false, required: false },
+            };
+            foundSubFields.forEach((sf: any) => {
+              if (sf && sf.id) {
+                configs[sf.id] = {
+                  enabled: sf.enabled !== undefined ? Boolean(sf.enabled) : true,
+                  required: Boolean(sf.required),
+                };
+              }
+            });
+            setSubmissionFieldConfigs(configs);
+          }
+
           const stepParam = searchParams?.get('step');
           if (stepParam) {
             const s = parseInt(stepParam, 10);
@@ -854,6 +922,13 @@ function HostHackathonContent() {
         ...selectedOptionalFields,
       ],
       customQuestions,
+      submissionGuidelines: submissionGuidelines.trim(),
+      submissionFields: OPTIONAL_SUBMISSION_FIELDS.map((f) => ({
+        id: f.id,
+        label: f.label,
+        enabled: Boolean(submissionFieldConfigs[f.id]?.enabled),
+        required: Boolean(submissionFieldConfigs[f.id]?.required),
+      })),
       stages: [
         {
           id: 'stg_c1',
@@ -930,6 +1005,8 @@ function HostHackathonContent() {
     allowExternalRedirect,
     registrationMode,
     registrationLink,
+    submissionGuidelines,
+    submissionFieldConfigs,
   ]);
 
   // ─── PRIVATE LINK & PREVIEW ACCESS ─────────────────────
@@ -2696,34 +2773,62 @@ ${organizerName || 'Organizer'}`;
                     </div>
                   </div>
 
-                  {/* Section 2: Optional Submission Fields (Customizable) */}
+                  {/* Section 2: Configurable Deliverables (Customizable) */}
                   <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs font-bold text-slate-800 dark:text-white">
-                            Optional Submission Fields
+                            Configurable Deliverables
                           </label>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 text-[10px] font-bold uppercase">
-                            Optional
+                          <span className="px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/60 text-[#0099e6] dark:text-sky-400 text-[10px] font-bold uppercase border border-sky-200 dark:border-sky-800/40">
+                            Customizable
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                          Toggle which optional materials participants can submit to support their projects.
+                          Toggle which materials builders can submit, and mark deliverables as Optional or strictly Required *.
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                         <button
                           type="button"
-                          onClick={() => setEnabledSubmissionFields(OPTIONAL_SUBMISSION_FIELDS.map((f) => f.id))}
+                          onClick={() => {
+                            setSubmissionFieldConfigs({
+                              demoVideo: { enabled: true, required: false },
+                              zipUpload: { enabled: true, required: false },
+                              presentation: { enabled: true, required: false },
+                              additionalResources: { enabled: true, required: false },
+                            });
+                          }}
                           className="text-[10px] font-bold px-2 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-[#0099e6] hover:bg-sky-100 dark:hover:bg-sky-900/50 border border-sky-200 dark:border-sky-800/50 cursor-pointer transition-colors"
                         >
-                          Select All
+                          All Optional
                         </button>
                         <button
                           type="button"
-                          onClick={() => setEnabledSubmissionFields([])}
+                          onClick={() => {
+                            setSubmissionFieldConfigs({
+                              demoVideo: { enabled: true, required: true },
+                              zipUpload: { enabled: true, required: true },
+                              presentation: { enabled: true, required: true },
+                              additionalResources: { enabled: true, required: true },
+                            });
+                          }}
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800/50 cursor-pointer transition-colors"
+                        >
+                          All Required *
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSubmissionFieldConfigs({
+                              demoVideo: { enabled: false, required: false },
+                              zipUpload: { enabled: false, required: false },
+                              presentation: { enabled: false, required: false },
+                              additionalResources: { enabled: false, required: false },
+                            });
+                          }}
                           className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/[0.1] cursor-pointer transition-colors"
                         >
                           Deselect All
@@ -2734,44 +2839,94 @@ ${organizerName || 'Organizer'}`;
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       {OPTIONAL_SUBMISSION_FIELDS.map((field) => {
                         const Icon = field.icon;
-                        const isEnabled = enabledSubmissionFields.includes(field.id);
+                        const config = submissionFieldConfigs[field.id] || { enabled: false, required: false };
+                        const isEnabled = config.enabled;
+                        const isRequired = config.required;
+
                         return (
-                          <button
+                          <div
                             key={field.id}
-                            type="button"
-                            onClick={() => toggleSubmissionField(field.id)}
-                            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${isEnabled
-                                ? 'bg-white dark:bg-[#121824] border-[#0099e6] shadow-xs ring-1 ring-[#0099e6]/20'
+                            onClick={() => toggleSubmissionFieldEnabled(field.id)}
+                            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                              isEnabled
+                                ? isRequired
+                                  ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-400 dark:border-rose-500/40 shadow-xs ring-1 ring-rose-500/20'
+                                  : 'bg-white dark:bg-[#121824] border-[#0099e6] shadow-xs ring-1 ring-[#0099e6]/20'
                                 : 'bg-slate-100/60 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12] opacity-60'
-                              }`}
+                            }`}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isEnabled ? 'bg-sky-50 dark:bg-sky-950/50 text-[#0099e6]' : 'bg-slate-200 dark:bg-white/[0.08] text-slate-500 dark:text-slate-400'
+                            <div className="flex items-start justify-between gap-3 min-w-0">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                    isEnabled
+                                      ? isRequired
+                                        ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                                        : 'bg-sky-50 dark:bg-sky-950/50 text-[#0099e6]'
+                                      : 'bg-slate-200 dark:bg-white/[0.08] text-slate-500 dark:text-slate-400'
                                   }`}
-                              >
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate">{field.label}</span>
-                                  <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 text-[9px] font-bold uppercase border border-slate-200 dark:border-white/[0.08]">
-                                    Optional
-                                  </span>
+                                >
+                                  <Icon className="w-4 h-4" />
                                 </div>
-                                <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{field.hint}</div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                      {field.label}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                                    {field.hint}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div
+                                className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                                  isEnabled
+                                    ? isRequired
+                                      ? 'bg-rose-500 border-rose-500 text-white shadow-2xs'
+                                      : 'bg-[#0099e6] border-[#0099e6] text-white shadow-2xs'
+                                    : 'border-slate-300 dark:border-white/[0.15] bg-white dark:bg-transparent'
+                                }`}
+                              >
+                                {isEnabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                               </div>
                             </div>
 
+                            {/* Deliverable Rule: Optional vs Required * Toggle */}
                             <div
-                              className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 border transition-all ${isEnabled
-                                  ? 'bg-[#0099e6] border-[#0099e6] text-white shadow-2xs'
-                                  : 'border-slate-300 dark:border-white/[0.15] bg-white dark:bg-transparent'
-                                }`}
+                              className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-white/[0.06]"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              {isEnabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                Deliverable Rule:
+                              </span>
+                              <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-white/[0.06] p-0.5 rounded-lg border border-slate-300/60 dark:border-white/10">
+                                <button
+                                  type="button"
+                                  onClick={() => setSubmissionFieldRequirement(field.id, false)}
+                                  className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all cursor-pointer ${
+                                    isEnabled && !isRequired
+                                      ? 'bg-sky-500 text-white shadow-xs'
+                                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                  }`}
+                                >
+                                  Optional
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSubmissionFieldRequirement(field.id, true)}
+                                  className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all cursor-pointer ${
+                                    isEnabled && isRequired
+                                      ? 'bg-rose-500 text-white shadow-xs'
+                                      : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400'
+                                  }`}
+                                >
+                                  Required *
+                                </button>
+                              </div>
                             </div>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -3184,20 +3339,22 @@ ${organizerName || 'Organizer'}`;
                           <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 font-bold text-[10px]">Project Title *</span>
                           <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 font-bold text-[10px]">Project Description *</span>
                           <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 font-bold text-[10px]">Project / GitHub Link *</span>
+                          {OPTIONAL_SUBMISSION_FIELDS.filter((f) => submissionFieldConfigs[f.id]?.enabled && submissionFieldConfigs[f.id]?.required).map((f) => (
+                            <span key={f.id} className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 font-bold text-[10px]">
+                              {f.label} *
+                            </span>
+                          ))}
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap pt-1">
                           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Optional:</span>
-                          {enabledSubmissionFields.length > 0 ? (
-                            enabledSubmissionFields.map((fId) => {
-                              const field = OPTIONAL_SUBMISSION_FIELDS.find((f) => f.id === fId);
-                              return field ? (
-                                <span key={fId} className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 font-bold text-[10px]">
-                                  {field.label}
-                                </span>
-                              ) : null;
-                            })
+                          {OPTIONAL_SUBMISSION_FIELDS.filter((f) => submissionFieldConfigs[f.id]?.enabled && !submissionFieldConfigs[f.id]?.required).length > 0 ? (
+                            OPTIONAL_SUBMISSION_FIELDS.filter((f) => submissionFieldConfigs[f.id]?.enabled && !submissionFieldConfigs[f.id]?.required).map((f) => (
+                              <span key={f.id} className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 font-bold text-[10px]">
+                                {f.label}
+                              </span>
+                            ))
                           ) : (
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">None enabled</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">None optional</span>
                           )}
                         </div>
                       </div>

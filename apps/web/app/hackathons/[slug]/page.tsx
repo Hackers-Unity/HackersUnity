@@ -1346,6 +1346,8 @@ function HackathonDetailContent({ params }: PageProps) {
         eventId={event.id}
         eventName={event.title}
         tracks={event.tracks?.map((t: any) => t.title || t.name || t) || []}
+        submissionFields={event.submissionFields}
+        submissionGuidelines={event.submissionGuidelines}
         onSuccess={() => {
           const userId = supabaseUser?.id || user?.id;
           setUserSubmission(getProjectSubmission(event.id, userId));
