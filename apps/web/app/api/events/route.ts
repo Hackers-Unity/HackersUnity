@@ -272,9 +272,9 @@ export async function PATCH(req: Request) {
     const isOwner = Boolean(
       auth &&
       (existingEvent?.organizer_id === auth.userId ||
-       !existingEvent?.organizer_id ||
-       existingEvent?.organizer_id === 'usr_organizer' ||
-       existingEvent?.organizer_id === 'usr_me')
+        !existingEvent?.organizer_id ||
+        existingEvent?.organizer_id === 'usr_organizer' ||
+        existingEvent?.organizer_id === 'usr_me')
     );
     const isAdmin =
       isCsapAdmin ||
@@ -282,7 +282,7 @@ export async function PATCH(req: Request) {
       userRole === 'SUPER_ADMIN' ||
       userRole === 'ORGANIZER' ||
       userEmail === 'chinmaybhatt26@gmail.com' ||
-      userEmail === 'hackerunity.community@gmail.com' ||
+      userEmail === 'info@hackersunity.com' ||
       userEmail.includes('chinmay') ||
       userEmail.endsWith('@hackersunity.dev') ||
       userEmail === process.env.ADMIN_EMAIL?.toLowerCase();
@@ -569,7 +569,7 @@ export async function DELETE(req: Request) {
         const body = await req.json();
         eventId = body.eventId || body.id;
         slug = body.slug;
-      } catch {}
+      } catch { }
     }
 
     const queryKey = eventId || slug;

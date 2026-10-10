@@ -625,7 +625,7 @@ function HostHackathonContent() {
             if (gTag) {
               try {
                 setSubmissionGuidelines(JSON.parse(gTag.substring('hu_sub_guide:'.length)));
-              } catch {}
+              } catch { }
             }
           }
 
@@ -637,7 +637,7 @@ function HostHackathonContent() {
             if (sTag) {
               try {
                 foundSubFields = JSON.parse(sTag.substring('hu_sub_fields:'.length));
-              } catch {}
+              } catch { }
             }
           }
 
@@ -1149,11 +1149,11 @@ ${organizerName || 'Organizer'}`;
   ]);
 
   const gmailDraftUrl = useMemo(() => {
-    return `https://mail.google.com/mail/?view=cm&fs=1&to=hackerunity.community@gmail.com&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyText)}`;
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=info@hackersunity.com&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyText)}`;
   }, [emailSubject, emailBodyText]);
 
   const mailtoUrl = useMemo(() => {
-    return `mailto:hackerunity.community@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyText)}`;
+    return `mailto:info@hackersunity.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyText)}`;
   }, [emailSubject, emailBodyText]);
 
   const handleTriggerResend = async () => {
@@ -1323,8 +1323,8 @@ ${organizerName || 'Organizer'}`;
         <div>
           <div
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${isEditMode
-                ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400'
-                : 'bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/40 text-[#ea580c] dark:text-orange-400'
+              ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400'
+              : 'bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/40 text-[#ea580c] dark:text-orange-400'
               }`}
           >
             {isEditMode ? <Sparkles className="w-3.5 h-3.5 text-amber-600" /> : <PlusCircle className="w-3.5 h-3.5" />}
@@ -1376,11 +1376,10 @@ ${organizerName || 'Organizer'}`;
 
           <div className="space-y-2">
             <div
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                isAlreadyApproved
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isAlreadyApproved
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400'
                   : 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400'
-              }`}
+                }`}
             >
               <span className={`w-2 h-2 rounded-full ${isAlreadyApproved ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
               <span>{isAlreadyApproved ? 'Changes Saved • Live on Platform' : 'Appeal Submitted • Pending Review'}</span>
@@ -1392,7 +1391,7 @@ ${organizerName || 'Organizer'}`;
               {isAlreadyApproved ? (
                 <>Your changes to <strong className="text-slate-900 dark:text-white">&quot;{submittedEvent?.title || previewEvent.title}&quot;</strong> have been saved successfully and are immediately reflected live across the platform.</>
               ) : (
-                <>Your hackathon <strong className="text-slate-900 dark:text-white">&quot;{submittedEvent?.title || previewEvent.title}&quot;</strong> has been submitted for review. An approval request has been sent to <strong className="text-[#0099e6] dark:text-[#38bdf8]">hackerunity.community@gmail.com</strong>. Once approved by the admin, it will go live globally across the platform.</>
+                <>Your hackathon <strong className="text-slate-900 dark:text-white">&quot;{submittedEvent?.title || previewEvent.title}&quot;</strong> has been submitted for review. An approval request has been sent to <strong className="text-[#0099e6] dark:text-[#38bdf8]">info@hackersunity.com</strong>. Once approved by the admin, it will go live globally across the platform.</>
               )}
             </p>
           </div>
@@ -1528,7 +1527,7 @@ ${organizerName || 'Organizer'}`;
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                        Send Details to hackerunity.community@gmail.com
+                        Send Details to info@hackersunity.com
                       </h4>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         One-click draft creation with full hackathon specifications
@@ -1536,12 +1535,12 @@ ${organizerName || 'Organizer'}`;
                     </div>
                   </div>
                   <span className="text-[11px] font-mono font-bold text-[#0099e6] dark:text-[#38bdf8] bg-white dark:bg-[#121824] px-3 py-1 rounded-full border border-sky-200 dark:border-sky-800/40 shadow-2xs">
-                    hackerunity.community@gmail.com
+                    info@hackersunity.com
                   </span>
                 </div>
 
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  Click <strong className="text-slate-900 dark:text-white">&quot;Open in Gmail Draft&quot;</strong> below to instantly open Gmail with a pre-filled draft containing all event specifications (prizes, dates, venue, rules, links) addressed to <strong className="text-slate-900 dark:text-white">hackerunity.community@gmail.com</strong>:
+                  Click <strong className="text-slate-900 dark:text-white">&quot;Open in Gmail Draft&quot;</strong> below to instantly open Gmail with a pre-filled draft containing all event specifications (prizes, dates, venue, rules, links) addressed to <strong className="text-slate-900 dark:text-white">info@hackersunity.com</strong>:
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -1613,11 +1612,10 @@ ${organizerName || 'Organizer'}`;
             <div className="flex justify-between items-center text-slate-500 dark:text-slate-400 font-medium">
               <span>Review Status:</span>
               <span
-                className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] border ${
-                  isAlreadyApproved
+                className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] border ${isAlreadyApproved
                     ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/40'
                     : 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/40'
-                }`}
+                  }`}
               >
                 {isAlreadyApproved ? '🟢 Live & Published' : isEditMode ? 'Saved' : '⏳ Pending Review'}
               </span>
@@ -1692,10 +1690,10 @@ ${organizerName || 'Organizer'}`;
                   type="button"
                   onClick={() => setStep(s.num)}
                   className={`flex-1 py-2 px-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${step === s.num
-                      ? 'bg-[#0099e6] text-white shadow-2xs'
-                      : s.num < step
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-[#0099e6] text-white shadow-2xs'
+                    : s.num < step
+                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                 >
                   {s.num < step ? (
@@ -1801,8 +1799,8 @@ ${organizerName || 'Organizer'}`;
                         type="button"
                         onClick={() => setHostType('COLLEGE')}
                         className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${hostType === 'COLLEGE'
-                            ? 'bg-sky-50/90 dark:bg-sky-950/30 border-[#0099e6] text-[#0099e6] shadow-xs ring-2 ring-[#0099e6]/20'
-                            : 'bg-slate-50 dark:bg-white/[0.03] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/[0.15]'
+                          ? 'bg-sky-50/90 dark:bg-sky-950/30 border-[#0099e6] text-[#0099e6] shadow-xs ring-2 ring-[#0099e6]/20'
+                          : 'bg-slate-50 dark:bg-white/[0.03] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/[0.15]'
                           }`}
                       >
                         <div className={`p-2.5 rounded-xl ${hostType === 'COLLEGE' ? 'bg-[#0099e6] text-white shadow-2xs' : 'bg-white dark:bg-[#121824] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/[0.08]'}`}>
@@ -1818,8 +1816,8 @@ ${organizerName || 'Organizer'}`;
                         type="button"
                         onClick={() => setHostType('ORGANIZATION')}
                         className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${hostType === 'ORGANIZATION'
-                            ? 'bg-orange-50/90 dark:bg-orange-950/30 border-[#f97316] text-[#ea580c] shadow-xs ring-2 ring-[#f97316]/20'
-                            : 'bg-slate-50 dark:bg-white/[0.03] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/[0.15]'
+                          ? 'bg-orange-50/90 dark:bg-orange-950/30 border-[#f97316] text-[#ea580c] shadow-xs ring-2 ring-[#f97316]/20'
+                          : 'bg-slate-50 dark:bg-white/[0.03] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/[0.15]'
                           }`}
                       >
                         <div className={`p-2.5 rounded-xl ${hostType === 'ORGANIZATION' ? 'bg-[#f97316] text-white shadow-2xs' : 'bg-white dark:bg-[#121824] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/[0.08]'}`}>
@@ -2231,20 +2229,18 @@ ${organizerName || 'Organizer'}`;
 
                   {/* External Registration Redirect Feature (Requires Admin Approval) */}
                   <div
-                    className={`p-4 sm:p-5 rounded-2xl border transition-all ${
-                      allowExternalRedirect
+                    className={`p-4 sm:p-5 rounded-2xl border transition-all ${allowExternalRedirect
                         ? 'bg-sky-50/70 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/40 shadow-xs'
                         : 'bg-slate-50/80 dark:bg-white/[0.02] border-slate-200/90 dark:border-white/[0.08]'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
                       <div className="flex items-center gap-2.5">
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-                            allowExternalRedirect
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${allowExternalRedirect
                               ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40'
                               : 'bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/[0.08]'
-                          }`}
+                            }`}
                         >
                           {allowExternalRedirect ? (
                             <Globe className="w-4 h-4" />
@@ -2302,11 +2298,10 @@ ${organizerName || 'Organizer'}`;
                           <button
                             type="button"
                             onClick={() => setRegistrationMode('INTERNAL')}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                              registrationMode === 'INTERNAL'
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${registrationMode === 'INTERNAL'
                                 ? 'bg-sky-50 dark:bg-sky-950/50 border-sky-400 dark:border-sky-600 ring-2 ring-sky-400/20'
                                 : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300'
-                            }`}
+                              }`}
                           >
                             <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
                               <span>HackersUnity Native Squads</span>
@@ -2320,11 +2315,10 @@ ${organizerName || 'Organizer'}`;
                           <button
                             type="button"
                             onClick={() => setRegistrationMode('EXTERNAL')}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                              registrationMode === 'EXTERNAL'
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${registrationMode === 'EXTERNAL'
                                 ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/20'
                                 : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300'
-                            }`}
+                              }`}
                           >
                             <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
                               <span>Redirect to External Portal</span>
@@ -2452,8 +2446,8 @@ ${organizerName || 'Organizer'}`;
                             }
                           }}
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md cursor-pointer transition-colors ${isUnlimitedCapacity
-                              ? 'bg-sky-100 dark:bg-sky-950/50 text-[#0099e6]'
-                              : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/[0.1]'
+                            ? 'bg-sky-100 dark:bg-sky-950/50 text-[#0099e6]'
+                            : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/[0.1]'
                             }`}
                         >
                           {isUnlimitedCapacity ? 'Unlimited Capacity' : 'Set to Unlimited'}
@@ -2589,15 +2583,15 @@ ${organizerName || 'Organizer'}`;
                                   );
                                 }}
                                 className={`p-3 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${isSelected
-                                    ? 'bg-sky-50/70 dark:bg-sky-950/30 border-[#0099e6] shadow-2xs ring-1 ring-[#0099e6]/20'
-                                    : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] hover:bg-slate-50/50 dark:hover:bg-white/[0.04]'
+                                  ? 'bg-sky-50/70 dark:bg-sky-950/30 border-[#0099e6] shadow-2xs ring-1 ring-[#0099e6]/20'
+                                  : 'bg-white dark:bg-[#121824] border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] hover:bg-slate-50/50 dark:hover:bg-white/[0.04]'
                                   }`}
                               >
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div
                                     className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${isSelected
-                                        ? 'bg-sky-100 dark:bg-sky-900/50 text-[#0099e6] border-sky-200 dark:border-sky-800'
-                                        : 'bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/[0.08]'
+                                      ? 'bg-sky-100 dark:bg-sky-900/50 text-[#0099e6] border-sky-200 dark:border-sky-800'
+                                      : 'bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/[0.08]'
                                       }`}
                                   >
                                     <IconComponent className="w-4 h-4" />
@@ -2611,8 +2605,8 @@ ${organizerName || 'Organizer'}`;
                                 </div>
                                 <div
                                   className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 border transition-all ${isSelected
-                                      ? 'bg-[#0099e6] border-[#0099e6] text-white shadow-2xs'
-                                      : 'border-slate-300 dark:border-white/[0.15] bg-slate-50 dark:bg-white/[0.04]'
+                                    ? 'bg-[#0099e6] border-[#0099e6] text-white shadow-2xs'
+                                    : 'border-slate-300 dark:border-white/[0.15] bg-slate-50 dark:bg-white/[0.04]'
                                     }`}
                                 >
                                   {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -2847,24 +2841,22 @@ ${organizerName || 'Organizer'}`;
                           <div
                             key={field.id}
                             onClick={() => toggleSubmissionFieldEnabled(field.id)}
-                            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 ${
-                              isEnabled
+                            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 ${isEnabled
                                 ? isRequired
                                   ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-400 dark:border-rose-500/40 shadow-xs ring-1 ring-rose-500/20'
                                   : 'bg-white dark:bg-[#121824] border-[#0099e6] shadow-xs ring-1 ring-[#0099e6]/20'
                                 : 'bg-slate-100/60 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12] opacity-60'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-start justify-between gap-3 min-w-0">
                               <div className="flex items-center gap-3 min-w-0">
                                 <div
-                                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                    isEnabled
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isEnabled
                                       ? isRequired
                                         ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
                                         : 'bg-sky-50 dark:bg-sky-950/50 text-[#0099e6]'
                                       : 'bg-slate-200 dark:bg-white/[0.08] text-slate-500 dark:text-slate-400'
-                                  }`}
+                                    }`}
                                 >
                                   <Icon className="w-4 h-4" />
                                 </div>
@@ -2881,13 +2873,12 @@ ${organizerName || 'Organizer'}`;
                               </div>
 
                               <div
-                                className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
-                                  isEnabled
+                                className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 border transition-all ${isEnabled
                                     ? isRequired
                                       ? 'bg-rose-500 border-rose-500 text-white shadow-2xs'
                                       : 'bg-[#0099e6] border-[#0099e6] text-white shadow-2xs'
                                     : 'border-slate-300 dark:border-white/[0.15] bg-white dark:bg-transparent'
-                                }`}
+                                  }`}
                               >
                                 {isEnabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                               </div>
@@ -2905,22 +2896,20 @@ ${organizerName || 'Organizer'}`;
                                 <button
                                   type="button"
                                   onClick={() => setSubmissionFieldRequirement(field.id, false)}
-                                  className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all cursor-pointer ${
-                                    isEnabled && !isRequired
+                                  className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all cursor-pointer ${isEnabled && !isRequired
                                       ? 'bg-sky-500 text-white shadow-xs'
                                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                  }`}
+                                    }`}
                                 >
                                   Optional
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setSubmissionFieldRequirement(field.id, true)}
-                                  className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all cursor-pointer ${
-                                    isEnabled && isRequired
+                                  className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all cursor-pointer ${isEnabled && isRequired
                                       ? 'bg-rose-500 text-white shadow-xs'
                                       : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400'
-                                  }`}
+                                    }`}
                                 >
                                   Required *
                                 </button>
@@ -3064,11 +3053,10 @@ ${organizerName || 'Organizer'}`;
                         <button
                           type="button"
                           onClick={handleCopyTeamInviteLink}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                            copiedTeamLink
+                          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 ${copiedTeamLink
                               ? 'bg-emerald-600 text-white'
                               : 'bg-[#0099e6] hover:bg-[#0284c7] text-white shadow-xs'
-                          }`}
+                            }`}
                         >
                           {copiedTeamLink ? (
                             <>
@@ -3385,7 +3373,7 @@ ${organizerName || 'Organizer'}`;
                       <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                         <Mail className="w-4 h-4 text-[#0099e6] shrink-0" />
                         <span className="font-medium">
-                          On submit, an approval request is dispatched to <strong className="text-slate-900 dark:text-white">hackerunity.community@gmail.com</strong>
+                          On submit, an approval request is dispatched to <strong className="text-slate-900 dark:text-white">info@hackersunity.com</strong>
                         </span>
                       </div>
                       <a
@@ -3438,8 +3426,8 @@ ${organizerName || 'Organizer'}`;
                             ? 'Saving Changes...'
                             : 'Submitting Appeal...'
                           : isAlreadyApproved
-                          ? 'Save Changes'
-                          : 'Submit Appeal'}
+                            ? 'Save Changes'
+                            : 'Submit Appeal'}
                       </span>
                     </button>
                   </div>

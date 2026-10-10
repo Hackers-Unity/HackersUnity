@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'hackerunity.community@gmail.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'info@hackersunity.com';
     const baseUrl = origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const previewToken = event.previewToken || (event.slug ? 'hu_prv_' + Buffer.from(event.slug).toString('hex').slice(0, 10) : 'hu_prv_demo');
     const eventPreviewUrl = `${baseUrl}/hackathons/${event.slug || 'preview'}?preview_key=${previewToken}`;
@@ -259,7 +259,7 @@ export async function POST(req: Request) {
         console.warn('[host-approval-email] Resend primary recipient error:', sendError.message);
 
         // Fallback for Resend test/sandbox mode: Send to verified Resend account owner
-        const ownerEmail = process.env.RESEND_TEST_EMAIL || 'hackerunity.community@gmail.com';
+        const ownerEmail = process.env.RESEND_TEST_EMAIL || 'info@hackersunity.com';
         const fallbackRes = await resend.emails.send({
           from: fromEmail,
           to: ownerEmail,

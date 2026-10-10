@@ -181,7 +181,7 @@ const FAQ_ITEMS: FAQItem[] = [
     category: 'PODCASTS',
     question: 'How can I apply to be a podcast guest or hackathon mentor?',
     answer:
-      'We welcome seasoned engineers, founders, and industry leaders! If you would like to share your knowledge as a podcast guest or mentor hackathon participants, please reach out through our Contact Us page or email us at hackerunity.community@gmail.com.',
+      'We welcome seasoned engineers, founders, and industry leaders! If you would like to share your knowledge as a podcast guest or mentor hackathon participants, please reach out through our Contact Us page or email us at info@hackersunity.com.',
     tags: ['mentor', 'speaker', 'guest', 'apply', 'teach'],
   },
 
@@ -297,11 +297,10 @@ export default function FAQsPage() {
                 key={cat.id}
                 type="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer backdrop-blur-xl ${
-                  isActive
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer backdrop-blur-xl ${isActive
                     ? 'bg-[#0099e6] text-white shadow-md shadow-sky-500/30 border border-sky-400/40'
                     : 'bg-white/60 dark:bg-white/[0.04] hover:bg-white dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/[0.06] shadow-xs'
-                }`}
+                  }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{cat.label}</span>
@@ -358,11 +357,10 @@ export default function FAQsPage() {
               return (
                 <div
                   key={faq.id}
-                  className={`rounded-2xl transition-all duration-200 border overflow-hidden backdrop-blur-xl ${
-                    isOpen
+                  className={`rounded-2xl transition-all duration-200 border overflow-hidden backdrop-blur-xl ${isOpen
                       ? 'bg-white dark:bg-gradient-to-b dark:from-[#0f172a]/90 dark:to-[#090d16] border-[#0099e6]/50 shadow-lg shadow-sky-500/10 dark:shadow-[#0099e6]/05'
                       : 'bg-white/70 dark:bg-[#090d16]/80 hover:bg-white dark:hover:bg-[#0d131f] border-slate-200/80 dark:border-white/[0.08] shadow-xs'
-                  }`}
+                    }`}
                 >
                   <button
                     type="button"
@@ -374,11 +372,10 @@ export default function FAQsPage() {
                       {faq.question}
                     </span>
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                        isOpen
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${isOpen
                           ? 'bg-[#0099e6] text-white rotate-180 shadow-md shadow-sky-500/20'
                           : 'bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
-                      }`}
+                        }`}
                     >
                       <ChevronDown className="w-4 h-4" />
                     </div>

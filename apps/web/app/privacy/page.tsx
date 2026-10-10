@@ -94,11 +94,10 @@ export default function PrivacyPage() {
                       e.preventDefault();
                       document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
-                    className={`flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      isActive
+                    className={`flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${isActive
                         ? 'bg-white text-black font-bold shadow-sm'
                         : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-black' : 'text-zinc-400'}`} />
@@ -305,11 +304,11 @@ export default function PrivacyPage() {
                     <p className="text-xs text-zinc-400 mt-0.5">Hacker&apos;s Unity Community</p>
                   </div>
                   <a
-                    href="mailto:hackerunity.community@gmail.com"
+                    href="mailto:info@hackersunity.com"
                     className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-colors"
                   >
                     <Mail className="w-3.5 h-3.5 text-black" />
-                    <span>hackerunity.community@gmail.com</span>
+                    <span>info@hackersunity.com</span>
                   </a>
                 </div>
                 <div className="pt-4 border-t border-zinc-800 text-xs text-zinc-400 space-y-1">

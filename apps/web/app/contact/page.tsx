@@ -121,7 +121,7 @@ export default function ContactPage() {
 
               <div className="space-y-4">
                 <a
-                  href="mailto:hackerunity.community@gmail.com"
+                  href="mailto:info@hackersunity.com"
                   className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] hover:bg-sky-50/60 dark:hover:bg-white/[0.06] border border-slate-100 dark:border-white/[0.06] hover:border-sky-200 dark:hover:border-sky-500/30 transition-all group cursor-pointer"
                 >
                   <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-[#0099e6] dark:text-[#38bdf8] shadow-2xs group-hover:scale-105 transition-transform shrink-0">
@@ -130,7 +130,7 @@ export default function ContactPage() {
                   <div>
                     <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Us</div>
                     <div className="text-sm font-bold text-slate-800 dark:text-slate-200 break-all group-hover:text-[#0099e6] dark:group-hover:text-[#38bdf8] transition-colors">
-                      hackerunity.community@gmail.com
+                      info@hackersunity.com
                     </div>
                   </div>
                 </a>

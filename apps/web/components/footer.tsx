@@ -301,7 +301,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:hackerunity.community@gmail.com?subject=Platform%20Feedback%20-%20Hacker's%20Unity&body=Hi%20Hacker's%20Unity%20Team,%0A%0AMy%20Feedback:"
+                  href="mailto:info@hackersunity.com?subject=Platform%20Feedback%20-%20Hacker's%20Unity&body=Hi%20Hacker's%20Unity%20Team,%0A%0AMy%20Feedback:"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
                   Send Feedback
@@ -356,10 +356,10 @@ export function Footer() {
                 <div className="space-y-0.5 min-w-0 flex-1">
                   <span className="font-bold text-slate-300 block">General & Partnership Inquiries</span>
                   <a
-                    href="mailto:hackerunity.community@gmail.com"
+                    href="mailto:info@hackersunity.com"
                     className="text-slate-400 hover:text-[#0099e6] transition-colors break-all block"
                   >
-                    hackerunity.community@gmail.com
+                    info@hackersunity.com
                   </a>
                 </div>
               </li>
