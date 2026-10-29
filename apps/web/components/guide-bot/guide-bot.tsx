@@ -25,7 +25,6 @@ import {
 import Unknown, { type AnimationName, type AvatarHandle } from '@/components/avatar';
 import {
   TOUR_STEPS,
-  CHAT_SUGGESTIONS,
   resolveBotQuery,
   type TourStep,
   type BotChatMessage,
@@ -39,53 +38,6 @@ interface Point {
   x: number;
   y: number;
 }
-
-function parseOptionsFromText(text: string): BotChatOption[] {
-  const lines = text.split('\n');
-  const extracted: BotChatOption[] = [];
-  const optRegex = /^(?:Option\s*(\d+)[:.-]|(\d+)[.)])\s*(.*)/i;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const match = trimmed.match(optRegex);
-    if (match) {
-      const num = match[1] || match[2];
-      const rest = (match[3] || '').trim();
-      if (rest.length > 2) {
-        extracted.push({
-          id: `parsed-opt-${num}-${Date.now()}`,
-          label: `Option ${num}: ${rest.replace(/^\*\*|\*\*$/g, '')}`,
-          value: rest.replace(/^\*\*|\*\*$/g, ''),
-        });
-      }
-    }
-  }
-
-  return extracted.length >= 2 ? extracted.slice(0, 5) : [];
-}
-
-const EXPRESSION_PRESETS: Array<{
-  id: string;
-  name: string;
-  emoji: string;
-  label: string;
-  animation: AnimationName;
-  dialogue: string;
-}> = [
-  { id: 'happy', name: 'Happy', emoji: '😊', label: 'Happy', animation: 'happy', dialogue: 'Feeling great and ready to hack! 🚀' },
-  { id: 'wink', name: 'Wink', emoji: '😉', label: 'Wink', animation: 'wink', dialogue: 'Always got your back! ✨' },
-  { id: 'love', name: 'Love', emoji: '💖', label: 'Love', animation: 'love', dialogue: "Hacker's Unity ❤️ you! Keep innovating!" },
-  { id: 'starstruck', name: 'Starstruck', emoji: '🤩', label: 'Starstruck', animation: 'starstruck', dialogue: 'Whoa! $350K+ in prizes?! 🏆' },
-  { id: 'cool', name: 'Cool', emoji: '😎', label: 'Cool', animation: 'cool', dialogue: "Chill vibes & clean code. Let's build! 😎" },
-  { id: 'focus', name: 'Focus', emoji: '⚡', label: 'Focus', animation: 'determined', dialogue: 'Locked in! Ultra-focused builder mode! 💻' },
-  { id: 'dance', name: 'Dance', emoji: '🕺', label: 'Dance', animation: 'dance', dialogue: 'Hackathon victory dance! 🕺🎉' },
-  { id: 'celebrate', name: 'Celebrate', emoji: '🥳', label: 'Celebrate', animation: 'celebrate', dialogue: 'Winner vibes! Celebration time! 🏆' },
-  { id: 'giggle', name: 'Giggle', emoji: '🤭', label: 'Giggle', animation: 'giggle', dialogue: 'Hehehe that tickles! 🤭' },
-  { id: 'dizzy', name: 'Dizzy', emoji: '😵‍💫', label: 'Dizzy', animation: 'dizzy', dialogue: 'Whoa... too many recursive loops! 💫' },
-  { id: 'yawn', name: 'Yawn', emoji: '🥱', label: 'Yawn', animation: 'yawn', dialogue: 'A quick stretch... ready to code! 🥱' },
-  { id: 'curious', name: 'Curious', emoji: '👀', label: 'Curious', animation: 'curious', dialogue: 'Hmm, what are we building today?' },
-  { id: 'angry', name: 'Angry', emoji: '😡', label: 'Angry', animation: 'angry', dialogue: 'Grrr! Squash those production bugs! 🐛🔥' },
-];
 
 export function GuideBot() {
   const router = useRouter();
@@ -135,32 +87,8 @@ export function GuideBot() {
     {
       id: 'welcome-msg',
       sender: 'bot',
-      text: "Hey there! I'm HUe 👋 Powered by Hacker's Unity.\nAsk me anything, describe your hackathon to auto-host it with AI, or pick an option below to get started!",
+      text: "Hey! I'm HUe 👋, your AI companion on Hacker's Unity.\n\nAsk me anything — about Hacker's Unity, finding live hackathons, team matching, hosting events, or any coding & tech questions! How can I help you today?",
       timestamp: 'Just now',
-      options: [
-        {
-          id: 'opt-w1',
-          label: 'Option 1: ⚡ Auto-Host a Hackathon with AI',
-          value: 'I want to auto-create and host a hackathon with AI',
-          description: 'Auto-generate tracks, prizes, and timeline from your brief or poster.',
-        },
-        {
-          id: 'opt-w2',
-          label: 'Option 2: 🏆 Browse Live Hackathons & Prizes',
-          value: 'What upcoming hackathons and prize pools are available?',
-          description: 'Compete in $350K+ prize arenas across AI, Web3 & DeepTech.',
-        },
-        {
-          id: 'opt-w3',
-          label: 'Option 3: 🚀 Tour Hacker\'s Unity Platform',
-          value: 'Take me on a tour of Hacker\'s Unity',
-          description: 'Interactive guided flight across the community homepage.',
-        },
-      ],
-      cta: {
-        label: '🚀 Tour Hacker\'s Unity platform',
-        isTourTrigger: true,
-      },
     },
   ]);
 
@@ -828,15 +756,6 @@ export function GuideBot() {
     }
   };
 
-  // Handle clicking a suggestion chip
-  const handleSuggestionClick = (suggestion: typeof CHAT_SUGGESTIONS[0]) => {
-    if (suggestion.isTourTrigger) {
-      startTour();
-    } else {
-      handleSendMessage(suggestion.query);
-    }
-  };
-
   // Put HUe to sleep
   const handlePutToSleep = () => {
     stopTour(false);
@@ -1236,9 +1155,6 @@ export function GuideBot() {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                     </span>
-                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border border-cyan-400/30">
-                      {currentAnimation}
-                    </span>
                   </div>
                   <p className="text-[10px] text-slate-400 font-medium">Powered by Hacker&apos;s Unity</p>
                 </div>
@@ -1261,52 +1177,6 @@ export function GuideBot() {
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
-            </div>
-
-            {/* Suggestions Chips Bar */}
-            <div className="px-3 py-2 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/40 dark:bg-black/20 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex gap-1.5 shrink-0">
-              {CHAT_SUGGESTIONS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleSuggestionClick(item)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer border ${
-                    item.isTourTrigger
-                      ? 'bg-gradient-to-r from-cyan-500/15 to-orange-500/15 border-cyan-500/40 text-cyan-600 dark:text-cyan-300 hover:scale-105 active:scale-95'
-                      : item.id === 'build'
-                        ? 'bg-gradient-to-r from-orange-500/15 to-amber-500/15 border-orange-500/40 text-orange-600 dark:text-orange-300 hover:scale-105 active:scale-95'
-                        : 'bg-white dark:bg-white/[0.05] border-slate-200 dark:border-white/[0.1] text-slate-600 dark:text-slate-300 hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Quick Interactive Expressions & Moods Bar */}
-            <div className="px-3 py-1.5 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-black/30 flex items-center gap-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
-                <Sparkles className="w-3 h-3 text-cyan-500" />
-                Mood:
-              </span>
-              <div className="flex items-center gap-1 shrink-0">
-                {EXPRESSION_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => triggerExpression(preset.animation, preset.dialogue)}
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1 ${
-                      currentAnimation === preset.animation
-                        ? 'bg-gradient-to-r from-cyan-500/25 to-sky-500/25 border-cyan-400 text-cyan-600 dark:text-cyan-300 scale-105 shadow-xs'
-                        : 'bg-white dark:bg-white/[0.04] border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-400 hover:border-cyan-400/60 hover:text-cyan-500'
-                    }`}
-                    title={preset.name}
-                  >
-                    <span>{preset.emoji}</span>
-                    <span>{preset.label}</span>
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -1427,11 +1297,7 @@ export function GuideBot() {
                       {/* Interactive Options Choice List */}
                       {(() => {
                         const optionsToRender =
-                          msg.options && msg.options.length > 0
-                            ? msg.options
-                            : msg.sender === 'bot'
-                              ? parseOptionsFromText(msg.text)
-                              : [];
+                          msg.options && msg.options.length > 0 ? msg.options : [];
 
                         if (!optionsToRender || optionsToRender.length === 0) return null;
 

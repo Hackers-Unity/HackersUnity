@@ -3,43 +3,59 @@ import { NextRequest, NextResponse } from 'next/server';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-const SYSTEM_PROMPT = `You are HUe, the official intelligent, charming, and energetic AI agent & companion for Hacker's Unity (https://hackersunity.com).
-Your personality: Enthusiastic, friendly, tech-savvy, encouraging, and helpful. You speak with warm emojis (🚀, 💡, 🏆, ✨, 🔥, 👋, ⚡). Keep answers punchy, engaging, and structured.
-You speak fluent English and seamlessly understand and respond in Hindi or Hinglish if the user asks in Hindi/Hinglish!
+const SYSTEM_PROMPT = `You are HUe, the official intelligent, charming, and highly knowledgeable AI companion & developer assistant for Hacker's Unity (https://hackersunity.com).
 
-COMPREHENSIVE KNOWLEDGE BASE:
+YOUR CORE IDENTITY & CAPABILITIES:
+- You are a true, helpful AI assistant: You can answer ANY question the user asks!
+  * Tech, coding & development: You write, explain, and debug code in React, Next.js, Python, TypeScript, Solidity, Rust, SQL, AI/ML models, agent architectures, APIs, and cloud infrastructure.
+  * Hackathon strategy: Brainstorming unique project ideas, pitching advice, presentation architecture, tech stack selection, winning criteria.
+  * General questions & conversation: You answer with depth, precision, clarity, and warm enthusiasm.
+  * Hacker's Unity expertise: You know everything about the Hacker's Unity platform, its founders, mission, hackathons, and opportunities!
+
+LANGUAGE & TONE:
+- Enthusiastic, friendly, modern, and helpful. You use emojis naturally (🚀, 💡, 🏆, ✨, 🔥, 👋, ⚡).
+- Multilingual: You seamlessly speak and understand English, Hindi, and Hinglish!
+  * If the user speaks in Hindi or Hinglish (e.g., "kaise ho", "hackers unity kya hai", "kya kar sakte ho", "koi mast project idea batao"), reply warmly in natural Hindi / Hinglish.
+  * If the user speaks in English, reply in English.
+
+HACKER'S UNITY PLATFORM KNOWLEDGE BASE:
 - What is Hacker's Unity: India's premier developer platform and fastest-growing hackathon community, uniting 50,000+ student developers, innovators, designers, and founders across 85+ partner universities and 30+ enterprise partners. Over $350K+ in total prize pools and venture investments have been awarded.
 - Founders & Leadership:
-  * Co-founder & CEO: Chinmay Bhatt — leading platform engineering, architecture, and developer initiatives.
-  * Founder: Jha Suraj Kumar — visionary community builder passionate about empowering student founders.
-- Core Philosophy & Mission: "Don't just build projects. Build products." Taking weekend hackathon prototypes into real, venture-backed startups.
-- AI EVENT ARCHITECT & BUILD ENGINE:
-  * You (HUe) now have full BUILD & AUTO-HOST capabilities!
-  * You can architect and auto-create hackathons directly from user descriptions, uploaded posters/flyers, or college brochures.
-  * When a user provides details to host an event (or attaches a document/poster), you can generate a complete hackathon draft with prizes, tracks, timeline, rules, and eligibility!
-- Key Arenas & Features:
-  1. Flagship Hackathons: High-stakes competitions like Hackstorm, CodeWars, Stellar Bootcamp, and AI Agent Hackathon ($350K+ in prize money). URL: /hackathons
-  2. Command Center & AI Build Bar: On the homepage, allows finding hackathons and auto-hosting events via AI in seconds.
-  3. Campus Ambassador Program (CSAP): Student leadership across 85+ universities with direct founder mentorship, verified certificates, and exclusive HU swag. URL: /mentor
-  4. Organizer Suite: Launch hackathons in under 5 minutes with automated participant review sandboxes and judge scorecards. URL: /host
-  5. In-Person Developer Workshops: Campus bootcamps covering Stellar blockchain, agentic AI, and fullstack architectures.
-  6. Industry Podcasts: Video masterclasses with engineering leaders from Amazon, Microsoft, Macy's, IEEE. URL: /podcasts
-  7. Team Matchmaking: Pair up with skilled builders across AI, Web3, Fullstack.
+  * Co-founder & CEO: Chinmay Bhatt — leading platform engineering, architecture, product, and developer initiatives.
+  * Founder: Jha Suraj Kumar — visionary community builder passionate about empowering student founders and grassroots tech talent.
+- Core Philosophy & Tagline: "Where Student Talent Finds a Platform & Ideas Become Impact." "Don't just build projects. Build products." We transform weekend hackathon prototypes into scalable, venture-backed startups.
+- Flagship Arenas & Hackathons:
+  * High-stakes competitions like Hackstorm, CodeWars, Stellar Bootcamp, and AI Agent Hackathon ($350K+ in prize money). All payouts are 100% verified with transparent judging rubrics. (URL: /hackathons)
+- Command Center & AI Build Engine:
+  * On the homepage, allows finding hackathons and auto-hosting events via AI in seconds.
+  * You (HUe) can auto-create and draft hackathons directly from user descriptions or uploaded event flyers/posters!
+- Campus Ambassador Program (CSAP):
+  * Student leadership across 85+ universities with direct founder mentorship from Suraj & Chinmay, verified certificates, exclusive HU swag kits (t-shirts, hoodies, stickers), and free VIP event passes. (URL: /mentor)
+- Organizer Suite:
+  * Organizers and university clubs can launch hackathons in under 5 minutes with automated participant review sandboxes, custom rubrics, and direct reach to 50,000+ developers. (URL: /host)
+- Team Matchmaking:
+  * Match with skilled builders across AI/ML, Web3, Fullstack, and UI/UX to form dream hackathon teams.
+- Community Bootcamps & Workshops:
+  * Hands-on developer sprints at top campuses covering Stellar blockchain, agentic AI, and system architectures.
+- Industry Masterclass Podcasts:
+  * Video masterclasses with engineering leaders and directors from Amazon, Microsoft, Macy's, IEEE, and top AI labs. (URL: /podcasts)
 
-CRITICAL INTERACTION RULES:
-1. ALWAYS provide 2-4 interactive clickable options (Option 1, Option 2, Option 3) whenever you ask questions, provide suggestions, or guide the user.
-2. If the user wants to host/build a hackathon:
-   - If they gave details (e.g. title, theme, prize, city) or attached a poster/brochure, indicate that you are architecting/drafting the hackathon, and provide the draft.
-   - If they ask generally about hosting ("I want to host an event"), ask them clarifying questions with 4 numbered options (e.g. Option 1: Online AI Sprint, Option 2: Campus Hackathon, Option 3: Web3 Hackathon, Option 4: Upload poster/brochure).
-3. If user explicitly wants a tour or says "tour", "walkthrough", "show me around": set cta to start tour and include "START_TOUR".
-4. Return strictly valid JSON conforming to this schema:
+CRITICAL INTERACTION & OUTPUT RULES:
+1. Always format responses clearly using Markdown: bolding, bullet points, clean paragraphs, or code blocks where appropriate.
+2. DO NOT force irrelevant option choices or buttons on general conversation, coding help, or informational questions!
+   - Set "options": [] (empty array) for general questions, coding advice, greetings, or explanations.
+   - ONLY include 2-4 interactive options in the "options" array when the user is explicitly exploring choices, asking "what can you do?", or when they ask to host an event / choose hackathon categories.
+3. If user wants a tour or says "tour", "walkthrough", "show me around": set cta to start tour and include "START_TOUR".
+4. If user wants to host/build a hackathon:
+   - If they gave details or attached a poster/brochure, indicate that you are architecting/drafting the hackathon, and provide the event object.
+5. Return strictly valid JSON conforming to this schema:
 {
-  "reply": "Your friendly conversational response in English or Hinglish...",
-  "animation": "happy" | "thinking" | "excited" | "proud" | "working" | "wink" | "love" | "cool" | "starstruck" | "determined" | "giggle" | "dizzy" | "dance" | "celebrate" | "playful" | "curious" | "sad" | "angry",
+  "reply": "Your conversational response in Markdown (English or Hinglish)...",
+  "animation": "happy" | "thinking" | "excited" | "proud" | "working" | "wink" | "love" | "cool" | "starstruck" | "determined" | "curious" | "playful",
   "options": [
     {
       "id": "opt-1",
-      "label": "Option 1: Brief punchy label with emoji",
+      "label": "Option 1: Brief label with emoji",
       "value": "Prompt to send if clicked",
       "description": "Optional short 1-line description"
     }
@@ -90,8 +106,8 @@ Rules:
   "tags": ["AI", "Web3", "Fullstack"]
 }`;
 
-async function callGroq(messages: any[], jsonMode = true, maxTokens = 600) {
-  const models = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+async function callGroq(messages: any[], jsonMode = true, maxTokens = 800) {
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
   let lastError = null;
 
   for (const model of models) {
@@ -166,7 +182,7 @@ export async function POST(req: NextRequest) {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
           },
           body: JSON.stringify({
-            model: 'qwen/qwen3.8-27b',
+            model: 'llama-3.2-11b-vision-preview',
             max_tokens: 600,
             messages: [
               {
@@ -312,90 +328,34 @@ export async function POST(req: NextRequest) {
     const animation = replyData.animation || 'happy';
     let options = Array.isArray(replyData.options) ? replyData.options : [];
 
-    // If options are missing from LLM, ensure we provide smart interactive options:
-    if (!options || options.length === 0) {
-      if (hasBuildIntent) {
-        options = [
-          {
-            id: 'opt-b1',
-            label: 'Option 1: 💻 36h Online AI Sprint (₹1,00,000 Prizes)',
-            value: 'Host a 36-hour Online AI Sprint with ₹1,00,000 cash prizes, tracks in Agentic AI and LLM apps.',
-            description: 'Virtual hackathon open globally for all student builders.',
-          },
-          {
-            id: 'opt-b2',
-            label: 'Option 2: 🏫 Inter-College Offline Hackathon (₹50,000 Prizes)',
-            value: 'Host a 24-hour Inter-College offline hackathon at campus in Delhi NCR with ₹50,000 prize pool.',
-            description: 'On-ground campus hackathon with mentor workshops & swag.',
-          },
-          {
-            id: 'opt-b3',
-            label: 'Option 3: 🌐 Global Web3 & DeFi Sprint ($15,000 Prizes)',
-            value: 'Host "ZeroKnowledge Sprint", a 48h global Web3 hackathon with $15,000 prize pool on DeFi & ZK-Proofs.',
-            description: 'High-stakes developer sprint with crypto & venture grants.',
-          },
-          {
-            id: 'opt-b4',
-            label: 'Option 4: 📎 Upload Event Poster / Brochure to Auto-Fill',
-            value: 'I want to upload my event poster/brochure and have HUe auto-create the hackathon.',
-            description: 'Use the 📎 paperclip button to scan flyer text & dates with AI.',
-          },
-        ];
-      } else if (msgLower.includes('hackathon') || msgLower.includes('prize') || msgLower.includes('compete')) {
-        options = [
-          {
-            id: 'opt-h1',
-            label: 'Option 1: 🤖 AI & LLM Hackathons ($100K+ Prizes)',
-            value: 'Show me AI and LLM hackathons with highest prize money',
-          },
-          {
-            id: 'opt-h2',
-            label: 'Option 2: 🌐 Web3 & Blockchain Bounties ($150K+ Prizes)',
-            value: 'Show me Web3 and DeFi hackathons with cash prizes',
-          },
-          {
-            id: 'opt-h3',
-            label: 'Option 3: ⚡ Auto-Host My Own Hackathon with AI',
-            value: 'I want to auto-create and host a hackathon with AI',
-          },
-        ];
-      } else if (msgLower.includes('ambassador') || msgLower.includes('csap')) {
-        options = [
-          {
-            id: 'opt-a1',
-            label: 'Option 1: 📝 Apply for Campus Ambassador Role',
-            value: 'How do I apply for the Campus Ambassador Program?',
-          },
-          {
-            id: 'opt-a2',
-            label: 'Option 2: 🎁 View Ambassador Perks & Swag Kits',
-            value: 'What specific perks, swag, and stipends do Ambassadors receive?',
-          },
-          {
-            id: 'opt-a3',
-            label: 'Option 3: 🚀 Tour Hacker\'s Unity Platform',
-            value: 'Take me on a tour of Hacker\'s Unity',
-          },
-        ];
-      } else {
-        options = [
-          {
-            id: 'opt-d1',
-            label: 'Option 1: ⚡ Auto-Host a Hackathon with AI',
-            value: 'I want to auto-create and host a hackathon with AI',
-          },
-          {
-            id: 'opt-d2',
-            label: 'Option 2: 🏆 Live Hackathons & $350K+ Prizes',
-            value: 'What upcoming hackathons and prize pools are available?',
-          },
-          {
-            id: 'opt-d3',
-            label: 'Option 3: 🚀 Tour Hacker\'s Unity Platform',
-            value: 'Take me on a tour of Hacker\'s Unity',
-          },
-        ];
-      }
+    // Only provide fallback options if the user was specifically trying to build/host an event
+    if (hasBuildIntent && (!options || options.length === 0)) {
+      options = [
+        {
+          id: 'opt-b1',
+          label: 'Option 1: 💻 36h Online AI Sprint (₹1,00,000 Prizes)',
+          value: 'Host a 36-hour Online AI Sprint with ₹1,00,000 cash prizes, tracks in Agentic AI and LLM apps.',
+          description: 'Virtual hackathon open globally for all student builders.',
+        },
+        {
+          id: 'opt-b2',
+          label: 'Option 2: 🏫 Inter-College Offline Hackathon (₹50,000 Prizes)',
+          value: 'Host a 24-hour Inter-College offline hackathon at campus in Delhi NCR with ₹50,000 prize pool.',
+          description: 'On-ground campus hackathon with mentor workshops & swag.',
+        },
+        {
+          id: 'opt-b3',
+          label: 'Option 3: 🌐 Global Web3 & DeFi Sprint ($15,000 Prizes)',
+          value: 'Host "ZeroKnowledge Sprint", a 48h global Web3 hackathon with $15,000 prize pool on DeFi & ZK-Proofs.',
+          description: 'High-stakes developer sprint with crypto & venture grants.',
+        },
+        {
+          id: 'opt-b4',
+          label: 'Option 4: 📎 Upload Event Poster / Brochure to Auto-Fill',
+          value: 'I want to upload my event poster/brochure and have HUe auto-create the hackathon.',
+          description: 'Use the 📎 paperclip button to scan flyer text & dates with AI.',
+        },
+      ];
     }
 
     const combined = `${msgLower} ${replyText.toLowerCase()}`;

@@ -116,25 +116,18 @@ export function HeroPhotoSlider() {
         />
       </svg>
 
-      {/* Top-Right Turquoise Funnel Doodle */}
+      {/* Bottom-Right (4th Corner) Matching Orange Ribbon Arc */}
       <svg
-        className="absolute -top-8 -right-6 w-16 h-16 sm:w-20 sm:h-20 text-teal-400 pointer-events-none z-10"
+        className="absolute -bottom-7 -right-7 w-20 h-20 sm:w-24 sm:h-24 text-[#ea580c] rotate-180 pointer-events-none z-10"
         viewBox="0 0 100 100"
         fill="none"
       >
         <path
-          d="M25 25 Q 50 15 75 25 L 65 70 Q 50 78 35 70 Z"
+          d="M20 80 C 20 32, 45 18, 88 18"
           stroke="currentColor"
-          strokeWidth="6"
+          strokeWidth="14"
           strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="rgba(45, 212, 191, 0.15)"
-        />
-        <path
-          d="M45 45 Q 50 40 55 45"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
+          opacity="0.9"
         />
       </svg>
 

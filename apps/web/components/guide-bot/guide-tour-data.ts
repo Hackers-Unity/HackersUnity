@@ -226,6 +226,65 @@ export function resolveBotQuery(query: string): {
 } {
   const q = query.toLowerCase().trim();
 
+  // Greetings in English & Hindi/Hinglish
+  if (
+    q === 'hi' ||
+    q === 'hello' ||
+    q === 'hey' ||
+    q.startsWith('hi ') ||
+    q.startsWith('hello ') ||
+    q.startsWith('hey ') ||
+    q.includes('namaste') ||
+    q.includes('kaise ho') ||
+    q.includes('kya haal') ||
+    q.includes('sup') ||
+    q.includes('good morning') ||
+    q.includes('good evening')
+  ) {
+    return {
+      text: "Hey there! Kaise ho? 👋 I'm HUe, your AI companion on Hacker's Unity.\n\nAsk me anything — about Hacker's Unity, finding live hackathons, team matching, hosting events, or any coding & tech questions! How can I help you today? 🚀",
+      animation: 'happy',
+    };
+  }
+
+  // Capabilities & Help ("kya kar sakte ho", "what can you do", "help", "who are you")
+  if (
+    q.includes('kya kar sakte') ||
+    q.includes('what can you do') ||
+    q.includes('what do you do') ||
+    q.includes('who are you') ||
+    q.includes('kya ho tum') ||
+    q.includes('capabilities') ||
+    q.includes('help me') ||
+    q.includes('features')
+  ) {
+    return {
+      text: "I'm HUe, your intelligent AI companion & hackathon copilot on Hacker's Unity! ⚡ Here's what I can do:\n\n• 💡 **Answer Any Tech / Coding Question**: Next.js, React, Python, Solidity, AI/ML, debugging, system design, or project ideas.\n• 🏆 **Discover Hackathons**: Browse active competitions with verified cash prizes up to $350K+.\n• ⚡ **Auto-Host Hackathons**: Draft full hackathons from your natural brief or uploaded poster.\n• 🎓 **Campus Ambassador Guide**: Learn how to become a CSAP lead in your college.\n• 👥 **Teammate Finder**: Pair up with skilled builders across AI, Web3 & Fullstack.\n• 🚀 **Interactive Tour**: Guide you through every feature on Hacker's Unity.\n\nFeel free to ask me any question!",
+      animation: 'excited',
+    };
+  }
+
+  // Hacker's Unity Platform Knowledge ("what is hackers unity", "hackers unity kya hai", "about platform", etc.)
+  if (
+    q.includes('hackers unity') ||
+    q.includes("hacker's unity") ||
+    q.includes('hacker unity') ||
+    q.includes('about platform') ||
+    q.includes('platform ke baare') ||
+    q.includes('ye kya hai') ||
+    q.includes('kya hai ye') ||
+    (q.includes('what is') && q.includes('platform'))
+  ) {
+    return {
+      text: "Hacker's Unity is India's premier developer platform and fastest-growing hackathon community! 🚀\n\nFounded by Jha Suraj Kumar and co-founded by Chinmay Bhatt (CEO), we unite 50,000+ student developers across 85+ partner universities and 30+ top tech partners.\n\nKey Highlights:\n• 🏆 **$350K+ Total Prize Pools**: Flagship arenas like Hackstorm, CodeWars, Stellar Bootcamp, and AI Agent Hackathon.\n• ⚡ **AI Event Architect**: Auto-create, draft, and launch hackathons in under 5 minutes.\n• 🎓 **Campus Ambassador Program (CSAP)**: Student leadership across 85+ universities with 1-on-1 founder mentorship & swag kits.\n• 👥 **AI Teammate Matchmaking**: Pair up with skilled developers across AI, Web3 & Fullstack.\n• 🎙️ **Masterclass Podcasts**: Candid conversations with tech leaders from Amazon, Microsoft & IEEE.\n\nOur philosophy: *'Don't just build projects. Build products.'* Turning weekend prototypes into venture-backed startups!",
+      animation: 'proud',
+      cta: {
+        label: 'Explore Hackathons ➔',
+        href: '/hackathons',
+      },
+    };
+  }
+
   // Specific emotion / expression triggers
   if (q.includes('wink')) {
     return {
@@ -251,7 +310,7 @@ export function resolveBotQuery(query: string): {
       animation: 'starstruck',
     };
   }
-  if (q.includes('determined') || q.includes('focus') || q.includes('locked in') || q.includes('code')) {
+  if (q.includes('determined') || q.includes('focus') || q.includes('locked in')) {
     return {
       text: "Locked in! Focused builder mode engaged. Time to turn ideas into high-impact startups! 💻⚡",
       animation: 'determined',
@@ -275,39 +334,6 @@ export function resolveBotQuery(query: string): {
       animation: 'dizzy',
     };
   }
-  if (
-    q.includes('expression') ||
-    q.includes('mood') ||
-    q.includes('feeling') ||
-    q.includes('kya kar sakte')
-  ) {
-    return {
-      text: "I have over 30+ interactive animated moods and 40+ procedural 3D expressions! ✨ From charming winks 😉, starry-eyed wonder 🤩, loving glances 💖, to builder focus ⚡ and celebration dances 🕺!\n\nPick a mood below or use the quick Moods bar above to see me in action:",
-      animation: 'dance',
-      options: [
-        {
-          id: 'opt-e1',
-          label: 'Option 1: 😉 Show a cheeky wink',
-          value: 'Show me your charming wink expression',
-        },
-        {
-          id: 'opt-e2',
-          label: 'Option 2: 💖 Show some love to Hacker\'s Unity',
-          value: 'Show me your love and appreciation expression',
-        },
-        {
-          id: 'opt-e3',
-          label: 'Option 3: 🤩 Starstruck by hackathons',
-          value: 'Show me your starstruck wonder expression',
-        },
-        {
-          id: 'opt-e4',
-          label: 'Option 4: ⚡ Ultra-focused builder mode',
-          value: 'Show me your locked in determined builder expression',
-        },
-      ],
-    };
-  }
 
   // Tour trigger
   if (
@@ -315,7 +341,8 @@ export function resolveBotQuery(query: string): {
     q.includes('walkthrough') ||
     q.includes('guide me') ||
     q.includes('show me around') ||
-    q.includes('explain website')
+    q.includes('explain website') ||
+    q.includes('ghumao')
   ) {
     return {
       text: 'Starting your automatic platform tour now! 🚀 Hang tight while I fly to each card and explain how it works.',
@@ -334,7 +361,6 @@ export function resolveBotQuery(query: string): {
     q.includes('organizer') ||
     q.includes('conduct hackathon') ||
     q.includes('create event') ||
-    q.includes('build') ||
     q.includes('auto-host') ||
     q.includes('auto host')
   ) {
@@ -384,33 +410,12 @@ export function resolveBotQuery(query: string): {
     q.includes('compete') ||
     q.includes('competition') ||
     q.includes('events') ||
+    q.includes('bounties') ||
     q.includes('cash')
   ) {
     return {
-      text: 'We feature 15+ live & upcoming hackathons across AI Agents, Web3 & DeepTech with over $350,000+ in verified cash payouts! 🏆\n\nWhich category would you like to explore?',
+      text: 'We feature 15+ live & upcoming hackathons across AI Agents, Web3 & DeepTech with over $350,000+ in verified cash payouts! 🏆\n\nYou can explore flagship arenas like Hackstorm, CodeWars, and Stellar Bootcamp on our hackathons page.',
       animation: 'excited',
-      options: [
-        {
-          id: 'opt-h1',
-          label: 'Option 1: 🤖 AI & LLM Hackathons ($100K+ Prizes)',
-          value: 'Show me AI and LLM hackathons with highest prize money',
-        },
-        {
-          id: 'opt-h2',
-          label: 'Option 2: 🌐 Web3 & Blockchain Bounties ($150K+ Prizes)',
-          value: 'Show me Web3 and DeFi hackathons with cash prizes',
-        },
-        {
-          id: 'opt-h3',
-          label: 'Option 3: 🎓 Beginner Friendly & Student Hackathons',
-          value: 'What are the best beginner-friendly student hackathons?',
-        },
-        {
-          id: 'opt-h4',
-          label: 'Option 4: ⚡ Auto-Host My Own Hackathon with AI',
-          value: 'I want to auto-create and host a hackathon with AI',
-        },
-      ],
       cta: {
         label: 'Explore All Hackathons ➔',
         href: '/hackathons',
@@ -427,25 +432,8 @@ export function resolveBotQuery(query: string): {
     q.includes('representative')
   ) {
     return {
-      text: 'The Hacker\'s Unity Campus Ambassador Program (CSAP) empowers student leaders across 85+ partner universities! 🎓 You receive 1-on-1 mentorship from founders Suraj & Chinmay, official leadership certificates, free VIP event passes, and exclusive HU merchandise.\n\nWhat would you like to do next?',
+      text: "The Hacker's Unity Campus Ambassador Program (CSAP) empowers student leaders across 85+ partner universities! 🎓\n\nPerks & Benefits:\n• 1-on-1 mentorship from founders Suraj & Chinmay\n• Official verified leadership certificates & LORs\n• Free VIP event passes to flagship hackathons\n• Exclusive HU merchandise kit (hoodies, t-shirts, stickers)\n• Stipends and performance grants for top community builders",
       animation: 'happy',
-      options: [
-        {
-          id: 'opt-a1',
-          label: 'Option 1: 📝 Apply for Campus Ambassador Role',
-          value: 'How do I apply for the Campus Ambassador Program?',
-        },
-        {
-          id: 'opt-a2',
-          label: 'Option 2: 🎁 View Ambassador Perks & Swag Kits',
-          value: 'What specific perks, swag, and stipends do Ambassadors receive?',
-        },
-        {
-          id: 'opt-a3',
-          label: 'Option 3: 🚀 Tour Hacker\'s Unity Platform',
-          value: 'Take me on a tour of Hacker\'s Unity',
-        },
-      ],
       cta: {
         label: 'Apply for Ambassador Program ➔',
         href: '/mentor',
@@ -462,29 +450,52 @@ export function resolveBotQuery(query: string): {
     q.includes('solo')
   ) {
     return {
-      text: 'Need an unstoppable hackathon squad? 👥 You can find verified builders through our AI Command Center by role and tech stack!\n\nWhich role are you looking for?',
+      text: "Need an unstoppable hackathon squad? 👥 You can find verified builders through our AI Command Center by role (AI/ML, Next.js Fullstack, Web3 Smart Contracts, UI/UX design) and tech stack!",
       animation: 'thinking',
-      options: [
-        {
-          id: 'opt-t1',
-          label: 'Option 1: 🤖 AI / ML & PyTorch Engineer',
-          value: 'Find AI and Machine Learning teammates for hackathons',
-        },
-        {
-          id: 'opt-t2',
-          label: 'Option 2: 💻 Next.js & Fullstack Frontend Builder',
-          value: 'Find Next.js and Fullstack developer teammates',
-        },
-        {
-          id: 'opt-t3',
-          label: 'Option 3: 🌐 Web3 & Smart Contract Developer',
-          value: 'Find Web3 and Solidity/Rust developers for hackathons',
-        },
-      ],
       cta: {
         label: 'Try AI Teammate Finder ➔',
         href: '#ai-command',
       },
+    };
+  }
+
+  // Coding & Tech Guidance
+  if (
+    q.includes('react') ||
+    q.includes('nextjs') ||
+    q.includes('next.js') ||
+    q.includes('python') ||
+    q.includes('javascript') ||
+    q.includes('typescript') ||
+    q.includes('solidity') ||
+    q.includes('web3') ||
+    q.includes('ai') ||
+    q.includes('machine learning') ||
+    q.includes('database') ||
+    q.includes('sql') ||
+    q.includes('bug') ||
+    q.includes('error') ||
+    q.includes('code') ||
+    q.includes('programming')
+  ) {
+    return {
+      text: "Got a tech question or debugging challenge? 💻\n\nI can help you architect fullstack web apps, write clean TypeScript/React code, structure smart contracts on Ethereum/Stellar, or implement AI agent workflows. Ask me any specific code question or share your error trace!",
+      animation: 'working',
+    };
+  }
+
+  // Project Ideas & Winning Hackathons
+  if (
+    q.includes('idea') ||
+    q.includes('project') ||
+    q.includes('pitch') ||
+    q.includes('how to win') ||
+    q.includes('tips') ||
+    q.includes('kaise jeete')
+  ) {
+    return {
+      text: "Here are 4 golden rules to build a winning hackathon project: 🏆\n\n1. 🎯 **Solve a Real Problem**: Don't just build a toy wrapper; focus on a specific, painful problem users actually experience.\n2. ⚡ **Working MVP > Feature Bloat**: A polished demo that does one thing brilliantly beats 10 half-baked features every time.\n3. 🚀 **Pitch the Product, Not Just Code**: Show judges the business impact, user onboarding flow, and future roadmap.\n4. 🎨 **Clean UI / UX**: A great interface immediately builds credibility with judges in under 30 seconds!\n\nWhat domain are you thinking about building in? (AI, Web3, FinTech, DevTools, EdTech)",
+      animation: 'proud',
     };
   }
 
@@ -497,7 +508,7 @@ export function resolveBotQuery(query: string): {
     q.includes('leaders')
   ) {
     return {
-      text: 'Tune into our exclusive masterclass podcasts with engineering directors & founders from Amazon, Microsoft, Macy\'s, and IEEE discussing AI architectures, career growth, and startup execution! 🎙️',
+      text: "Tune into our exclusive masterclass podcasts with engineering directors & founders from Amazon, Microsoft, Macy's, and IEEE discussing AI architectures, career growth, and startup execution! 🎙️",
       animation: 'listening',
       cta: {
         label: 'Watch Podcast Episodes ➔',
@@ -515,7 +526,7 @@ export function resolveBotQuery(query: string): {
     q.includes('deeptech')
   ) {
     return {
-      text: 'We organize hands-on developer sprints and bootcamps at engineering colleges covering Stellar blockchain, agentic AI, and system design with direct mentor feedback! 🛠️',
+      text: "We organize hands-on developer sprints and bootcamps at engineering colleges covering Stellar blockchain, agentic AI, and system design with direct mentor feedback! 🛠️",
       animation: 'working',
       cta: {
         label: 'Check Workshops Section ➔',
@@ -534,60 +545,17 @@ export function resolveBotQuery(query: string): {
     q.includes('chinmay')
   ) {
     return {
-      text: 'Hacker\'s Unity is India\'s fastest-growing hackathon community and developer platform, founded by Jha Suraj Kumar and co-founded by Chinmay Bhatt. We are uniting 50,000+ builders to turn weekend prototypes into real venture-backed startups! 🚀',
+      text: "Hacker's Unity is India's fastest-growing hackathon community and developer platform, founded by Jha Suraj Kumar and co-founded by Chinmay Bhatt (CEO). We are uniting 50,000+ builders to turn weekend prototypes into real venture-backed startups! 🚀",
       animation: 'celebrate',
-      options: [
-        {
-          id: 'opt-f1',
-          label: 'Option 1: ⚡ Auto-Host a Hackathon with AI',
-          value: 'I want to auto-create and host a hackathon with AI',
-        },
-        {
-          id: 'opt-f2',
-          label: 'Option 2: 🏆 Browse Live Hackathons',
-          value: 'What upcoming hackathons and prize pools are available?',
-        },
-        {
-          id: 'opt-f3',
-          label: 'Option 3: 🚀 Tour Hacker\'s Unity Platform',
-          value: 'Take me on a tour of Hacker\'s Unity',
-        },
-      ],
       cta: {
-        label: 'About Hacker\'s Unity ➔',
+        label: "About Hacker's Unity ➔",
         href: '/about',
       },
     };
   }
 
   return {
-    text: 'Hacker\'s Unity is India\'s premier builder platform for 50,000+ developers! You can discover hackathons, auto-host your own event, match with teammates, or learn from tech founders. What would you like to explore?',
+    text: "I'm HUe, your AI companion on Hacker's Unity! 🚀 I can help you with anything from hackathon strategies, coding & technical questions, to exploring Hacker's Unity platform features and auto-hosting events.\n\nWhat would you like to know or build today?",
     animation: 'playful',
-    options: [
-      {
-        id: 'opt-d1',
-        label: 'Option 1: ⚡ Auto-Host a Hackathon with AI',
-        value: 'I want to auto-create and host a hackathon with AI',
-      },
-      {
-        id: 'opt-d2',
-        label: 'Option 2: 🏆 Browse Live Hackathons & Prizes',
-        value: 'What upcoming hackathons and prize pools are available?',
-      },
-      {
-        id: 'opt-d3',
-        label: 'Option 3: 🚀 Tour Hacker\'s Unity Platform',
-        value: 'Take me on a tour of Hacker\'s Unity',
-      },
-      {
-        id: 'opt-d4',
-        label: 'Option 4: 👥 Find Teammates for Hackathons',
-        value: 'How do I find teammates to build hackathon projects?',
-      },
-    ],
-    cta: {
-      label: '🚀 Start Platform Tour',
-      isTourTrigger: true,
-    },
   };
 }
