@@ -754,7 +754,7 @@ export async function DELETE(req: Request) {
 
       let resolvedEventId = eventId;
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
-      let eventQuery = serverSupabase.from('events').select('id, organizer_id').limit(1);
+      let eventQuery = serverSupabase.from('events').select('id, organizer_id, slug').limit(1);
       if (isUuid) {
         eventQuery = eventQuery.eq('id', eventId);
       } else if (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895') || eventId.toLowerCase().includes('sphinx')) {
@@ -768,11 +768,27 @@ export async function DELETE(req: Request) {
         resolvedEventId = eventData.id;
       }
 
+      const targetIds = [resolvedEventId];
+      if (eventId && !targetIds.includes(eventId)) {
+        targetIds.push(eventId);
+      }
+      if (eventData?.slug && !targetIds.includes(eventData.slug)) {
+        targetIds.push(eventData.slug);
+      }
+      if (
+        eventId === 'evt_ai_1791373781895' ||
+        eventId.includes('1791373781895') ||
+        eventId.toLowerCase().includes('sphinx')
+      ) {
+        if (!targetIds.includes('sphinx-26')) targetIds.push('sphinx-26');
+        if (!targetIds.includes('evt_ai_1791373781895')) targetIds.push('evt_ai_1791373781895');
+      }
+
       // Delete from Supabase
       const { error, count } = await serverSupabase
         .from('submissions')
         .delete({ count: 'exact' })
-        .eq('event_id', resolvedEventId);
+        .in('event_id', targetIds);
 
       if (error) {
         console.warn('Supabase bulk delete submissions error:', error.message);

@@ -1132,6 +1132,20 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
             </button>
             <span>•</span>
             <span className="font-mono">{filteredSubmissions.length} row{filteredSubmissions.length === 1 ? '' : 's'} displayed</span>
+            {submissions.length > 0 && (
+              <>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteAllModal(true)}
+                  className="flex items-center gap-1 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-bold transition-colors cursor-pointer hover:underline"
+                  title="Delete all project submissions for this event"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete All ({submissions.length})</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
