@@ -733,3 +733,102 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const serverSupabase = createAdminClient();
+    const { searchParams } = new URL(req.url);
+    const body = req.headers.get('content-type')?.includes('application/json')
+      ? await req.json().catch(() => ({}))
+      : {};
+
+    const eventId = searchParams.get('eventId') || body.eventId;
+    const submissionId = searchParams.get('submissionId') || body.submissionId;
+    const action = searchParams.get('action') || body.action;
+
+    // Bulk deletion: Delete all submissions for an event
+    if (action === 'delete_all' || (!submissionId && eventId && searchParams.get('all') === 'true')) {
+      if (!eventId) {
+        return NextResponse.json({ error: 'Missing eventId parameter' }, { status: 400 });
+      }
+
+      let resolvedEventId = eventId;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      let eventQuery = serverSupabase.from('events').select('id, organizer_id').limit(1);
+      if (isUuid) {
+        eventQuery = eventQuery.eq('id', eventId);
+      } else if (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895') || eventId.toLowerCase().includes('sphinx')) {
+        eventQuery = eventQuery.or(`slug.eq.${eventId},slug.eq.sphinx-26`);
+      } else {
+        eventQuery = eventQuery.eq('slug', eventId);
+      }
+
+      const { data: eventData } = await eventQuery.maybeSingle();
+      if (eventData?.id) {
+        resolvedEventId = eventData.id;
+      }
+
+      // Delete from Supabase
+      const { error, count } = await serverSupabase
+        .from('submissions')
+        .delete({ count: 'exact' })
+        .eq('event_id', resolvedEventId);
+
+      if (error) {
+        console.warn('Supabase bulk delete submissions error:', error.message);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      // Invalidate count cache
+      cachedSubmissionCounts = null;
+
+      // Broadcast event
+      try {
+        const channel = serverSupabase.channel(`submissions_stream_${eventId}`);
+        channel.send({
+          type: 'broadcast',
+          event: 'submissions_cleared',
+          payload: { eventId: resolvedEventId },
+        });
+      } catch (broadcastErr) {}
+
+      return NextResponse.json({
+        success: true,
+        deletedCount: count ?? 0,
+        message: `Successfully deleted all submissions for event ${eventId}`,
+      });
+    }
+
+    // Single submission deletion
+    if (submissionId) {
+      const { error } = await serverSupabase
+        .from('submissions')
+        .delete()
+        .eq('id', submissionId);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      cachedSubmissionCounts = null;
+
+      if (eventId) {
+        try {
+          const channel = serverSupabase.channel(`submissions_stream_${eventId}`);
+          channel.send({
+            type: 'broadcast',
+            event: 'submission_deleted',
+            payload: { submissionId },
+          });
+        } catch (broadcastErr) {}
+      }
+
+      return NextResponse.json({ success: true, message: 'Submission deleted' });
+    }
+
+    return NextResponse.json({ error: 'Missing required parameters (eventId or submissionId)' }, { status: 400 });
+  } catch (err: any) {
+    console.error('DELETE /api/submissions error:', err);
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
+  }
+}

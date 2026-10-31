@@ -1129,6 +1129,36 @@ export function deleteProjectSubmission(submissionId: string): void {
   }
 }
 
+export function deleteAllProjectSubmissionsForEvent(eventId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const all = getAllProjectSubmissions();
+    let alternateId: string | null = null;
+    try {
+      const events = getAllEvents();
+      const matched = events.find((e) => e.id === eventId || e.slug === eventId);
+      if (matched) {
+        alternateId = matched.id === eventId ? (matched.slug || null) : matched.id;
+      }
+    } catch {}
+
+    const remaining: ProjectSubmission[] = [];
+    all.forEach((s) => {
+      const matches = s.eventId === eventId || (alternateId && s.eventId === alternateId);
+      if (matches) {
+        localStorage.removeItem(`${AI_EVALUATION_PREFIX}${s.id}`);
+      } else {
+        remaining.push(s);
+      }
+    });
+
+    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(remaining));
+    window.dispatchEvent(new Event('hackers_unity_storage_change'));
+  } catch (e) {
+    console.error('Error deleting all event project submissions:', e);
+  }
+}
+
 export function saveGoogleSheetsWebhook(eventId: string, webhookUrl: string): void {
   if (typeof window === 'undefined') return;
   try {

@@ -54,6 +54,7 @@ import {
   fetchEventSubmissions,
   updateSubmissionReviewSupabase,
   deleteSubmissionSupabase,
+  deleteAllSubmissionsSupabase,
   subscribeToEventSubmissions,
   mapDbEventToExtended,
   checkIsUserEventAdminOrHost,
@@ -103,6 +104,8 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showOpenInSheetsModal, setShowOpenInSheetsModal] = useState(false);
   const [showSheetImportModal, setShowSheetImportModal] = useState(false);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [copiedPasteData, setCopiedPasteData] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -590,6 +593,26 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
     loadData();
   };
 
+  // Bulk Delete All Submissions for this event
+  const handleDeleteAllSubmissions = async () => {
+    setIsDeletingAll(true);
+    try {
+      const targetEventId = event?.id || resolvedParams.eventId;
+      await deleteAllSubmissionsSupabase(targetEventId);
+      setSubmissions([]);
+      setShowDeleteAllModal(false);
+      setToastMessage('🗑️ All project submissions have been deleted successfully.');
+      setTimeout(() => setToastMessage(null), 4000);
+      loadData();
+    } catch (err: any) {
+      console.error('Delete all submissions error:', err);
+      setToastMessage(`❌ Failed to delete submissions: ${err.message}`);
+      setTimeout(() => setToastMessage(null), 5000);
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   // Copy All Submissions in Google Sheets TSV + Styled HTML format
   const copySubmissionsToClipboard = async () => {
     if (submissions.length === 0) {
@@ -970,6 +993,19 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
             <ExternalLink className="w-4 h-4" />
             <span>Open in Google Sheets</span>
           </button>
+
+          {/* Delete All Submissions Button */}
+          {submissions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteAllModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-800 dark:text-rose-300 text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+              title="Permanently delete all project submissions for this hackathon"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <span>Delete All</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2267,6 +2303,70 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
         }
         onSuccess={handleSheetImportSuccess}
       />
+
+      {/* ─── Modal 7: Delete All Submissions Confirmation ─────────────── */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0d1117] border border-rose-500/30 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  Delete All Submissions?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete all{' '}
+                  <strong className="text-rose-600 dark:text-rose-400 font-black">
+                    {submissions.length} project submissions
+                  </strong>{' '}
+                  for <span className="font-semibold text-slate-800 dark:text-slate-200">&ldquo;{event?.title || 'this event'}&rdquo;</span>?
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 text-xs text-rose-700 dark:text-rose-400 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4" />
+                <span>This action is irreversible</span>
+              </div>
+              <p className="text-[11px] opacity-90 pl-5.5">
+                All participant project entries, scores, Groq AI evaluations, and leaderboard positions will be permanently wiped from the database and local storage.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllModal(false)}
+                disabled={isDeletingAll}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-white/[0.06] text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAllSubmissions}
+                disabled={isDeletingAll}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-rose-600/25 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingAll ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 text-white" />
+                    <span>Yes, Delete All</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

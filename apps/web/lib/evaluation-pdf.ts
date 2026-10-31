@@ -1015,13 +1015,23 @@ export function downloadAllEvaluationsPdf(params: {
   });
 
   const total = sortedSubmissions.length;
-  const evaluatedCount = sortedSubmissions.filter((s) => s.aiEvaluation || typeof s.score === 'number').length;
-  const avgScore = total > 0
-    ? Math.round(
-        sortedSubmissions.reduce((acc, s) => acc + (s.aiEvaluation?.finalScore ?? s.score ?? 0), 0) / total
-      )
-    : 0;
-  const topScore = sortedSubmissions[0] ? (sortedSubmissions[0].aiEvaluation?.finalScore ?? sortedSubmissions[0].score ?? 0) : 0;
+  const evaluatedSubmissions = sortedSubmissions.filter(
+    (s) => Boolean(s.aiEvaluation) || (typeof s.score === 'number' && s.score > 0)
+  );
+  const evaluatedCount = evaluatedSubmissions.length;
+  const avgScore =
+    evaluatedCount > 0
+      ? Math.round(
+          evaluatedSubmissions.reduce(
+            (acc, s) => acc + (s.aiEvaluation?.finalScore ?? s.score ?? 0),
+            0
+          ) / evaluatedCount
+        )
+      : 0;
+  const topScore =
+    evaluatedCount > 0
+      ? (sortedSubmissions[0]?.aiEvaluation?.finalScore ?? sortedSubmissions[0]?.score ?? 0)
+      : 0;
   const winnerCount = sortedSubmissions.filter((s) => s.status === 'WINNER').length;
 
   const cleanEvent = eventTitle.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -1102,6 +1112,7 @@ export function downloadAllEvaluationsPdf(params: {
         <tbody>
           ${sortedSubmissions
             .map((s, idx) => {
+              const hasEval = Boolean(s.aiEvaluation) || (typeof s.score === 'number' && s.score > 0);
               const sc = s.aiEvaluation?.finalScore ?? s.score ?? 0;
               const scColors = getScoreBadgeColor(sc);
               const stColors = getStatusBadge(s.status);
@@ -1124,8 +1135,8 @@ export function downloadAllEvaluationsPdf(params: {
                     ${escapeHtml(s.status || 'SUBMITTED')}
                   </span>
                 </td>
-                <td style="text-align: right; font-weight: 900; font-family: ui-monospace, monospace; color:${scColors.text}; font-size: 11px;">
-                  ${sc}
+                <td style="text-align: right; font-weight: 900; font-family: ui-monospace, monospace; color:${hasEval ? scColors.text : '#94a3b8'}; font-size: 11px;">
+                  ${hasEval ? sc : `<span style="font-size: 9px; font-weight: 700; color: #94a3b8;" title="Click 'Evaluate All' in Dashboard to run Groq AI Scoring">0 (Pending)</span>`}
                 </td>
               </tr>
               `;

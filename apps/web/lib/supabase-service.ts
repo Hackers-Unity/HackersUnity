@@ -19,6 +19,7 @@ import {
   getProjectSubmission,
   saveProjectSubmission,
   deleteProjectSubmission,
+  deleteAllProjectSubmissionsForEvent,
   updateProjectSubmissionStatus,
   registerForEventStorage,
   saveEventRegistration,
@@ -4462,6 +4463,35 @@ export async function deleteSubmissionSupabase(
     }
     return { success: true };
   } catch {
+    return { success: true };
+  }
+}
+
+export async function deleteAllSubmissionsSupabase(
+  eventId: string
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  deleteAllProjectSubmissionsForEvent(eventId);
+
+  try {
+    const res = await fetch('/api/submissions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_all', eventId }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    try {
+      const channel = supabase.channel(`submissions_stream_${eventId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'submissions_cleared',
+        payload: { eventId },
+      });
+    } catch {}
+
+    return { success: true, count: data?.deletedCount };
+  } catch (err: any) {
+    console.warn('Error deleting all submissions from Supabase:', err);
     return { success: true };
   }
 }
