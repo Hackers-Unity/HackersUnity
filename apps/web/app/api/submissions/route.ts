@@ -341,6 +341,127 @@ export async function POST(req: Request) {
       }
     }
 
+    // ─── Batch Import Project Submissions from Sheet / CSV ──────────
+    if (action === 'batch_import' && Array.isArray(body.submissions) && body.submissions.length > 0) {
+      const rawEventId = body.eventId || body.submissions[0]?.eventId;
+      if (!rawEventId) {
+        return NextResponse.json({ error: 'Missing eventId for batch import' }, { status: 400 });
+      }
+
+      let targetEventId = rawEventId;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawEventId);
+      let query = serverSupabase.from('events').select('id, slug, organizer_id');
+      if (isUuid) {
+        query = query.eq('id', rawEventId);
+      } else if (rawEventId === 'evt_ai_1791373781895' || rawEventId.includes('1791373781895') || rawEventId.toLowerCase().includes('sphinx')) {
+        query = query.or(`slug.eq.${rawEventId},slug.eq.sphinx-26`);
+      } else {
+        query = query.eq('slug', rawEventId);
+      }
+      let { data: ev } = await query.maybeSingle();
+      if (!ev && (rawEventId.includes('sphinx') || rawEventId.includes('1791373781895'))) {
+        const { data: sphinxEv } = await serverSupabase.from('events').select('id, slug, organizer_id').ilike('slug', '%sphinx%').limit(1).maybeSingle();
+        if (sphinxEv) ev = sphinxEv;
+      }
+      if (ev) {
+        targetEventId = ev.id;
+      }
+
+      const isOrganizer = ev?.organizer_id === auth.userId;
+      const { data: callerProfile } = await serverSupabase.from('profiles').select('role').eq('id', auth.userId).maybeSingle();
+      const isAdmin = callerProfile?.role === 'ADMIN' || callerProfile?.role === 'SUPER_ADMIN';
+
+      let isCoHost = false;
+      if (!isOrganizer && !isAdmin && ev) {
+        const { data: adminRecord } = await serverSupabase
+          .from('event_admins')
+          .select('id')
+          .eq('event_id', targetEventId)
+          .eq('user_id', auth.userId)
+          .maybeSingle();
+        isCoHost = Boolean(adminRecord);
+      }
+
+      if (!isOrganizer && !isAdmin && !isCoHost) {
+        return NextResponse.json({ error: 'Only event organizers or admins can import sheets.' }, { status: 403 });
+      }
+
+      let importedCount = 0;
+      const results: any[] = [];
+
+      for (const item of body.submissions) {
+        const title = (item.projectTitle || item.projectName || item.title || '').trim();
+        if (!title) continue;
+
+        let submitterId = auth.userId;
+        const submitterEmail = (item.submittedByEmail || item.email || '').trim().toLowerCase();
+
+        if (submitterEmail) {
+          const { data: existingProf } = await serverSupabase
+            .from('profiles')
+            .select('id')
+            .eq('email', submitterEmail)
+            .maybeSingle();
+          if (existingProf?.id) {
+            submitterId = existingProf.id;
+          }
+        }
+
+        const payload: any = {
+          event_id: targetEventId,
+          submitter_id: submitterId,
+          project_name: title,
+          tagline: item.tagline || '',
+          description: item.projectDescription || item.description || '',
+          repo_url: item.projectLink || item.repoUrl || item.githubUrl || '',
+          demo_url: item.demoVideoUrl || item.demoUrl || item.videoUrl || '',
+          video_url: item.demoVideoUrl || item.demoUrl || item.videoUrl || '',
+          track: item.track || 'General',
+          status: item.status || 'SUBMITTED',
+          score: typeof item.score === 'number' ? item.score : 0,
+          created_at: item.submittedAt || new Date().toISOString(),
+        };
+
+        // Check if existing submission matches project_name
+        let existingMatch: any = null;
+        try {
+          const { data: m } = await serverSupabase
+            .from('submissions')
+            .select('id')
+            .eq('event_id', targetEventId)
+            .ilike('project_name', title)
+            .limit(1)
+            .maybeSingle();
+          existingMatch = m;
+        } catch {}
+
+        if (existingMatch?.id) {
+          const { data: updatedRow } = await serverSupabase
+            .from('submissions')
+            .update(payload)
+            .eq('id', existingMatch.id)
+            .select()
+            .maybeSingle();
+          if (updatedRow) results.push(updatedRow);
+        } else {
+          const { data: insertedRow } = await serverSupabase
+            .from('submissions')
+            .insert(payload)
+            .select()
+            .maybeSingle();
+          if (insertedRow) results.push(insertedRow);
+        }
+        importedCount++;
+      }
+
+      return NextResponse.json({
+        success: true,
+        count: importedCount,
+        eventId: targetEventId,
+        submissions: results,
+      });
+    }
+
     // Save or update submission in Supabase
     if (submission) {
       let targetEventId = submission.eventId;

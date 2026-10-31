@@ -37,7 +37,9 @@ import {
   Cpu,
   Bot,
   FileDown,
+  Upload,
 } from 'lucide-react';
+import { SheetImportModal } from '@/components/sheet-import-modal';
 import {
   getAllEvents,
   ProjectSubmission,
@@ -100,6 +102,7 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
   // Google Sheets Live Sync Modal State
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showOpenInSheetsModal, setShowOpenInSheetsModal] = useState(false);
+  const [showSheetImportModal, setShowSheetImportModal] = useState(false);
   const [copiedPasteData, setCopiedPasteData] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -760,6 +763,16 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
     setShowOpenInSheetsModal(true);
   };
 
+  const handleSheetImportSuccess = (imported: ProjectSubmission[]) => {
+    setSubmissions((prev) => {
+      const existingIds = new Set(prev.map((s) => s.id));
+      const newSubs = imported.filter((s) => !existingIds.has(s.id));
+      return [...newSubs, ...prev];
+    });
+    setToastMessage(`🎉 Successfully imported and organized ${imported.length} project submissions from sheet!`);
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
   const handleSaveWebhook = () => {
     const targetId = event?.id || resolvedParams.eventId;
     saveGoogleSheetsWebhook(targetId, webhookUrl);
@@ -927,6 +940,17 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
           >
             <FileDown className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span>Download All Reports (PDF)</span>
+          </button>
+
+          {/* Upload / Import Sheet Button */}
+          <button
+            type="button"
+            onClick={() => setShowSheetImportModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+            title="Upload CSV or paste Google Sheet to automatically arrange & import submissions"
+          >
+            <Upload className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Upload Sheet / CSV</span>
           </button>
 
           <button
@@ -2225,6 +2249,24 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
           </div>
         </div>
       )}
+
+      {/* ─── Modal 6: Upload Sheet & Auto-Organize Submissions ──────────── */}
+      <SheetImportModal
+        isOpen={showSheetImportModal}
+        onClose={() => setShowSheetImportModal(false)}
+        eventId={event?.id || resolvedParams.eventId}
+        eventName={event?.title || 'Hackathon Arena'}
+        availableTracks={
+          Array.from(
+            new Set([
+              ...availableTracks,
+              ...((event?.tracks || []).map((t: any) => typeof t === 'string' ? t : t.title).filter(Boolean)),
+              'General',
+            ])
+          )
+        }
+        onSuccess={handleSheetImportSuccess}
+      />
     </div>
   );
 }
