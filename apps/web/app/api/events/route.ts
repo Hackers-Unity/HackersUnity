@@ -9,6 +9,18 @@ import {
 } from '@/lib/api-auth';
 import { sendLiveEventAnnouncementToAllUsers } from '@/lib/live-event-email-service';
 
+// In-memory cache for published events (20-second TTL) to drastically reduce Supabase Disk IO & CPU
+interface EventsCache {
+  timestamp: number;
+  data: any;
+}
+let cachedEventsResponse: EventsCache | null = null;
+const EVENTS_CACHE_TTL_MS = 20_000;
+
+function invalidateEventsCache() {
+  cachedEventsResponse = null;
+}
+
 function slugify(text: string): string {
   return text
     .toString()
@@ -139,6 +151,16 @@ export async function GET(req: Request) {
     }
 
     // 3. Default: return published events and hidden IDs so caller has authoritative state
+    const now = Date.now();
+    if (cachedEventsResponse && now - cachedEventsResponse.timestamp < EVENTS_CACHE_TTL_MS) {
+      return NextResponse.json(cachedEventsResponse.data, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=20, stale-while-revalidate=40',
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
     const { data: publishedEvents } = await serverSupabase
       .from('events')
       .select('*')
@@ -153,14 +175,20 @@ export async function GET(req: Request) {
     const hiddenIds = (hiddenEvents || []).map((row: any) => String(row.id || '').toLowerCase()).filter(Boolean);
     const hiddenSlugs = (hiddenEvents || []).map((row: any) => String(row.slug || '').toLowerCase()).filter(Boolean);
 
-    return NextResponse.json(
-      {
-        events: publishedEvents || [],
-        hiddenIds,
-        hiddenSlugs,
-      },
-      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
-    );
+    const payload = {
+      events: publishedEvents || [],
+      hiddenIds,
+      hiddenSlugs,
+    };
+
+    cachedEventsResponse = {
+      timestamp: now,
+      data: payload,
+    };
+
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': 'public, s-maxage=20, stale-while-revalidate=40' },
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
@@ -362,6 +390,7 @@ export async function POST(req: Request) {
       }
     }
 
+    invalidateEventsCache();
     return NextResponse.json({ success: true, data });
   } catch (err: any) {
     console.error('Server error creating event:', err);
@@ -789,6 +818,7 @@ export async function PATCH(req: Request) {
       }
     }
 
+    invalidateEventsCache();
     return NextResponse.json({ success: true, data: updatedEvt });
   } catch (err: any) {
     console.error('Server error updating event:', err);
@@ -882,6 +912,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: deleteResult.error.message }, { status: 500 });
     }
 
+    invalidateEventsCache();
     return NextResponse.json({
       success: true,
       deletedId: finalId,

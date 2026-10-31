@@ -7,13 +7,13 @@ import {
 // Active event statuses — excludes DRAFT, ARCHIVED, REJECTED
 const ACTIVE_STATUSES = ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'ONGOING'];
 
-// Lightweight in-memory cache (10-second TTL) for snappy dashboard responsiveness
+// Lightweight in-memory cache (60-second TTL) for snappy dashboard responsiveness
 interface CacheEntry {
   timestamp: number;
   data: any;
 }
 const statsCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 10_000;
+const CACHE_TTL_MS = 60_000;
 
 /**
  * Build 100% REALTIME trajectory from actual database registration timestamps
@@ -220,11 +220,12 @@ export async function GET(req: NextRequest) {
         .from('events')
         .select('id, title, slug, status, total_prize_value, start_date, end_date, registration_deadline, category, tags, participants_count, registration_count, organizer_id, mode'),
 
-      // 3. All real registrations with timestamps
+      // 3. All real registrations with timestamps (capped to recent 1500 to protect DB Disk IO Budget)
       serverSupabase
         .from('registrations')
         .select('id, registered_at, event_id, user_id, user_name, status')
-        .order('registered_at', { ascending: false }),
+        .order('registered_at', { ascending: false })
+        .limit(1500),
 
       // 4. Recent project submissions
       serverSupabase
@@ -240,10 +241,11 @@ export async function GET(req: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(20),
 
-      // 6. Total payments aggregates
+      // 6. Total payments aggregates (capped to protect DB Disk IO Budget)
       serverSupabase
         .from('payments')
-        .select('amount, status', { count: 'exact' }),
+        .select('amount, status, event_id', { count: 'exact' })
+        .limit(1500),
 
       // 7. User registrations (if logged in)
       effectiveUserId

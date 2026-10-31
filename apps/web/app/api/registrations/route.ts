@@ -5,6 +5,14 @@ import {
   unauthorizedResponse,
 } from '@/lib/api-auth';
 
+// In-memory cache for aggregate registration counts (30-second TTL) to protect DB Disk IO
+interface RegistrationCountsCache {
+  timestamp: number;
+  counts: Record<string, number>;
+}
+let cachedRegistrationCounts: RegistrationCountsCache | null = null;
+const REG_COUNTS_CACHE_TTL_MS = 30_000;
+
 export async function POST(req: Request) {
   try {
     const auth = await authenticateRequest();
@@ -364,6 +372,14 @@ export async function GET(req: Request) {
     const serverSupabase = createAdminClient();
 
     if (allCounts) {
+      const now = Date.now();
+      if (cachedRegistrationCounts && now - cachedRegistrationCounts.timestamp < REG_COUNTS_CACHE_TTL_MS) {
+        return NextResponse.json(
+          { success: true, counts: cachedRegistrationCounts.counts },
+          { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60', 'X-Cache': 'HIT' } }
+        );
+      }
+
       const { data: events } = await serverSupabase
         .from('events')
         .select('id, slug, registration_count, participants_count');
@@ -391,7 +407,15 @@ export async function GET(req: Request) {
         if (e.slug) counts[e.slug] = baseline;
       });
 
-      return NextResponse.json({ success: true, counts });
+      cachedRegistrationCounts = {
+        timestamp: now,
+        counts,
+      };
+
+      return NextResponse.json(
+        { success: true, counts },
+        { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
+      );
     }
 
     const userId = searchParams.get('userId');

@@ -84,12 +84,28 @@ function validateWebhookUrl(value: unknown): string | null {
   }
 }
 
+// In-memory cache for aggregate submission counts (30-second TTL) to protect DB Disk IO
+interface CountsCache {
+  timestamp: number;
+  counts: Record<string, number>;
+}
+let cachedSubmissionCounts: CountsCache | null = null;
+const SUB_COUNTS_CACHE_TTL_MS = 30_000;
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
     // Public aggregate submission counts for badges/dashboards (zero PII)
     if (searchParams.get('allCounts') === 'true') {
+      const now = Date.now();
+      if (cachedSubmissionCounts && now - cachedSubmissionCounts.timestamp < SUB_COUNTS_CACHE_TTL_MS) {
+        return NextResponse.json(
+          { success: true, counts: cachedSubmissionCounts.counts },
+          { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60', 'X-Cache': 'HIT' } }
+        );
+      }
+
       const serverSupabase = createAdminClient();
       const { data: subRows } = await serverSupabase.from('submissions').select('event_id');
       const { data: eventRows } = await serverSupabase.from('events').select('id, slug');
@@ -105,9 +121,15 @@ export async function GET(req: Request) {
           if (slug) counts[slug] = (counts[slug] || 0) + 1;
         }
       });
+
+      cachedSubmissionCounts = {
+        timestamp: now,
+        counts,
+      };
+
       return NextResponse.json(
         { success: true, counts },
-        { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+        { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
       );
     }
 
@@ -494,6 +516,7 @@ export async function POST(req: Request) {
         });
       } catch (broadcastErr) {}
 
+      cachedSubmissionCounts = null;
       return NextResponse.json({ success: true, data });
     }
 
