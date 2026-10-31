@@ -1045,6 +1045,43 @@ export function saveProjectSubmission(submission: ProjectSubmission): void {
   }
 }
 
+export function saveBatchProjectSubmissions(newSubmissions: ProjectSubmission[]): void {
+  if (typeof window === 'undefined' || !newSubmissions || newSubmissions.length === 0) return;
+  try {
+    const all = getAllProjectSubmissions();
+    const existingMap = new Map<string, number>();
+    all.forEach((s, idx) => existingMap.set(s.id, idx));
+
+    const cleanedSubs = newSubmissions.map((sub) => {
+      const c = { ...sub };
+      delete (c as any).zipFile;
+      delete (c as any).file;
+      delete (c as any).buffer;
+      return c;
+    });
+
+    const updated = [...all];
+    cleanedSubs.forEach((sub) => {
+      const idx = existingMap.get(sub.id);
+      if (idx !== undefined && idx >= 0) {
+        updated[idx] = { ...updated[idx], ...sub, updatedAt: new Date().toISOString() };
+      } else {
+        updated.unshift({ ...sub, updatedAt: new Date().toISOString() });
+      }
+    });
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(updated));
+    } catch (storageErr) {
+      console.warn('localStorage batch save notice:', storageErr);
+    }
+
+    window.dispatchEvent(new Event('hackers_unity_storage_change'));
+  } catch (e) {
+    console.error('Error saving batch project submissions:', e);
+  }
+}
+
 export function updateProjectSubmissionStatus(
   submissionId: string,
   status: 'SUBMITTED' | 'UNDER_REVIEW' | 'ACCEPTED' | 'WINNER' | 'REJECTED',

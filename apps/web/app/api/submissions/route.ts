@@ -453,33 +453,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Only event organizers or admins can import sheets.' }, { status: 403 });
       }
 
-      let importedCount = 0;
-      const results: any[] = [];
-
+      const rowsToInsert: any[] = [];
       for (const item of body.submissions) {
         const title = (item.projectTitle || item.projectName || item.title || '').trim();
         if (!title) continue;
 
-        let submitterId = auth.userId;
-        const submitterEmail = (item.submittedByEmail || item.email || '').trim().toLowerCase();
-
-        if (submitterEmail) {
-          const { data: existingProf } = await serverSupabase
-            .from('profiles')
-            .select('id')
-            .eq('email', submitterEmail)
-            .maybeSingle();
-          if (existingProf?.id) {
-            submitterId = existingProf.id;
-          }
-        }
-
-        const payload: any = {
+        rowsToInsert.push({
           event_id: targetEventId,
-          submitter_id: submitterId,
+          submitter_id: auth.userId,
           project_name: title,
           tagline: item.tagline || '',
-          description: item.projectDescription || item.description || '',
+          description: item.projectDescription || item.description || title,
           repo_url: item.projectLink || item.repoUrl || item.githubUrl || '',
           demo_url: item.demoVideoUrl || item.demoUrl || item.videoUrl || '',
           video_url: item.demoVideoUrl || item.demoUrl || item.videoUrl || '',
@@ -487,45 +471,36 @@ export async function POST(req: Request) {
           status: item.status || 'SUBMITTED',
           score: typeof item.score === 'number' ? item.score : 0,
           created_at: item.submittedAt || new Date().toISOString(),
-        };
-
-        // Check if existing submission matches project_name
-        let existingMatch: any = null;
-        try {
-          const { data: m } = await serverSupabase
-            .from('submissions')
-            .select('id')
-            .eq('event_id', targetEventId)
-            .ilike('project_name', title)
-            .limit(1)
-            .maybeSingle();
-          existingMatch = m;
-        } catch {}
-
-        if (existingMatch?.id) {
-          const { data: updatedRow } = await serverSupabase
-            .from('submissions')
-            .update(payload)
-            .eq('id', existingMatch.id)
-            .select()
-            .maybeSingle();
-          if (updatedRow) results.push(updatedRow);
-        } else {
-          const { data: insertedRow } = await serverSupabase
-            .from('submissions')
-            .insert(payload)
-            .select()
-            .maybeSingle();
-          if (insertedRow) results.push(insertedRow);
-        }
-        importedCount++;
+        });
       }
+
+      // Fast parallel chunk insertion (100 rows per batch)
+      const CHUNK_SIZE = 100;
+      const chunkPromises = [];
+      for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
+        const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE);
+        chunkPromises.push(
+          serverSupabase.from('submissions').insert(chunk)
+        );
+      }
+      await Promise.all(chunkPromises);
+
+      // Invalidate count cache
+      cachedSubmissionCounts = null;
+
+      try {
+        const channel = serverSupabase.channel(`submissions_stream_${targetEventId}`);
+        channel.send({
+          type: 'broadcast',
+          event: 'submissions_batch_imported',
+          payload: { count: rowsToInsert.length, eventId: targetEventId },
+        });
+      } catch (broadcastErr) {}
 
       return NextResponse.json({
         success: true,
-        count: importedCount,
+        count: rowsToInsert.length,
         eventId: targetEventId,
-        submissions: results,
       });
     }
 

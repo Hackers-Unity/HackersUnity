@@ -20,7 +20,7 @@ import {
   ClipboardPaste,
   RefreshCw,
 } from 'lucide-react';
-import { ProjectSubmission, saveProjectSubmission } from '@/lib/storage';
+import { ProjectSubmission, saveBatchProjectSubmissions } from '@/lib/storage';
 
 interface SheetImportModalProps {
   isOpen: boolean;
@@ -360,12 +360,10 @@ export function SheetImportModal({
         };
       });
 
-      // 1. Instant local persistence for each submission
-      generatedSubmissions.forEach((sub) => {
-        saveProjectSubmission(sub);
-      });
+      // 1. Instant local persistence in one single batch (0 extra HTTP requests)
+      saveBatchProjectSubmissions(generatedSubmissions);
 
-      // 2. Synchronize to server API / Supabase batch endpoint
+      // 2. Synchronize to server API / Supabase in a single fast parallel chunked batch
       try {
         await fetch('/api/submissions', {
           method: 'POST',
@@ -401,14 +399,14 @@ export function SheetImportModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  Upload &amp; Auto-Organize Sheet
+                  Simple Sheet Import
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/25">
-                  AI Auto-Parser
+                  Fast Import
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Upload Google Sheets / Excel CSV to automatically map projects, tracks, and links.
+                Simple 1-click import from Google Sheets or CSV files.
               </p>
             </div>
           </div>
@@ -674,12 +672,12 @@ export function SheetImportModal({
             {isProcessing ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Importing &amp; Organizing...</span>
+                <span>Importing...</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Import &amp; Organize {validCount > 0 ? `(${validCount} Projects)` : ''}</span>
+                <span>Simple Import {validCount > 0 ? `(${validCount} Projects)` : ''}</span>
               </>
             )}
           </button>

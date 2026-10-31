@@ -979,15 +979,15 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
             <span>Download All Reports (PDF)</span>
           </button>
 
-          {/* Upload / Import Sheet Button */}
+          {/* Upload / Simple Import Sheet Button */}
           <button
             type="button"
             onClick={() => setShowSheetImportModal(true)}
             className="px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
-            title="Upload CSV or paste Google Sheet to automatically arrange & import submissions"
+            title="Simple 1-click import from Google Sheets or CSV files"
           >
             <Upload className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Upload Sheet / CSV</span>
+            <span>Simple Import Sheet</span>
           </button>
 
           <button
