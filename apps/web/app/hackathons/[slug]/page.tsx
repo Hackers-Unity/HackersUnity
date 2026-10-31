@@ -83,6 +83,7 @@ import {
   checkPaymentStatusSupabase,
   fetchEventSubmissions,
   fetchEventTeams,
+  fetchUserSubmissionForEvent,
 } from '@/lib/supabase-service';
 import { EventStatus } from '@hackers-unity/shared-types';
 import { useAuth } from '@/lib/auth-context';
@@ -340,6 +341,20 @@ function HackathonDetailContent({ params }: PageProps) {
       });
 
       setEventProjects(enriched);
+
+      // Auto-sync current builder's submission if found in projects
+      const currentUid = supabaseUser?.id || user?.id;
+      if (currentUid) {
+        const foundUserSub = enriched.find(
+          (s) =>
+            s.submittedBy === currentUid ||
+            (userSquad?.id && s.teamId === userSquad.id) ||
+            (s.teamMembers && s.teamMembers.some((m: any) => m.userId === currentUid || m.id === currentUid))
+        );
+        if (foundUserSub) {
+          setUserSubmission(foundUserSub);
+        }
+      }
     } catch (err) {
       console.warn('Error loading projects:', err);
     } finally {
@@ -363,15 +378,33 @@ function HackathonDetailContent({ params }: PageProps) {
 
   useEffect(() => {
     if (!event) return;
-    const checkSubmission = () => {
+    let isCancelled = false;
+    const checkSubmission = async () => {
       const userId = supabaseUser?.id || user?.id;
-      const sub = getProjectSubmission(event.id, userId);
-      setUserSubmission(sub);
+      // 1. Instant local check (both UUID and slug)
+      const localSub =
+        getProjectSubmission(event.id, userId, userSquad?.id) ||
+        (event.slug ? getProjectSubmission(event.slug, userId, userSquad?.id) : null);
+      if (localSub && !isCancelled) {
+        setUserSubmission(localSub);
+      }
+      // 2. Async check from Supabase
+      if (userId) {
+        try {
+          const remoteSub = await fetchUserSubmissionForEvent(event.id, userId, userSquad?.id);
+          if (remoteSub && !isCancelled) {
+            setUserSubmission(remoteSub);
+          }
+        } catch {}
+      }
     };
     checkSubmission();
     window.addEventListener('hackers_unity_storage_change', checkSubmission);
-    return () => window.removeEventListener('hackers_unity_storage_change', checkSubmission);
-  }, [event?.id, user?.id, supabaseUser?.id]);
+    return () => {
+      isCancelled = true;
+      window.removeEventListener('hackers_unity_storage_change', checkSubmission);
+    };
+  }, [event?.id, event?.slug, user?.id, supabaseUser?.id, userSquad?.id]);
 
   const sortedProjects = useMemo(() => {
     let list = [...eventProjects];
@@ -2507,7 +2540,10 @@ function HackathonDetailContent({ params }: PageProps) {
         userSquad={userSquad}
         onSuccess={() => {
           const userId = supabaseUser?.id || user?.id;
-          setUserSubmission(getProjectSubmission(event.id, userId));
+          const sub =
+            getProjectSubmission(event.id, userId, userSquad?.id) ||
+            (event.slug ? getProjectSubmission(event.slug, userId, userSquad?.id) : null);
+          if (sub) setUserSubmission(sub);
           loadProjects();
           refresh();
         }}

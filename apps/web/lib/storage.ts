@@ -925,13 +925,25 @@ export function getAllProjectSubmissions(eventId?: string): ProjectSubmission[] 
     const raw = localStorage.getItem(STORAGE_KEYS.SUBMISSIONS);
     const list: ProjectSubmission[] = raw ? JSON.parse(raw) : [];
     if (eventId) {
+      let alternateId: string | null = null;
+      try {
+        const events = getAllEvents();
+        const matched = events.find((e) => e.id === eventId || e.slug === eventId);
+        if (matched) {
+          alternateId = matched.id === eventId ? (matched.slug || null) : matched.id;
+        }
+      } catch {}
+
       const meta = getEventProjectsMeta(eventId);
+      const metaAlt = alternateId ? getEventProjectsMeta(alternateId) : {};
+      const mergedMeta = { ...metaAlt, ...meta };
+
       return list
-        .filter((s) => s.eventId === eventId)
+        .filter((s) => s.eventId === eventId || (alternateId && s.eventId === alternateId))
         .map((s) => ({
           ...s,
-          isPinned: meta[s.id]?.isPinned ?? s.isPinned ?? false,
-          awardTag: meta[s.id]?.awardTag ?? s.awardTag ?? undefined,
+          isPinned: mergedMeta[s.id]?.isPinned ?? s.isPinned ?? false,
+          awardTag: mergedMeta[s.id]?.awardTag ?? s.awardTag ?? undefined,
         }));
     }
     return list;
@@ -944,11 +956,25 @@ export function getEventSubmissionsCount(eventId: string): number {
   return getAllProjectSubmissions(eventId).length;
 }
 
-export function getProjectSubmission(eventId: string, userId?: string): ProjectSubmission | null {
+export function getProjectSubmission(eventId: string, userId?: string, teamId?: string): ProjectSubmission | null {
   const all = getAllProjectSubmissions(eventId);
   if (!all.length) return null;
-  if (userId) {
-    return all.find((s) => s.submittedBy === userId) || null;
+  if (userId || teamId) {
+    return (
+      all.find((s) => {
+        if (userId && s.submittedBy === userId) return true;
+        if (teamId && s.teamId === teamId) return true;
+        if (
+          userId &&
+          s.teamMembers &&
+          Array.isArray(s.teamMembers) &&
+          s.teamMembers.some((m: any) => m.userId === userId || m.id === userId)
+        ) {
+          return true;
+        }
+        return false;
+      }) || null
+    );
   }
   return all[0] || null;
 }
@@ -957,9 +983,25 @@ export function saveProjectSubmission(submission: ProjectSubmission): void {
   if (typeof window === 'undefined') return;
   try {
     const all = getAllProjectSubmissions();
-    const existingIdx = all.findIndex(
-      (s) => s.id === submission.id || (s.eventId === submission.eventId && s.submittedBy === submission.submittedBy)
-    );
+    let alternateId: string | null = null;
+    try {
+      const events = getAllEvents();
+      const matched = events.find((e) => e.id === submission.eventId || e.slug === submission.eventId);
+      if (matched) {
+        alternateId = matched.id === submission.eventId ? (matched.slug || null) : matched.id;
+      }
+    } catch {}
+
+    const existingIdx = all.findIndex((s) => {
+      if (s.id === submission.id) return true;
+      const eventMatches =
+        s.eventId === submission.eventId || (alternateId && s.eventId === alternateId);
+      if (!eventMatches) return false;
+      if (s.submittedBy && submission.submittedBy && s.submittedBy === submission.submittedBy) return true;
+      if (s.teamId && submission.teamId && s.teamId === submission.teamId) return true;
+      return false;
+    });
+
     let updated: ProjectSubmission[];
     if (existingIdx >= 0) {
       updated = [...all];

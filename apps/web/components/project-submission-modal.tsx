@@ -36,6 +36,7 @@ import {
 import {
   saveSubmissionSupabase,
   deleteSubmissionSupabase,
+  fetchUserSubmissionForEvent,
 } from '@/lib/supabase-service';
 
 interface ProjectSubmissionModalProps {
@@ -51,6 +52,9 @@ interface ProjectSubmissionModalProps {
   submissionDeadline?: string | null;
   timezone?: string | null;
   tags?: string[];
+  currentUserId?: string;
+  currentUserName?: string;
+  currentUserEmail?: string;
   userSquad?: any;
   onSuccess?: () => void;
   onDelete?: () => void;
@@ -69,14 +73,17 @@ export function ProjectSubmissionModal({
   submissionDeadline,
   timezone,
   tags,
+  currentUserId: propUserId,
+  currentUserName: propUserName,
+  currentUserEmail: propUserEmail,
   userSquad,
   onSuccess,
   onDelete,
 }: ProjectSubmissionModalProps) {
   const { user, supabaseUser } = useAuth();
-  const currentUserId = supabaseUser?.id || user?.id || 'usr_builder';
-  const currentUserName = user?.name || supabaseUser?.user_metadata?.name || 'Hacker Builder';
-  const currentUserEmail = supabaseUser?.email || user?.email || '';
+  const currentUserId = propUserId || supabaseUser?.id || user?.id || 'usr_builder';
+  const currentUserName = propUserName || user?.name || supabaseUser?.user_metadata?.name || 'Hacker Builder';
+  const currentUserEmail = propUserEmail || supabaseUser?.email || user?.email || '';
 
   // Form Fields State
   const [title, setTitle] = useState('');
@@ -128,13 +135,14 @@ export function ProjectSubmissionModal({
   // Load existing submission if already submitted
   useEffect(() => {
     if (!isOpen) return;
-    const existing = getProjectSubmission(eventId, currentUserId);
-    if (existing) {
-      setTitle(existing.projectTitle);
+    let isCancelled = false;
+
+    const populate = (existing: ProjectSubmission) => {
+      setTitle(existing.projectTitle || '');
       setTagline(existing.tagline || '');
       setTrack(existing.track || trackOptions[0] || 'General');
-      setDescription(existing.projectDescription);
-      setProjectLink(existing.projectLink);
+      setDescription(existing.projectDescription || '');
+      setProjectLink(existing.projectLink || '');
       setDemoVideoUrl(existing.demoVideoUrl || '');
       setPresentationUrl(existing.presentationUrl || '');
       setAdditionalResources(existing.additionalResources || '');
@@ -143,6 +151,11 @@ export function ProjectSubmissionModal({
       setSubmitterName(existing.submittedByName || currentUserName);
       setSubmissionData(existing);
       setIsSubmitted(true);
+    };
+
+    const existing = getProjectSubmission(eventId, currentUserId, userSquad?.id);
+    if (existing) {
+      populate(existing);
     } else {
       setTitle('');
       setTagline('');
@@ -157,11 +170,23 @@ export function ProjectSubmissionModal({
       setSubmitterName(currentUserName);
       setIsSubmitted(false);
       setSubmissionData(null);
+
+      if (currentUserId && currentUserId !== 'usr_builder') {
+        fetchUserSubmissionForEvent(eventId, currentUserId, userSquad?.id).then((remote) => {
+          if (remote && !isCancelled) {
+            populate(remote);
+          }
+        });
+      }
     }
     setErrors({});
     setTouched({});
     setShowDeleteConfirm(false);
-  }, [isOpen, eventId, currentUserId, currentUserName]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, eventId, currentUserId, currentUserName, userSquad?.id]);
 
   // Deliverable Configuration based on Host Settings
   const getFieldConfig = (fieldId: string) => {

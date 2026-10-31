@@ -67,6 +67,7 @@ import {
   getEventRegistrationsCount,
   UserRegistrationItem,
   getProjectSubmission,
+  getAllProjectSubmissions,
   getEventSubmissionsCount,
   ProjectSubmission,
 } from '@/lib/storage';
@@ -84,6 +85,7 @@ import {
   fetchAllRegistrationCounts,
   subscribeToAllRegistrations,
   fetchUserPaymentsSupabase,
+  fetchUserSubmissions,
 } from '@/lib/supabase-service';
 import { supabase } from '@/lib/supabase';
 import { HackathonCard } from '@/components/hackathon-card';
@@ -134,6 +136,7 @@ export default function DashboardPage() {
 
   // Realtime Data States
   const [registrations, setRegistrations] = useState<UserRegistrationItem[]>([]);
+  const [userSubmissions, setUserSubmissions] = useState<Record<string, ProjectSubmission>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [allEvents, setAllEvents] = useState<ExtendedEvent[]>([]);
   const [myHostedEvents, setMyHostedEvents] = useState<ExtendedEvent[]>([]);
@@ -240,7 +243,7 @@ export default function DashboardPage() {
       );
 
       // Parallel remote fetch for maximum load speed
-      const [published, remoteRegs, hosted, userPayments] = await Promise.all([
+      const [published, remoteRegs, hosted, userPayments, remoteSubs] = await Promise.all([
         fetchPublishedEvents(),
         isDbUser ? fetchUserRegistrations(userId!) : Promise.resolve([]),
         isDbUser ? fetchOrganizerEvents(userId!) : Promise.resolve([]),
@@ -250,7 +253,25 @@ export default function DashboardPage() {
               scope: isAdminOrOrganizer ? 'all' : 'user',
             })
           : Promise.resolve([]),
+        isDbUser ? fetchUserSubmissions(userId!) : Promise.resolve([]),
       ]);
+
+      const subsMap: Record<string, ProjectSubmission> = {};
+      (remoteSubs || []).forEach((sub) => {
+        if (sub.eventId) {
+          subsMap[sub.eventId] = sub;
+        }
+      });
+      // Also enrich with local submissions
+      const localSubs = getAllProjectSubmissions();
+      localSubs.forEach((sub: ProjectSubmission) => {
+        if (sub.eventId && (!sub.submittedBy || sub.submittedBy === userId)) {
+          if (!subsMap[sub.eventId]) {
+            subsMap[sub.eventId] = sub;
+          }
+        }
+      });
+      setUserSubmissions(subsMap);
 
       const eventMap = new Map<string, ExtendedEvent>();
       localEvents.forEach((e) => {
@@ -1901,7 +1922,13 @@ export default function DashboardPage() {
                           {/* Project Deliverable Status */}
                           {(() => {
                             const currentUid = supabaseUser?.id || user?.id;
-                            const projectSub = getProjectSubmission(reg.eventId, currentUid);
+                            const projectSub =
+                              userSubmissions[reg.eventId] ||
+                              (matchedEvent?.id && userSubmissions[matchedEvent.id]) ||
+                              (matchedEvent?.slug && userSubmissions[matchedEvent.slug]) ||
+                              getProjectSubmission(reg.eventId, currentUid) ||
+                              (matchedEvent?.id ? getProjectSubmission(matchedEvent.id, currentUid) : null) ||
+                              (matchedEvent?.slug ? getProjectSubmission(matchedEvent.slug, currentUid) : null);
                             return (
                               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] space-y-2.5">
                                 <div className="flex items-center justify-between">
@@ -3190,6 +3217,9 @@ export default function DashboardPage() {
           onClose={() => setSubmissionModalEvent(null)}
           eventId={submissionModalEvent.id}
           eventName={submissionModalEvent.title}
+          currentUserId={supabaseUser?.id || user?.id || 'usr_builder'}
+          currentUserName={supabaseUser?.user_metadata?.name || user?.name || 'Hacker Builder'}
+          currentUserEmail={supabaseUser?.email || user?.email || ''}
           tracks={submissionModalEvent.tracks?.map((t: any) => t.title || t.name || t) || []}
           submissionFields={submissionModalEvent.submissionFields}
           submissionGuidelines={submissionModalEvent.submissionGuidelines}

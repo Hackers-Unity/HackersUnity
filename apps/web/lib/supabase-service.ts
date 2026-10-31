@@ -16,6 +16,7 @@ import {
   saveHostedEvent,
   ProjectSubmission,
   getAllProjectSubmissions,
+  getProjectSubmission,
   saveProjectSubmission,
   deleteProjectSubmission,
   updateProjectSubmissionStatus,
@@ -4044,6 +4045,177 @@ export async function saveSubmissionSupabase(
   }
 }
 
+export async function fetchUserSubmissionForEvent(
+  eventId: string,
+  userId?: string,
+  teamId?: string
+): Promise<ProjectSubmission | null> {
+  if (!eventId) return null;
+
+  // 1. Instant check from local cache
+  const local = getProjectSubmission(eventId, userId, teamId);
+  if (local) return local;
+
+  try {
+    let resolvedEventId = eventId;
+    let eventSlug: string | null = null;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+
+    const { data: eventRow } = await supabase
+      .from('events')
+      .select('id, slug')
+      .or(isUuid ? `id.eq.${eventId}` : `slug.eq.${eventId}`)
+      .maybeSingle();
+
+    if (eventRow) {
+      resolvedEventId = eventRow.id;
+      eventSlug = eventRow.slug;
+    }
+
+    const eventIdsToSearch = Array.from(new Set([resolvedEventId, eventId, eventSlug].filter(Boolean) as string[]));
+
+    let query = supabase
+      .from('submissions')
+      .select(`
+        *,
+        profiles:submitter_id (
+          id,
+          name,
+          email,
+          avatar_url,
+          college
+        )
+      `)
+      .in('event_id', eventIdsToSearch);
+
+    if (userId && teamId) {
+      query = query.or(`submitter_id.eq.${userId},team_id.eq.${teamId}`);
+    } else if (userId) {
+      query = query.eq('submitter_id', userId);
+    } else if (teamId) {
+      query = query.eq('team_id', teamId);
+    }
+
+    const { data: dbData } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle();
+    let row = dbData;
+
+    // Fallback: try server API endpoint with scope=mine
+    if (!row && typeof window !== 'undefined') {
+      try {
+        const apiRes = await fetch(`/api/submissions?eventId=${encodeURIComponent(resolvedEventId)}&scope=mine`);
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          if (Array.isArray(apiData.submissions) && apiData.submissions.length > 0) {
+            row = apiData.submissions[0];
+          }
+        }
+      } catch {}
+    }
+
+    if (!row) return null;
+
+    const mapped: ProjectSubmission = {
+      id: row.id,
+      eventId: eventId,
+      submittedBy: row.submitter_id,
+      submittedByName: row.profiles?.name || 'Hacker Builder',
+      submittedByEmail: row.profiles?.email || '',
+      submittedAt: row.created_at,
+      updatedAt: row.updated_at || row.created_at,
+      projectTitle: row.project_name,
+      tagline: row.tagline || '',
+      projectDescription: row.description,
+      projectLink: row.repo_url,
+      demoVideoUrl: row.demo_url || row.video_url || '',
+      track: row.track || 'General',
+      score: Number(row.score || 0),
+      status: row.status || 'SUBMITTED',
+      teamId: row.team_id || teamId,
+      presentationUrl: row.presentation_url || '',
+      additionalResources: row.additional_resources || '',
+    };
+
+    saveProjectSubmission(mapped);
+    return mapped;
+  } catch (err) {
+    console.warn('Error fetching user submission for event:', err);
+    return null;
+  }
+}
+
+export async function fetchUserSubmissions(
+  userId: string
+): Promise<ProjectSubmission[]> {
+  if (!userId) return [];
+
+  try {
+    const { data: rows } = await supabase
+      .from('submissions')
+      .select(`
+        *,
+        profiles:submitter_id (
+          id,
+          name,
+          email,
+          avatar_url,
+          college
+        )
+      `)
+      .eq('submitter_id', userId)
+      .order('created_at', { ascending: false });
+
+    let fetchedRows = rows || [];
+
+    if (fetchedRows.length === 0 && typeof window !== 'undefined') {
+      try {
+        const apiRes = await fetch(`/api/submissions?scope=user&userId=${encodeURIComponent(userId)}`);
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          if (Array.isArray(apiData.submissions)) {
+            fetchedRows = apiData.submissions;
+          }
+        }
+      } catch {}
+    }
+
+    if (!fetchedRows || fetchedRows.length === 0) {
+      const allLocal = getAllProjectSubmissions();
+      return allLocal.filter((s) => s.submittedBy === userId);
+    }
+
+    const mappedList: ProjectSubmission[] = fetchedRows.map((row: any) => {
+      const sub: ProjectSubmission = {
+        id: row.id,
+        eventId: row.event_id,
+        submittedBy: row.submitter_id,
+        submittedByName: row.profiles?.name || 'Hacker Builder',
+        submittedByEmail: row.profiles?.email || '',
+        submittedAt: row.created_at,
+        updatedAt: row.updated_at || row.created_at,
+        projectTitle: row.project_name,
+        tagline: row.tagline || '',
+        projectDescription: row.description,
+        projectLink: row.repo_url,
+        demoVideoUrl: row.demo_url || row.video_url || '',
+        track: row.track || 'General',
+        score: Number(row.score || 0),
+        status: row.status || 'SUBMITTED',
+        teamId: row.team_id,
+        presentationUrl: row.presentation_url || '',
+        additionalResources: row.additional_resources || '',
+      };
+      saveProjectSubmission(sub);
+      return sub;
+    });
+
+    return mappedList;
+  } catch (err) {
+    console.warn('Error fetching user submissions:', err);
+    const allLocal = getAllProjectSubmissions();
+    return allLocal.filter((s) => s.submittedBy === userId);
+  }
+}
+
 export async function fetchEventSubmissions(
   eventId: string
 ): Promise<ProjectSubmission[]> {
@@ -4051,17 +4223,30 @@ export async function fetchEventSubmissions(
 
   try {
     let resolvedEventId = eventId;
+    let eventSlug: string | null = null;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
     if (!isUuid) {
       const { data: eventRow } = await supabase
         .from('events')
-        .select('id')
+        .select('id, slug')
         .eq('slug', eventId)
         .maybeSingle();
       if (eventRow?.id) {
         resolvedEventId = eventRow.id;
+        eventSlug = eventRow.slug;
+      }
+    } else {
+      const { data: eventRow } = await supabase
+        .from('events')
+        .select('id, slug')
+        .eq('id', eventId)
+        .maybeSingle();
+      if (eventRow?.slug) {
+        eventSlug = eventRow.slug;
       }
     }
+
+    const targetEventIds = Array.from(new Set([resolvedEventId, eventId, eventSlug].filter(Boolean) as string[]));
 
     const { data, error } = await supabase
       .from('submissions')
@@ -4075,7 +4260,7 @@ export async function fetchEventSubmissions(
           college
         )
       `)
-      .eq('event_id', resolvedEventId)
+      .in('event_id', targetEventIds)
       .order('created_at', { ascending: false });
 
     let rows = data || [];
@@ -4103,7 +4288,7 @@ export async function fetchEventSubmissions(
         : (local?.status || row.status || 'SUBMITTED');
       const effectiveScore = Number(row.score !== undefined && row.score !== null ? row.score : (local?.score || 0));
 
-      return {
+      const mappedSub: ProjectSubmission = {
         id: row.id,
         eventId: eventId,
         submittedBy: row.submitter_id,
@@ -4128,6 +4313,10 @@ export async function fetchEventSubmissions(
         isPinned: local?.isPinned,
         awardTag: local?.awardTag,
       };
+
+      // Cache locally
+      saveProjectSubmission(mappedSub);
+      return mappedSub;
     });
 
     // Deduplicate with local list (read-only merge without triggering mutation broadcasts)

@@ -94,12 +94,51 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const eventId = searchParams.get('eventId');
+    const scope = searchParams.get('scope'); // 'mine' | 'user' | 'all'
+    const requestedUserId = searchParams.get('userId');
+
+    const serverSupabase = createAdminClient();
+
+    // 1. User-level submissions across all events
+    if (scope === 'user' || (!eventId && requestedUserId)) {
+      const targetUser = requestedUserId || auth.userId;
+      const { data: callerProfile } = await serverSupabase
+        .from('profiles')
+        .select('role')
+        .eq('id', auth.userId)
+        .maybeSingle();
+
+      const isAdmin = callerProfile?.role === 'ADMIN' || callerProfile?.role === 'SUPER_ADMIN';
+      if (targetUser !== auth.userId && !isAdmin) {
+        return forbiddenResponse('You are not authorized to view submissions for other users.');
+      }
+
+      const { data: userSubs, error: userSubsErr } = await serverSupabase
+        .from('submissions')
+        .select(`
+          *,
+          profiles:submitter_id (
+            id,
+            name,
+            email,
+            avatar_url,
+            college
+          )
+        `)
+        .eq('submitter_id', targetUser)
+        .order('created_at', { ascending: false });
+
+      if (userSubsErr) {
+        return NextResponse.json({ error: userSubsErr.message, submissions: [] }, { status: 200 });
+      }
+
+      return NextResponse.json({ success: true, submissions: userSubs || [] });
+    }
 
     if (!eventId) {
       return NextResponse.json({ error: 'Missing eventId parameter' }, { status: 400 });
     }
 
-    const serverSupabase = createAdminClient();
     let resolvedEventId = eventId;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
     let eventQuery = serverSupabase.from('events').select('id, organizer_id').limit(1);
@@ -128,7 +167,6 @@ export async function GET(req: Request) {
     }
 
     const isOrganizer = eventData.organizer_id === auth.userId;
-    // SELINE: only admin/super-admin or verified co-hosts can view submissions for this event
     const isAdmin = callerProfile?.role === 'ADMIN' || callerProfile?.role === 'SUPER_ADMIN';
 
     let isCoHost = false;
@@ -142,10 +180,32 @@ export async function GET(req: Request) {
       isCoHost = Boolean(adminRecord);
     }
 
-    if (!isOrganizer && !isCoHost && !isAdmin) {
-      return forbiddenResponse('You are not authorized to view submissions for this event.');
+    // If caller is participant or requesting their own submission:
+    if (scope === 'mine' || (!isOrganizer && !isCoHost && !isAdmin)) {
+      const { data: mySubmissions, error: mySubmissionsError } = await serverSupabase
+        .from('submissions')
+        .select(`
+          *,
+          profiles:submitter_id (
+            id,
+            name,
+            email,
+            avatar_url,
+            college
+          )
+        `)
+        .eq('event_id', resolvedEventId)
+        .eq('submitter_id', auth.userId)
+        .order('created_at', { ascending: false });
+
+      if (mySubmissionsError) {
+        return NextResponse.json({ error: mySubmissionsError.message, submissions: [] }, { status: 200 });
+      }
+
+      return NextResponse.json({ success: true, submissions: mySubmissions || [] });
     }
 
+    // Host, Co-host, or Admin: return all submissions for this event
     const { data, error } = await serverSupabase
       .from('submissions')
       .select(`
