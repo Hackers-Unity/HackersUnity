@@ -106,20 +106,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      if (session?.user) {
-        setSupabaseUser(session.user);
-        const tempUser = buildUserFromMeta(session.user);
-        setUser((prev) => prev || tempUser);
-        await syncProfileFromSupabaseUser(session.user);
-      } else {
-        const stored = getStoredUser();
-        if (stored) {
-          setUser(stored);
+      try {
+        // Race getSession with a 2.5-second timeout so a slow/unhealthy Supabase Auth never freezes page load
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 2500)
+        );
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+
+        setSession(session);
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          const tempUser = buildUserFromMeta(session.user);
+          setUser((prev) => prev || tempUser);
+          // Sync profile non-blockingly in the background so UI renders instantly
+          syncProfileFromSupabaseUser(session.user).catch(() => {});
+        } else {
+          const stored = getStoredUser();
+          if (stored) {
+            setUser(stored);
+          }
         }
+      } catch (authInitErr) {
+        console.warn('Auth init timeout/error (using cached session):', authInitErr);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     initAuth();
@@ -156,11 +168,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncProfileFromSupabaseUser = async (sbUser: SupabaseUser) => {
     try {
       const saved = getPermanentProfile(sbUser.id) || (sbUser.email ? getPermanentProfile(sbUser.email) : null);
-      const { data: profile } = await supabase
+      
+      // 3-second timeout so an unhealthy PostgREST never hangs user profile resolution
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', sbUser.id)
         .maybeSingle();
+      const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+        setTimeout(() => resolve({ data: null }), 3000)
+      );
+      const { data: profile } = await Promise.race([profilePromise, timeoutPromise]);
 
       const meta = sbUser.user_metadata || {};
 
