@@ -9,16 +9,16 @@ export interface HeroPhoto {
 
 const HERO_PHOTOS: HeroPhoto[] = [
   {
-    url: 'https://res.cloudinary.com/p6qljeni/image/upload/v1793192595/hackers-unity/gallery-moments/StellarHU2.jpg',
+    url: 'https://res.cloudinary.com/p6qljeni/image/upload/f_auto,q_auto,w_1000/v1793192595/hackers-unity/gallery-moments/StellarHU2.jpg',
   },
   {
-    url: 'https://res.cloudinary.com/p6qljeni/image/upload/v1793192220/hackers-unity/gallery-moments/StellarHU.jpg',
+    url: 'https://res.cloudinary.com/p6qljeni/image/upload/f_auto,q_auto,w_1000/v1793192220/hackers-unity/gallery-moments/StellarHU.jpg',
   },
   {
-    url: 'https://res.cloudinary.com/p6qljeni/image/upload/v1793191985/hackers-unity/gallery-moments/CodeWars5.jpg',
+    url: 'https://res.cloudinary.com/p6qljeni/image/upload/f_auto,q_auto,w_1000/v1793191985/hackers-unity/gallery-moments/CodeWars5.jpg',
   },
   {
-    url: 'https://res.cloudinary.com/p6qljeni/image/upload/v1793191867/hackers-unity/gallery-moments/hackstorm_hall.jpg',
+    url: 'https://res.cloudinary.com/p6qljeni/image/upload/f_auto,q_auto,w_1000/v1793191867/hackers-unity/gallery-moments/hackstorm_hall.jpg',
   },
 ];
 

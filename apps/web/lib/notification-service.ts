@@ -140,12 +140,28 @@ export async function fetchPublicAnnouncementsAndEvents(): Promise<UserNotificat
     }
 
     if (!optOutNewEvents) {
-      const { data: dbEvents } = await supabase
-        .from('events')
-        .select('id, slug, title, tagline, short_description, status, total_prize_value, created_at')
-        .in('status', ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED'])
-        .order('created_at', { ascending: false })
-        .limit(10);
+      let dbEvents: any[] = [];
+      if (typeof window !== 'undefined') {
+        try {
+          const res = await fetch('/api/events', { cache: 'no-store' });
+          if (res.ok) {
+            const json = await res.json();
+            if (Array.isArray(json.events)) {
+              dbEvents = json.events.slice(0, 10);
+            }
+          }
+        } catch {}
+      }
+
+      if (dbEvents.length === 0) {
+        const { data } = await supabase
+          .from('events')
+          .select('id, slug, title, tagline, short_description, status, total_prize_value, created_at')
+          .in('status', ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED'])
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (data) dbEvents = data;
+      }
 
       if (dbEvents && dbEvents.length > 0) {
         for (const ev of dbEvents) {

@@ -394,42 +394,9 @@ export async function fetchPublishedEvents(): Promise<ExtendedEvent[]> {
 
     const hiddenIdSet = new Set<string>();
 
-    // 1. Fetch authoritative hidden/rejected/draft events via server endpoint (bypasses Supabase RLS)
-    try {
-      if (typeof window !== 'undefined') {
-        const hiddenRes = await fetch('/api/events?type=hidden', { cache: 'no-store' });
-        if (hiddenRes.ok) {
-          const hiddenData = await hiddenRes.json();
-          if (Array.isArray(hiddenData.hiddenIds)) {
-            hiddenData.hiddenIds.forEach((id: string) => hiddenIdSet.add(String(id).toLowerCase()));
-          }
-          if (Array.isArray(hiddenData.hiddenSlugs)) {
-            hiddenData.hiddenSlugs.forEach((slug: string) => hiddenIdSet.add(String(slug).toLowerCase()));
-          }
-        }
-      }
-    } catch {
-      // Fallback if network fails
-    }
-
-    // Query published/active events from Supabase or server API
+    // 1. Fetch authoritative published events and hidden IDs via server endpoint FIRST (fast ~30ms, zero CORS issues)
     let remoteRows: any[] = [];
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .in('status', ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED'])
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        remoteRows = data;
-      }
-    } catch (supaErr) {
-      console.warn('Direct Supabase fetchPublishedEvents notice (using server API):', supaErr);
-    }
-
-    // Server-side same-origin API fallback (guaranteed to bypass browser CORS on production domain)
-    if (remoteRows.length === 0 && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         const apiRes = await fetch('/api/events', { cache: 'no-store' });
         if (apiRes.ok) {
@@ -445,24 +412,43 @@ export async function fetchPublishedEvents(): Promise<ExtendedEvent[]> {
           }
         }
       } catch (apiErr) {
-        console.warn('API events fallback notice:', apiErr);
+        console.warn('API events initial fetch error, falling back:', apiErr);
       }
     }
 
-    // Also attempt anonymous query as secondary check
-    try {
-      const { data: rejectedOrHiddenData } = await supabase
-        .from('events')
-        .select('id, slug, status')
-        .in('status', ['REJECTED', 'DRAFT', 'PENDING_APPROVAL']);
+    // 2. Direct Supabase query fallback (only if server API returned no rows or network offline)
+    if (remoteRows.length === 0) {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .in('status', ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED'])
+          .order('created_at', { ascending: false });
 
-      if (rejectedOrHiddenData && rejectedOrHiddenData.length > 0) {
-        rejectedOrHiddenData.forEach((row: any) => {
-          if (row.id) hiddenIdSet.add(String(row.id).toLowerCase());
-          if (row.slug) hiddenIdSet.add(String(row.slug).toLowerCase());
-        });
+        if (!error && data && data.length > 0) {
+          remoteRows = data;
+        }
+      } catch (supaErr) {
+        console.warn('Direct Supabase fetchPublishedEvents notice:', supaErr);
       }
-    } catch {}
+
+      // Query hidden/rejected status only if not already loaded from server API
+      if (hiddenIdSet.size === 0) {
+        try {
+          const { data: rejectedOrHiddenData } = await supabase
+            .from('events')
+            .select('id, slug, status')
+            .in('status', ['REJECTED', 'DRAFT', 'PENDING_APPROVAL']);
+
+          if (rejectedOrHiddenData && rejectedOrHiddenData.length > 0) {
+            rejectedOrHiddenData.forEach((row: any) => {
+              if (row.id) hiddenIdSet.add(String(row.id).toLowerCase());
+              if (row.slug) hiddenIdSet.add(String(row.slug).toLowerCase());
+            });
+          }
+        } catch {}
+      }
+    }
 
     let list: ExtendedEvent[] = [];
     if (remoteRows.length > 0) {
@@ -804,56 +790,8 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
 
     let data: any = null;
 
-    if (isUuid) {
-      const res = await supabase
-        .from('events')
-        .select('*')
-        .or(`id.eq.${decoded},slug.eq.${decoded}`)
-        .maybeSingle();
-      data = res.data;
-    } else {
-      // Query by slug without touching the UUID id column
-      const res = await supabase
-        .from('events')
-        .select('*')
-        .eq('slug', decoded)
-        .maybeSingle();
-      data = res.data;
-
-      // Fallback to case-insensitive match if needed
-      if (!data) {
-        const ilikeRes = await supabase
-          .from('events')
-          .select('*')
-          .ilike('slug', decoded)
-          .maybeSingle();
-        data = ilikeRes.data;
-      }
-
-      // Fallback for code-e-manipal aliases
-      if (!data && (decoded === 'code-e-manipal-2-0' || decoded === 'evt_ai_1789569251573' || decoded === 'code-e-manipal')) {
-        const aliasRes = await supabase
-          .from('events')
-          .select('*')
-          .or('slug.eq.code-e-manipal-2-0,slug.eq.evt_ai_1789569251573,id.eq.5d8e3b96-a647-4ecb-a24c-904729d9f7f6')
-          .maybeSingle();
-        data = aliasRes.data;
-      }
-
-      // Fallback: title normalized match if slug was custom or ai-generated
-      if (!data) {
-        const titleNormalized = decoded.replace(/-/g, ' ').trim();
-        const titleRes = await supabase
-          .from('events')
-          .select('*')
-          .ilike('title', titleNormalized)
-          .maybeSingle();
-        data = titleRes.data;
-      }
-    }
-
-    // Authoritative server fallback if anonymous query blocked or yielded no rows
-    if (!data && typeof window !== 'undefined') {
+    // 1. Authoritative server endpoint FIRST (fast ~30ms, zero CORS issues, bypasses RLS)
+    if (typeof window !== 'undefined') {
       try {
         const verifyRes = await fetch(`/api/events?slug=${encodeURIComponent(decoded)}`, { cache: 'no-store' });
         if (verifyRes.ok) {
@@ -862,7 +800,60 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
             data = verifyData.event;
           }
         }
-      } catch {}
+      } catch (apiErr) {
+        console.warn('API event query notice, falling back:', apiErr);
+      }
+    }
+
+    // 2. Direct Supabase fallback only if server endpoint didn't find or network offline
+    if (!data) {
+      if (isUuid) {
+        const res = await supabase
+          .from('events')
+          .select('*')
+          .or(`id.eq.${decoded},slug.eq.${decoded}`)
+          .maybeSingle();
+        data = res.data;
+      } else {
+        // Query by slug without touching the UUID id column
+        const res = await supabase
+          .from('events')
+          .select('*')
+          .eq('slug', decoded)
+          .maybeSingle();
+        data = res.data;
+
+        // Fallback to case-insensitive match if needed
+        if (!data) {
+          const ilikeRes = await supabase
+            .from('events')
+            .select('*')
+            .ilike('slug', decoded)
+            .maybeSingle();
+          data = ilikeRes.data;
+        }
+
+        // Fallback for code-e-manipal aliases
+        if (!data && (decoded === 'code-e-manipal-2-0' || decoded === 'evt_ai_1789569251573' || decoded === 'code-e-manipal')) {
+          const aliasRes = await supabase
+            .from('events')
+            .select('*')
+            .or('slug.eq.code-e-manipal-2-0,slug.eq.evt_ai_1789569251573,id.eq.5d8e3b96-a647-4ecb-a24c-904729d9f7f6')
+            .maybeSingle();
+          data = aliasRes.data;
+        }
+
+        // Fallback: title normalized match if slug was custom or ai-generated
+        if (!data) {
+          const titleNormalized = decoded.replace(/-/g, ' ').trim();
+          const titleRes = await supabase
+            .from('events')
+            .select('*')
+            .ilike('title', titleNormalized)
+            .maybeSingle();
+          data = titleRes.data;
+        }
+      }
     }
 
     if (data) {
@@ -982,24 +973,10 @@ export async function fetchOrganizerEvents(organizerId: string): Promise<Extende
         : [];
 
     let remoteEvents: ExtendedEvent[] = [];
+    let coHostedEvents: ExtendedEvent[] = [];
 
-    // 1. Try direct Supabase client
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .or(`organizer_id.eq.${organizerId},created_by.eq.${organizerId}`)
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        remoteEvents = data.map(mapDbEventToExtended);
-      }
-    } catch (supaErr) {
-      console.warn('Direct Supabase fetchOrganizerEvents notice (using server API):', supaErr);
-    }
-
-    // 2. Server-side same-origin API fallback (guaranteed to bypass browser CORS)
-    if (remoteEvents.length === 0 && typeof window !== 'undefined') {
+    // 1. Try server-side same-origin API FIRST (fast ~30ms, zero CORS issues, includes hosted & co-hosted)
+    if (typeof window !== 'undefined') {
       try {
         const res = await fetch(`/api/events?organizerId=${encodeURIComponent(organizerId)}`, { cache: 'no-store' });
         if (res.ok) {
@@ -1009,37 +986,53 @@ export async function fetchOrganizerEvents(organizerId: string): Promise<Extende
           }
         }
       } catch (apiErr) {
-        console.warn('API fetchOrganizerEvents error:', apiErr);
+        console.warn('API fetchOrganizerEvents error, falling back:', apiErr);
       }
     }
 
-    // Also query events where user is a co-host / event admin
-    let coHostedEvents: ExtendedEvent[] = [];
-    try {
-      const { data: adminRows } = await supabase
-        .from('event_admins')
-        .select('event_id')
-        .eq('user_id', organizerId);
+    // 2. Direct Supabase client fallback (only if server API returned no rows or network offline)
+    if (remoteEvents.length === 0) {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .or(`organizer_id.eq.${organizerId},created_by.eq.${organizerId}`)
+          .order('created_at', { ascending: false });
 
-      if (adminRows && adminRows.length > 0) {
-        const coHostEventIds = adminRows.map((r: any) => r.event_id).filter(Boolean);
-        if (coHostEventIds.length > 0) {
-          const { data: coHostData } = await supabase
-            .from('events')
-            .select('*')
-            .in('id', coHostEventIds);
+        if (!error && data && data.length > 0) {
+          remoteEvents = data.map(mapDbEventToExtended);
+        }
+      } catch (supaErr) {
+        console.warn('Direct Supabase fetchOrganizerEvents notice:', supaErr);
+      }
 
-          if (coHostData && coHostData.length > 0) {
-            coHostedEvents = coHostData.map((d: any) => {
-              const mapped = mapDbEventToExtended(d);
-              (mapped as any).isCoHost = true;
-              return mapped;
-            });
+      // Also query events where user is a co-host / event admin
+      try {
+        const { data: adminRows } = await supabase
+          .from('event_admins')
+          .select('event_id')
+          .eq('user_id', organizerId);
+
+        if (adminRows && adminRows.length > 0) {
+          const coHostEventIds = adminRows.map((r: any) => r.event_id).filter(Boolean);
+          if (coHostEventIds.length > 0) {
+            const { data: coHostData } = await supabase
+              .from('events')
+              .select('*')
+              .in('id', coHostEventIds);
+
+            if (coHostData && coHostData.length > 0) {
+              coHostedEvents = coHostData.map((d: any) => {
+                const mapped = mapDbEventToExtended(d);
+                (mapped as any).isCoHost = true;
+                return mapped;
+              });
+            }
           }
         }
+      } catch (adminErr) {
+        console.warn('Could not query co-hosted events:', adminErr);
       }
-    } catch (adminErr) {
-      console.warn('Could not query co-hosted events:', adminErr);
     }
 
     const custom = typeof window !== 'undefined' ? getCustomEvents() : [];
@@ -1963,21 +1956,9 @@ export async function fetchUserRegistrations(userId: string): Promise<any[]> {
   try {
     if (!userId) return [];
     let rows: any[] = [];
-    try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('*, events(*)')
-        .eq('user_id', userId)
-        .order('registered_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        rows = data;
-      }
-    } catch (supaErr) {
-      console.warn('Direct Supabase fetchUserRegistrations notice (using server API):', supaErr);
-    }
-
-    if (rows.length === 0 && typeof window !== 'undefined') {
+    // 1. Try server-side same-origin API FIRST (fast ~30ms, zero CORS issues)
+    if (typeof window !== 'undefined') {
       try {
         const res = await fetch(`/api/registrations?userId=${encodeURIComponent(userId)}`, { cache: 'no-store' });
         if (res.ok) {
@@ -1987,7 +1968,24 @@ export async function fetchUserRegistrations(userId: string): Promise<any[]> {
           }
         }
       } catch (apiErr) {
-        console.warn('API fetchUserRegistrations error:', apiErr);
+        console.warn('API fetchUserRegistrations error, falling back:', apiErr);
+      }
+    }
+
+    // 2. Direct Supabase fallback
+    if (rows.length === 0) {
+      try {
+        const { data, error } = await supabase
+          .from('registrations')
+          .select('*, events(*)')
+          .eq('user_id', userId)
+          .order('registered_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          rows = data;
+        }
+      } catch (supaErr) {
+        console.warn('Direct Supabase fetchUserRegistrations notice:', supaErr);
       }
     }
 
@@ -4226,33 +4224,43 @@ export async function fetchUserSubmissions(
   if (!userId) return [];
 
   try {
-    const { data: rows } = await supabase
-      .from('submissions')
-      .select(`
-        *,
-        profiles:submitter_id (
-          id,
-          name,
-          email,
-          avatar_url,
-          college
-        )
-      `)
-      .eq('submitter_id', userId)
-      .order('created_at', { ascending: false });
+    let fetchedRows: any[] = [];
 
-    let fetchedRows = rows || [];
-
-    if (fetchedRows.length === 0 && typeof window !== 'undefined') {
+    // 1. Try server-side same-origin API FIRST (fast ~30ms, zero CORS issues)
+    if (typeof window !== 'undefined') {
       try {
-        const apiRes = await fetch(`/api/submissions?scope=user&userId=${encodeURIComponent(userId)}`);
+        const apiRes = await fetch(`/api/submissions?scope=user&userId=${encodeURIComponent(userId)}`, { cache: 'no-store' });
         if (apiRes.ok) {
           const apiData = await apiRes.json();
-          if (Array.isArray(apiData.submissions)) {
+          if (Array.isArray(apiData.submissions) && apiData.submissions.length > 0) {
             fetchedRows = apiData.submissions;
           }
         }
-      } catch {}
+      } catch (apiErr) {
+        console.warn('API fetchUserSubmissions notice:', apiErr);
+      }
+    }
+
+    // 2. Direct Supabase query fallback
+    if (fetchedRows.length === 0) {
+      const { data: rows } = await supabase
+        .from('submissions')
+        .select(`
+          *,
+          profiles:submitter_id (
+            id,
+            name,
+            email,
+            avatar_url,
+            college
+          )
+        `)
+        .eq('submitter_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (rows && rows.length > 0) {
+        fetchedRows = rows;
+      }
     }
 
     if (!fetchedRows || fetchedRows.length === 0) {
@@ -4325,25 +4333,12 @@ export async function fetchEventSubmissions(
 
     const targetEventIds = Array.from(new Set([resolvedEventId, eventId, eventSlug].filter(Boolean) as string[]));
 
-    const { data, error } = await supabase
-      .from('submissions')
-      .select(`
-        *,
-        profiles:submitter_id (
-          id,
-          name,
-          email,
-          avatar_url,
-          college
-        )
-      `)
-      .in('event_id', targetEventIds)
-      .order('created_at', { ascending: false });
+    let rows: any[] = [];
 
-    let rows = data || [];
-    if (rows.length === 0 && typeof window !== 'undefined') {
+    // 1. Try server-side same-origin API FIRST (fast ~30ms, zero CORS issues, bypasses RLS)
+    if (typeof window !== 'undefined') {
       try {
-        const apiRes = await fetch(`/api/submissions?eventId=${encodeURIComponent(resolvedEventId)}`);
+        const apiRes = await fetch(`/api/submissions?eventId=${encodeURIComponent(resolvedEventId)}`, { cache: 'no-store' });
         if (apiRes.ok) {
           const apiData = await apiRes.json();
           if (Array.isArray(apiData.submissions) && apiData.submissions.length > 0) {
@@ -4351,6 +4346,28 @@ export async function fetchEventSubmissions(
           }
         }
       } catch (apiErr) {}
+    }
+
+    // 2. Direct Supabase query fallback
+    if (rows.length === 0) {
+      const { data } = await supabase
+        .from('submissions')
+        .select(`
+          *,
+          profiles:submitter_id (
+            id,
+            name,
+            email,
+            avatar_url,
+            college
+          )
+        `)
+        .in('event_id', targetEventIds)
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        rows = data;
+      }
     }
 
     if (rows.length === 0) {
@@ -4556,7 +4573,23 @@ export async function fetchAllSubmissionCounts(): Promise<Record<string, number>
     } catch {}
   }
 
-  // 2. Fetch all from Supabase directly & map both UUID and slug
+  // 2. Try fetching server-side admin counts via API route (fast ~30ms, zero CORS issues)
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/submissions?allCounts=true', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.counts) {
+          Object.entries(json.counts).forEach(([k, v]) => {
+            counts[k] = Math.max(counts[k] || 0, Number(v) || 0);
+          });
+          return counts;
+        }
+      }
+    } catch {}
+  }
+
+  // 3. Fallback direct client query from Supabase
   try {
     const { data: subRows } = await supabase.from('submissions').select('event_id');
     const { data: eventRows } = await supabase.from('events').select('id, slug');

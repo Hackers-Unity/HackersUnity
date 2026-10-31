@@ -50,12 +50,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setLoading(true);
     }
     try {
-      const [notifResult, countResult] = await Promise.all([
-        fetchUserNotifications(uid, email, 30),
-        getUnreadCount(uid, email),
-      ]);
-      setNotifications(notifResult.data);
-      setUnreadCount(countResult);
+      const notifResult = await fetchUserNotifications(uid, email, 30);
+      const items = notifResult?.data || [];
+      setNotifications(items);
+      setUnreadCount(items.filter((n) => !n.isRead).length);
       hasLoadedOnceRef.current = true;
     } catch (err) {
       console.warn('Error loading notifications:', err);

@@ -86,13 +86,36 @@ function validateWebhookUrl(value: unknown): string | null {
 
 export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+
+    // Public aggregate submission counts for badges/dashboards (zero PII)
+    if (searchParams.get('allCounts') === 'true') {
+      const serverSupabase = createAdminClient();
+      const { data: subRows } = await serverSupabase.from('submissions').select('event_id');
+      const { data: eventRows } = await serverSupabase.from('events').select('id, slug');
+      const counts: Record<string, number> = {};
+      const idToSlug = new Map<string, string>();
+      eventRows?.forEach((e: any) => {
+        if (e.id && e.slug) idToSlug.set(e.id, e.slug);
+      });
+      subRows?.forEach((row: any) => {
+        if (row.event_id) {
+          counts[row.event_id] = (counts[row.event_id] || 0) + 1;
+          const slug = idToSlug.get(row.event_id);
+          if (slug) counts[slug] = (counts[slug] || 0) + 1;
+        }
+      });
+      return NextResponse.json(
+        { success: true, counts },
+        { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+      );
+    }
+
     // SELINE: req without valid session receive unauthorized response
     const auth = await authenticateRequest(req);
     if (!auth) {
       return unauthorizedResponse('You must be signed in to view submissions.');
     }
-
-    const { searchParams } = new URL(req.url);
     const eventId = searchParams.get('eventId');
     const scope = searchParams.get('scope'); // 'mine' | 'user' | 'all'
     const requestedUserId = searchParams.get('userId');
