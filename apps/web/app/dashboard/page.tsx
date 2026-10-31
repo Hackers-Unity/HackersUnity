@@ -2339,10 +2339,11 @@ export default function DashboardPage() {
                             );
                             const count = isPending ? localRegCount : liveCount;
                             const displayBuilders = `${count} Builder${count === 1 ? '' : 's'}`;
+                            const cleanEventParam = (evt.slug && !evt.slug.startsWith('evt_ai_')) ? evt.slug : (evt.id || evt.slug);
 
                             return (
                               <Link
-                                href={`/dashboard/events/${evt.id || evt.slug}/registrations`}
+                                href={`/dashboard/events/${cleanEventParam}/registrations`}
                                 onClick={() => {
                                   try {
                                     sessionStorage.setItem('hackers_unity_current_event', JSON.stringify(evt));
@@ -2423,9 +2424,10 @@ export default function DashboardPage() {
                                 (evt as any).registration_count || 0,
                                 localRegCount
                               );
+                              const cleanEventParam = (evt.slug && !evt.slug.startsWith('evt_ai_')) ? evt.slug : (evt.id || evt.slug);
                               return (
                                 <Link
-                                  href={`/dashboard/events/${evt.id || evt.slug}/registrations`}
+                                  href={`/dashboard/events/${cleanEventParam}/registrations`}
                                   onClick={() => {
                                     try {
                                       sessionStorage.setItem('hackers_unity_current_event', JSON.stringify(evt));
@@ -2463,27 +2465,32 @@ export default function DashboardPage() {
                             })()}
 
                             {/* Submissions Button */}
-                            <Link
-                              href={`/dashboard/events/${evt.id || evt.slug}/submissions`}
-                              onClick={() => {
-                                try {
-                                  sessionStorage.setItem('hackers_unity_current_event', JSON.stringify(evt));
-                                } catch (e) {}
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-                              title="View and Manage Submissions in Google Sheets Table"
-                            >
-                              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              {(() => {
-                                const subCount = Math.max(
-                                  evt.id && submissionCounts[evt.id] ? submissionCounts[evt.id] : 0,
-                                  evt.slug && submissionCounts[evt.slug] ? submissionCounts[evt.slug] : 0,
-                                  evt.id ? getEventSubmissionsCount(evt.id) : 0,
-                                  evt.slug ? getEventSubmissionsCount(evt.slug) : 0
-                                );
-                                return <span>Submissions ({subCount})</span>;
-                              })()}
-                            </Link>
+                            {(() => {
+                              const cleanEventParam = (evt.slug && !evt.slug.startsWith('evt_ai_')) ? evt.slug : (evt.id || evt.slug);
+                              return (
+                                <Link
+                                  href={`/dashboard/events/${cleanEventParam}/submissions`}
+                                  onClick={() => {
+                                    try {
+                                      sessionStorage.setItem('hackers_unity_current_event', JSON.stringify(evt));
+                                    } catch (e) {}
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                                  title="View and Manage Submissions in Google Sheets Table"
+                                >
+                                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  {(() => {
+                                    const subCount = Math.max(
+                                      evt.id && submissionCounts[evt.id] ? submissionCounts[evt.id] : 0,
+                                      evt.slug && submissionCounts[evt.slug] ? submissionCounts[evt.slug] : 0,
+                                      evt.id ? getEventSubmissionsCount(evt.id) : 0,
+                                      evt.slug ? getEventSubmissionsCount(evt.slug) : 0
+                                    );
+                                    return <span>Submissions ({subCount})</span>;
+                                  })()}
+                                </Link>
+                              );
+                            })()}
                           </div>
 
                           {/* Right: Quick Utility Actions (Preview & Delete) */}

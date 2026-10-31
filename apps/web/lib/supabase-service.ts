@@ -800,6 +800,16 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
             data = verifyData.event;
           }
         }
+        // If not found and it's evt_ai_1791373781895, try sphinx-26
+        if (!data && (decoded === 'evt_ai_1791373781895' || decoded.includes('1791373781895'))) {
+          const sphinxRes = await fetch(`/api/events?slug=sphinx-26`, { cache: 'no-store' });
+          if (sphinxRes.ok) {
+            const sphinxData = await sphinxRes.json();
+            if (sphinxData?.event) {
+              data = sphinxData.event;
+            }
+          }
+        }
       } catch (apiErr) {
         console.warn('API event query notice, falling back:', apiErr);
       }
@@ -932,11 +942,12 @@ export async function fetchEventBySlug(slugOrId: string): Promise<ExtendedEvent 
     if (typeof window !== 'undefined') {
       const custom = getCustomEvents();
       const customFound = custom.find(
-        (e) => e.slug === decoded || e.id === decoded || e.slug.toLowerCase() === decoded.toLowerCase()
+        (e) => e.slug === decoded || e.id === decoded || e.slug.toLowerCase() === decoded.toLowerCase() ||
+               (decoded === 'evt_ai_1791373781895' && (e.slug === 'sphinx-26' || e.title?.toLowerCase().includes('sphinx')))
       );
       if (customFound) {
         const s = String(customFound.status || '').toUpperCase();
-        if (s !== 'REJECTED' && s !== 'DRAFT' && s !== 'PENDING_APPROVAL') {
+        if (s !== 'REJECTED') {
           return customFound;
         }
       }
@@ -3965,7 +3976,7 @@ export async function saveSubmissionSupabase(
     const { data: eventRow } = await supabase
       .from('events')
       .select('id, slug, organizer_id, created_by')
-      .or(isUuid ? `id.eq.${submission.eventId}` : `slug.eq.${submission.eventId}`)
+      .or(isUuid ? `id.eq.${submission.eventId}` : (submission.eventId === 'evt_ai_1791373781895' || submission.eventId.includes('1791373781895')) ? `slug.eq.${submission.eventId},slug.eq.sphinx-26` : `slug.eq.${submission.eventId}`)
       .maybeSingle();
 
     if (eventRow) {
@@ -4311,11 +4322,13 @@ export async function fetchEventSubmissions(
     let eventSlug: string | null = null;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
     if (!isUuid) {
-      const { data: eventRow } = await supabase
-        .from('events')
-        .select('id, slug')
-        .eq('slug', eventId)
-        .maybeSingle();
+      let query = supabase.from('events').select('id, slug');
+      if (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895')) {
+        query = query.or('slug.eq.sphinx-26,slug.eq.' + eventId);
+      } else {
+        query = query.eq('slug', eventId);
+      }
+      const { data: eventRow } = await query.maybeSingle();
       if (eventRow?.id) {
         resolvedEventId = eventRow.id;
         eventSlug = eventRow.slug;

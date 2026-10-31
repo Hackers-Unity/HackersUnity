@@ -596,10 +596,15 @@ export function getEventPreviewToken(event: { slug?: string; id?: string; previe
 /**
  * Generate a private, unlisted shareable link for unapproved / draft events
  */
-export function getEventPrivateLink(event: { slug?: string; id?: string; previewToken?: string }, origin?: string): string {
+export function getEventPrivateLink(event: { slug?: string; id?: string; previewToken?: string; title?: string }, origin?: string): string {
   const base = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://hackersunity.com');
   const token = getEventPreviewToken(event);
-  const slug = event.slug || event.id || 'preview';
+  let slug = (event.slug && !event.slug.startsWith('evt_ai_') ? event.slug : null) ||
+             (event.id && !event.id.startsWith('evt_ai_') ? event.id : null);
+  if (!slug && (event.id === 'evt_ai_1791373781895' || event.title?.toLowerCase().includes('sphinx'))) {
+    slug = 'sphinx-26';
+  }
+  slug = slug || event.slug || event.id || 'preview';
   return `${base}/hackathons/${slug}?preview_key=${token}`;
 }
 

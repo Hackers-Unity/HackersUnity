@@ -187,9 +187,30 @@ export async function GET(req: Request) {
     let resolvedEventId = eventId;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
     let eventQuery = serverSupabase.from('events').select('id, organizer_id').limit(1);
-    eventQuery = isUuid ? eventQuery.eq('id', eventId) : eventQuery.eq('slug', eventId);
+    if (isUuid) {
+      eventQuery = eventQuery.eq('id', eventId);
+    } else if (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895') || eventId.toLowerCase().includes('sphinx')) {
+      eventQuery = eventQuery.or(`slug.eq.${eventId},slug.eq.sphinx-26`);
+    } else {
+      eventQuery = eventQuery.eq('slug', eventId);
+    }
 
-    const { data: eventData, error: eventError } = await eventQuery.maybeSingle();
+    let { data: eventData, error: eventError } = await eventQuery.maybeSingle();
+
+    // Fallback: check by Sphinx title / slug if not matched directly
+    if (!eventData && (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895') || eventId.toLowerCase().includes('sphinx'))) {
+      const { data: sphinxEv } = await serverSupabase
+        .from('events')
+        .select('id, organizer_id')
+        .ilike('slug', '%sphinx%')
+        .limit(1)
+        .maybeSingle();
+      if (sphinxEv) {
+        eventData = sphinxEv;
+        eventError = null;
+      }
+    }
+
     if (eventError) {
       return NextResponse.json({ error: 'Failed to load event access details.' }, { status: 500 });
     }
@@ -325,11 +346,31 @@ export async function POST(req: Request) {
       let targetEventId = submission.eventId;
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submission.eventId);
       
-      const { data: ev } = await serverSupabase
+      let query = serverSupabase
         .from('events')
-        .select('id, slug, tags, start_date, end_date')
-        .eq(isUuid ? 'id' : 'slug', submission.eventId)
-        .maybeSingle();
+        .select('id, slug, tags, start_date, end_date');
+
+      if (isUuid) {
+        query = query.eq('id', submission.eventId);
+      } else if (submission.eventId === 'evt_ai_1791373781895' || submission.eventId.includes('1791373781895') || submission.eventId.toLowerCase().includes('sphinx')) {
+        query = query.or(`slug.eq.${submission.eventId},slug.eq.sphinx-26`);
+      } else {
+        query = query.eq('slug', submission.eventId);
+      }
+      
+      let { data: ev } = await query.maybeSingle();
+
+      if (!ev && (submission.eventId === 'evt_ai_1791373781895' || submission.eventId.includes('1791373781895') || submission.eventId.toLowerCase().includes('sphinx') || submission.eventName?.toLowerCase().includes('sphinx'))) {
+        const { data: sphinxEv } = await serverSupabase
+          .from('events')
+          .select('id, slug, tags, start_date, end_date')
+          .ilike('slug', '%sphinx%')
+          .limit(1)
+          .maybeSingle();
+        if (sphinxEv) {
+          ev = sphinxEv;
+        }
+      }
 
       if (ev) {
         targetEventId = ev.id;

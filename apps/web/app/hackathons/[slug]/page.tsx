@@ -129,6 +129,18 @@ function HackathonDetailContent({ params }: PageProps) {
   const { user, supabaseUser } = useAuth();
   const [userSquad, setUserSquad] = useState<any | null>(null);
 
+  // Normalize URL slug if accessed via internal evt_ai_ ID
+  useEffect(() => {
+    if (!event) return;
+    if (resolvedParams.slug && resolvedParams.slug.startsWith('evt_ai_') && event.slug && event.slug !== resolvedParams.slug) {
+      try {
+        const url = new URL(window.location.href);
+        url.pathname = `/hackathons/${event.slug}`;
+        window.history.replaceState(null, '', url.toString());
+      } catch {}
+    }
+  }, [event?.slug, resolvedParams.slug]);
+
   const rawFee = event?.entryFee !== undefined && event?.entryFee !== null
     ? Number(event.entryFee)
     : (event as any)?.entry_fee !== undefined && (event as any)?.entry_fee !== null
