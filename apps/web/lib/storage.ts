@@ -1129,23 +1129,49 @@ export function deleteProjectSubmission(submissionId: string): void {
   }
 }
 
-export function deleteAllProjectSubmissionsForEvent(eventId: string): void {
+export function deleteAllProjectSubmissionsForEvent(eventId: string, extraAliases?: string[]): void {
   if (typeof window === 'undefined') return;
   try {
     const all = getAllProjectSubmissions();
-    let alternateId: string | null = null;
+    const targetSet = new Set<string>([eventId, ...(extraAliases || []).filter(Boolean)]);
+
     try {
       const events = getAllEvents();
-      const matched = events.find((e) => e.id === eventId || e.slug === eventId);
-      if (matched) {
-        alternateId = matched.id === eventId ? (matched.slug || null) : matched.id;
-      }
+      events.forEach((e) => {
+        if (targetSet.has(e.id) || (e.slug && targetSet.has(e.slug))) {
+          if (e.id) targetSet.add(e.id);
+          if (e.slug) targetSet.add(e.slug);
+        }
+      });
     } catch {}
+
+    // Sphinx '26 / evt_ai_1791373781895 known aliases
+    const isSphinxRelated = Array.from(targetSet).some(
+      (id) =>
+        id === 'evt_ai_1791373781895' ||
+        id === 'sphinx-26' ||
+        id === 'ee511926-1089-4171-9090-684e6d179826' ||
+        id.includes('1791373781895') ||
+        id.toLowerCase().includes('sphinx')
+    );
+
+    if (isSphinxRelated) {
+      targetSet.add('evt_ai_1791373781895');
+      targetSet.add('sphinx-26');
+      targetSet.add('ee511926-1089-4171-9090-684e6d179826');
+    }
 
     const remaining: ProjectSubmission[] = [];
     all.forEach((s) => {
-      const matches = s.eventId === eventId || (alternateId && s.eventId === alternateId);
-      if (matches) {
+      const isMatch =
+        targetSet.has(s.eventId) ||
+        (isSphinxRelated && (
+          s.eventId?.toLowerCase().includes('sphinx') ||
+          s.eventId?.includes('1791373781895') ||
+          s.eventName?.toLowerCase().includes('sphinx')
+        ));
+
+      if (isMatch) {
         localStorage.removeItem(`${AI_EVALUATION_PREFIX}${s.id}`);
       } else {
         remaining.push(s);

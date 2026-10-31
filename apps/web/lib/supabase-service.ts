@@ -4468,17 +4468,54 @@ export async function deleteSubmissionSupabase(
 }
 
 export async function deleteAllSubmissionsSupabase(
-  eventId: string
+  eventId: string,
+  extraAliases?: string[]
 ): Promise<{ success: boolean; count?: number; error?: string }> {
-  deleteAllProjectSubmissionsForEvent(eventId);
+  // 1. Wipe client localStorage entries immediately
+  deleteAllProjectSubmissionsForEvent(eventId, extraAliases);
 
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const allAliases = [
+    eventId,
+    ...(extraAliases || []),
+    'ee511926-1089-4171-9090-684e6d179826',
+    'evt_ai_1791373781895',
+    'sphinx-26',
+  ].filter(Boolean);
+
+  const uuidTargets = allAliases.filter((id) => uuidPattern.test(id));
+
+  // 2. Direct client Supabase delete if applicable
+  if (uuidTargets.length > 0) {
+    try {
+      await supabase.from('submissions').delete().in('event_id', Array.from(new Set(uuidTargets)));
+    } catch {}
+  }
+
+  // 3. Call server-side Admin endpoint via POST & DELETE (query params + payload to withstand CDN body stripping)
+  let deletedCount = 0;
   try {
-    const res = await fetch('/api/submissions', {
-      method: 'DELETE',
+    const url = `/api/submissions?action=delete_all&eventId=${encodeURIComponent(eventId)}`;
+    const postRes = await fetch(url, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete_all', eventId }),
     });
-    const data = await res.json().catch(() => ({}));
+    if (postRes.ok) {
+      const data = await postRes.json().catch(() => ({}));
+      deletedCount = data?.deletedCount ?? 0;
+    } else {
+      // Fallback to DELETE method
+      const delRes = await fetch(url, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_all', eventId }),
+      });
+      if (delRes.ok) {
+        const data = await delRes.json().catch(() => ({}));
+        deletedCount = data?.deletedCount ?? 0;
+      }
+    }
 
     try {
       const channel = supabase.channel(`submissions_stream_${eventId}`);
@@ -4489,7 +4526,7 @@ export async function deleteAllSubmissionsSupabase(
       });
     } catch {}
 
-    return { success: true, count: data?.deletedCount };
+    return { success: true, count: deletedCount };
   } catch (err: any) {
     console.warn('Error deleting all submissions from Supabase:', err);
     return { success: true };

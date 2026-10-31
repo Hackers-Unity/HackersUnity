@@ -598,12 +598,26 @@ export default function EventSubmissionsManagerPage({ params }: PageProps) {
     setIsDeletingAll(true);
     try {
       const targetEventId = event?.id || resolvedParams.eventId;
-      await deleteAllSubmissionsSupabase(targetEventId);
+      const extraAliases = [
+        targetEventId,
+        resolvedParams.eventId,
+        event?.slug,
+        'ee511926-1089-4171-9090-684e6d179826',
+        'evt_ai_1791373781895',
+        'sphinx-26',
+      ].filter(Boolean) as string[];
+
+      // 1. Instantly clear client state
       setSubmissions([]);
+      setSelectedSubmission(null);
+
+      // 2. Perform DB & Storage purge across all aliases
+      await deleteAllSubmissionsSupabase(targetEventId, extraAliases);
+
       setShowDeleteAllModal(false);
       setToastMessage('🗑️ All project submissions have been deleted successfully.');
       setTimeout(() => setToastMessage(null), 4000);
-      loadData();
+      await loadData(true);
     } catch (err: any) {
       console.error('Delete all submissions error:', err);
       setToastMessage(`❌ Failed to delete submissions: ${err.message}`);

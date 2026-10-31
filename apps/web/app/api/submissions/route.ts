@@ -341,6 +341,73 @@ export async function POST(req: Request) {
       }
     }
 
+    // ─── Bulk Delete All Project Submissions for Event ───────────────
+    if (action === 'delete_all') {
+      const rawEventId = body.eventId;
+      if (!rawEventId) {
+        return NextResponse.json({ error: 'Missing eventId for delete_all' }, { status: 400 });
+      }
+
+      let resolvedEventId = rawEventId;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawEventId);
+      let eventQuery = serverSupabase.from('events').select('id, organizer_id, slug').limit(1);
+      if (isUuid) {
+        eventQuery = eventQuery.eq('id', rawEventId);
+      } else if (rawEventId === 'evt_ai_1791373781895' || rawEventId.includes('1791373781895') || rawEventId.toLowerCase().includes('sphinx')) {
+        eventQuery = eventQuery.or(`slug.eq.evt_ai_1791373781895,slug.eq.sphinx-26,id.eq.ee511926-1089-4171-9090-684e6d179826`);
+      } else {
+        eventQuery = eventQuery.eq('slug', rawEventId);
+      }
+
+      let { data: eventData } = await eventQuery.maybeSingle();
+      if (!eventData && (rawEventId.toLowerCase().includes('sphinx') || rawEventId.includes('1791373781895'))) {
+        const { data: sphinxEv } = await serverSupabase.from('events').select('id, organizer_id, slug').ilike('title', '%sphinx%').limit(1).maybeSingle();
+        if (sphinxEv) eventData = sphinxEv;
+      }
+
+      if (eventData?.id) {
+        resolvedEventId = eventData.id;
+      } else if (rawEventId === 'evt_ai_1791373781895' || rawEventId.includes('1791373781895') || rawEventId.toLowerCase().includes('sphinx')) {
+        resolvedEventId = 'ee511926-1089-4171-9090-684e6d179826';
+      }
+
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidTargets = [resolvedEventId, rawEventId, eventData?.id].filter(
+        (id): id is string => Boolean(id) && uuidPattern.test(id)
+      );
+
+      let deletedCount = 0;
+      if (uuidTargets.length > 0) {
+        const { error, count } = await serverSupabase
+          .from('submissions')
+          .delete({ count: 'exact' })
+          .in('event_id', Array.from(new Set(uuidTargets)));
+
+        if (error) {
+          console.warn('Supabase bulk delete submissions error in POST:', error.message);
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        deletedCount = count ?? 0;
+      }
+
+      cachedSubmissionCounts = null;
+
+      try {
+        const channel = serverSupabase.channel(`submissions_stream_${rawEventId}`);
+        channel.send({
+          type: 'broadcast',
+          event: 'submissions_cleared',
+          payload: { eventId: resolvedEventId },
+        });
+      } catch (broadcastErr) {}
+
+      return NextResponse.json({
+        success: true,
+        deletedCount,
+        message: `Successfully deleted all submissions for event ${rawEventId}`,
+      });
+    }
+
     // ─── Batch Import Project Submissions from Sheet / CSV ──────────
     if (action === 'batch_import' && Array.isArray(body.submissions) && body.submissions.length > 0) {
       const rawEventId = body.eventId || body.submissions[0]?.eventId;
@@ -747,7 +814,7 @@ export async function DELETE(req: Request) {
     const action = searchParams.get('action') || body.action;
 
     // Bulk deletion: Delete all submissions for an event
-    if (action === 'delete_all' || (!submissionId && eventId && searchParams.get('all') === 'true')) {
+    if (action === 'delete_all' || (!submissionId && eventId && (searchParams.get('all') === 'true' || action === 'delete_all'))) {
       if (!eventId) {
         return NextResponse.json({ error: 'Missing eventId parameter' }, { status: 400 });
       }
@@ -758,41 +825,40 @@ export async function DELETE(req: Request) {
       if (isUuid) {
         eventQuery = eventQuery.eq('id', eventId);
       } else if (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895') || eventId.toLowerCase().includes('sphinx')) {
-        eventQuery = eventQuery.or(`slug.eq.${eventId},slug.eq.sphinx-26`);
+        eventQuery = eventQuery.or(`slug.eq.evt_ai_1791373781895,slug.eq.sphinx-26,id.eq.ee511926-1089-4171-9090-684e6d179826`);
       } else {
         eventQuery = eventQuery.eq('slug', eventId);
       }
 
-      const { data: eventData } = await eventQuery.maybeSingle();
+      let { data: eventData } = await eventQuery.maybeSingle();
+      if (!eventData && (eventId.toLowerCase().includes('sphinx') || eventId.includes('1791373781895'))) {
+        const { data: sphinxEv } = await serverSupabase.from('events').select('id, organizer_id, slug').ilike('title', '%sphinx%').limit(1).maybeSingle();
+        if (sphinxEv) eventData = sphinxEv;
+      }
+
       if (eventData?.id) {
         resolvedEventId = eventData.id;
+      } else if (eventId === 'evt_ai_1791373781895' || eventId.includes('1791373781895') || eventId.toLowerCase().includes('sphinx')) {
+        resolvedEventId = 'ee511926-1089-4171-9090-684e6d179826';
       }
 
-      const targetIds = [resolvedEventId];
-      if (eventId && !targetIds.includes(eventId)) {
-        targetIds.push(eventId);
-      }
-      if (eventData?.slug && !targetIds.includes(eventData.slug)) {
-        targetIds.push(eventData.slug);
-      }
-      if (
-        eventId === 'evt_ai_1791373781895' ||
-        eventId.includes('1791373781895') ||
-        eventId.toLowerCase().includes('sphinx')
-      ) {
-        if (!targetIds.includes('sphinx-26')) targetIds.push('sphinx-26');
-        if (!targetIds.includes('evt_ai_1791373781895')) targetIds.push('evt_ai_1791373781895');
-      }
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidTargets = [resolvedEventId, eventId, eventData?.id].filter(
+        (id): id is string => Boolean(id) && uuidPattern.test(id)
+      );
 
-      // Delete from Supabase
-      const { error, count } = await serverSupabase
-        .from('submissions')
-        .delete({ count: 'exact' })
-        .in('event_id', targetIds);
+      let deletedCount = 0;
+      if (uuidTargets.length > 0) {
+        const { error, count } = await serverSupabase
+          .from('submissions')
+          .delete({ count: 'exact' })
+          .in('event_id', Array.from(new Set(uuidTargets)));
 
-      if (error) {
-        console.warn('Supabase bulk delete submissions error:', error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) {
+          console.warn('Supabase bulk delete submissions error in DELETE:', error.message);
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        deletedCount = count ?? 0;
       }
 
       // Invalidate count cache
@@ -810,7 +876,7 @@ export async function DELETE(req: Request) {
 
       return NextResponse.json({
         success: true,
-        deletedCount: count ?? 0,
+        deletedCount,
         message: `Successfully deleted all submissions for event ${eventId}`,
       });
     }
