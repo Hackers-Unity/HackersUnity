@@ -394,6 +394,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: true, counts });
     }
 
+    const userId = searchParams.get('userId');
+    if (userId) {
+      const { data: userRegs } = await serverSupabase
+        .from('registrations')
+        .select('*, events(*)')
+        .eq('user_id', userId)
+        .order('registered_at', { ascending: false });
+
+      return NextResponse.json({ success: true, registrations: userRegs || [] });
+    }
+
     if (!eventId && !slug) {
       return NextResponse.json({ error: 'Missing eventId or slug' }, { status: 400 });
     }

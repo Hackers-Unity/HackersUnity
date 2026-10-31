@@ -191,11 +191,16 @@ export function ProjectSubmissionModal({
   // Deliverable Configuration based on Host Settings
   const getFieldConfig = (fieldId: string) => {
     if (!submissionFields || submissionFields.length === 0) {
-      // Legacy fallback: all 4 are enabled and optional
+      // Clean standard hackathon defaults:
+      // zipUpload is disabled by default to avoid heavy file payloads & memory bloat.
+      // Primary source code deliverable is GitHub repo URL.
+      if (fieldId === 'zipUpload') return { enabled: false, required: false };
       return { enabled: true, required: false };
     }
     const match = submissionFields.find((f) => f.id === fieldId);
     if (!match) return { enabled: false, required: false };
+    // Safety: zipUpload should never block builders with heavy files
+    if (fieldId === 'zipUpload') return { enabled: Boolean(match.enabled), required: false };
     return { enabled: Boolean(match.enabled), required: Boolean(match.required) };
   };
 
@@ -253,12 +258,8 @@ export function ProjectSubmissionModal({
       }
     }
 
-    // 6. ZIP File Upload
-    if (zipUploadConfig.enabled && zipUploadConfig.required) {
-      if (!zipFileName && !zipFile) {
-        errs.zipFile = 'Offline Source Code ZIP archive is required';
-      }
-    }
+    // 6. ZIP File Upload (Optional fallback - never blocks builders)
+    // Primary source code is provided via the required Project / GitHub link.
 
     // 7. Additional Resources / Links
     if (additionalResourcesConfig.enabled && additionalResourcesConfig.required) {
@@ -279,10 +280,17 @@ export function ProjectSubmissionModal({
   const handleZipSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const sizeMbNum = file.size / (1024 * 1024);
+      if (sizeMbNum > 20) {
+        setErrors((prev) => ({
+          ...prev,
+          zipFile: 'File exceeds 20MB. Please host large builds on GitHub or Google Drive and paste the link above.',
+        }));
+        return;
+      }
       setZipFile(file);
       setZipFileName(file.name);
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      setZipFileSize(`${sizeMb} MB`);
+      setZipFileSize(`${sizeMbNum.toFixed(2)} MB`);
       setErrors((prev) => {
         const next = { ...prev };
         delete next.zipFile;
@@ -296,10 +304,17 @@ export function ProjectSubmissionModal({
     setIsDraggingZip(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
+      const sizeMbNum = file.size / (1024 * 1024);
+      if (sizeMbNum > 20) {
+        setErrors((prev) => ({
+          ...prev,
+          zipFile: 'File exceeds 20MB. Please host large builds on GitHub or Google Drive and paste the link above.',
+        }));
+        return;
+      }
       setZipFile(file);
       setZipFileName(file.name);
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      setZipFileSize(`${sizeMb} MB`);
+      setZipFileSize(`${sizeMbNum.toFixed(2)} MB`);
       setErrors((prev) => {
         const next = { ...prev };
         delete next.zipFile;
@@ -315,9 +330,11 @@ export function ProjectSubmissionModal({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    if (zipUploadConfig.required) {
-      setErrors((prev) => ({ ...prev, zipFile: 'Offline Source Code ZIP archive is required' }));
-    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.zipFile;
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -950,19 +967,10 @@ export function ProjectSubmissionModal({
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <Archive className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                        <span>
-                          Offline Source Code / ZIP Archive{' '}
-                          {zipUploadConfig.required && <span className="text-rose-500">*</span>}
-                        </span>
+                        <span>Offline Source Code / ZIP Archive</span>
                       </label>
-                      <span
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
-                          zipUploadConfig.required
-                            ? 'bg-rose-50 dark:bg-rose-500/15 border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400'
-                            : 'bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'
-                        }`}
-                      >
-                        {zipUploadConfig.required ? 'Required *' : 'Optional'}
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase border bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400">
+                        Optional
                       </span>
                     </div>
                     <input
@@ -1006,10 +1014,10 @@ export function ProjectSubmissionModal({
                       >
                         <UploadCloud className="w-5 h-5 text-slate-400 mx-auto mb-1" />
                         <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                          Click to upload ZIP or drag and drop
+                          Click to attach offline ZIP build (Optional)
                         </div>
                         <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                          Supports .zip, .tar.gz up to 50MB
+                          Supports .zip, .tar.gz up to 20MB. For larger projects, use GitHub repo or Drive link above.
                         </div>
                       </div>
                     )}

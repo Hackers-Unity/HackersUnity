@@ -306,7 +306,7 @@ function HostHackathonContent() {
     Record<string, { enabled: boolean; required: boolean }>
   >({
     demoVideo: { enabled: true, required: false },
-    zipUpload: { enabled: true, required: false },
+    zipUpload: { enabled: false, required: false },
     presentation: { enabled: true, required: false },
     additionalResources: { enabled: true, required: false },
   });

@@ -95,6 +95,49 @@ export async function GET(req: Request) {
       );
     }
 
+    // 3. If query is for an organizer's hosted & co-hosted events
+    const organizerId = url.searchParams.get('organizerId') || url.searchParams.get('organizer') || url.searchParams.get('organizer_id');
+    if (organizerId) {
+      const { data: hostEvents, error: hostError } = await serverSupabase
+        .from('events')
+        .select('*')
+        .or(`organizer_id.eq.${organizerId},created_by.eq.${organizerId}`)
+        .order('created_at', { ascending: false });
+
+      if (hostError) {
+        console.warn('API events host query error:', hostError.message);
+      }
+
+      const { data: adminRows } = await serverSupabase
+        .from('event_admins')
+        .select('event_id')
+        .eq('user_id', organizerId);
+
+      let coHostedEvents: any[] = [];
+      if (adminRows && adminRows.length > 0) {
+        const coHostEventIds = adminRows.map((r: any) => r.event_id).filter(Boolean);
+        if (coHostEventIds.length > 0) {
+          const { data: coHostData } = await serverSupabase
+            .from('events')
+            .select('*')
+            .in('id', coHostEventIds);
+          if (coHostData) coHostedEvents = coHostData;
+        }
+      }
+
+      const merged = [...(hostEvents || [])];
+      coHostedEvents.forEach((ce) => {
+        if (!merged.some((m) => m.id === ce.id)) {
+          merged.push({ ...ce, isCoHost: true });
+        }
+      });
+
+      return NextResponse.json(
+        { events: merged },
+        { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+      );
+    }
+
     // 3. Default: return published events and hidden IDs so caller has authoritative state
     const { data: publishedEvents } = await serverSupabase
       .from('events')

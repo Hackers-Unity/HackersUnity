@@ -1002,32 +1002,42 @@ export function saveProjectSubmission(submission: ProjectSubmission): void {
       return false;
     });
 
+    // Clean submission so large files never enter localStorage or payload
+    const cleanedSub = { ...submission };
+    delete (cleanedSub as any).zipFile;
+    delete (cleanedSub as any).file;
+    delete (cleanedSub as any).buffer;
+
     let updated: ProjectSubmission[];
     if (existingIdx >= 0) {
       updated = [...all];
       updated[existingIdx] = {
         ...updated[existingIdx],
-        ...submission,
+        ...cleanedSub,
         updatedAt: new Date().toISOString(),
       };
     } else {
-      updated = [{ ...submission, updatedAt: new Date().toISOString() }, ...all];
+      updated = [{ ...cleanedSub, updatedAt: new Date().toISOString() }, ...all];
     }
-    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(updated));
+    try {
+      localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(updated));
+    } catch (storageErr) {
+      console.warn('localStorage save notice (storage quota/tracking prevention):', storageErr);
+    }
     // Always sync real participant submission to Supabase in real-time
     fetch('/api/submissions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ submission }),
+      body: JSON.stringify({ submission: cleanedSub }),
     }).catch((e) => console.warn('Supabase submission sync notice:', e));
 
     // Trigger background webhook if configured
-    const webhook = getGoogleSheetsWebhook(submission.eventId);
+    const webhook = getGoogleSheetsWebhook(cleanedSub.eventId);
     if (webhook) {
       fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync_webhook', submission, webhookUrl: webhook }),
+        body: JSON.stringify({ action: 'sync_webhook', submission: cleanedSub, webhookUrl: webhook }),
       }).catch((e) => console.warn('Background Google Sheets webhook sync notice:', e));
     }
   } catch (e) {

@@ -412,12 +412,42 @@ export async function fetchPublishedEvents(): Promise<ExtendedEvent[]> {
       // Fallback if network fails
     }
 
-    // Query published/active events from Supabase
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .in('status', ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED'])
-      .order('created_at', { ascending: false });
+    // Query published/active events from Supabase or server API
+    let remoteRows: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .in('status', ['PUBLISHED', 'REGISTRATION_OPEN', 'LIVE', 'JUDGING', 'COMPLETED', 'ARCHIVED'])
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        remoteRows = data;
+      }
+    } catch (supaErr) {
+      console.warn('Direct Supabase fetchPublishedEvents notice (using server API):', supaErr);
+    }
+
+    // Server-side same-origin API fallback (guaranteed to bypass browser CORS on production domain)
+    if (remoteRows.length === 0 && typeof window !== 'undefined') {
+      try {
+        const apiRes = await fetch('/api/events', { cache: 'no-store' });
+        if (apiRes.ok) {
+          const apiJson = await apiRes.json();
+          if (Array.isArray(apiJson.events) && apiJson.events.length > 0) {
+            remoteRows = apiJson.events;
+          }
+          if (Array.isArray(apiJson.hiddenIds)) {
+            apiJson.hiddenIds.forEach((id: string) => hiddenIdSet.add(String(id).toLowerCase()));
+          }
+          if (Array.isArray(apiJson.hiddenSlugs)) {
+            apiJson.hiddenSlugs.forEach((slug: string) => hiddenIdSet.add(String(slug).toLowerCase()));
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API events fallback notice:', apiErr);
+      }
+    }
 
     // Also attempt anonymous query as secondary check
     try {
@@ -435,8 +465,8 @@ export async function fetchPublishedEvents(): Promise<ExtendedEvent[]> {
     } catch {}
 
     let list: ExtendedEvent[] = [];
-    if (!error && data && data.length > 0) {
-      list = data.map(mapDbEventToExtended);
+    if (remoteRows.length > 0) {
+      list = remoteRows.map(mapDbEventToExtended);
     }
 
     // Auto-clean stale rejected events from browser localStorage so they NEVER linger
@@ -951,13 +981,37 @@ export async function fetchOrganizerEvents(organizerId: string): Promise<Extende
         ? JSON.parse(localStorage.getItem('hackers_unity_deleted_events') || '[]')
         : [];
 
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('organizer_id', organizerId)
-      .order('created_at', { ascending: false });
+    let remoteEvents: ExtendedEvent[] = [];
 
-    const remoteEvents = (!error && data) ? data.map(mapDbEventToExtended) : [];
+    // 1. Try direct Supabase client
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .or(`organizer_id.eq.${organizerId},created_by.eq.${organizerId}`)
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        remoteEvents = data.map(mapDbEventToExtended);
+      }
+    } catch (supaErr) {
+      console.warn('Direct Supabase fetchOrganizerEvents notice (using server API):', supaErr);
+    }
+
+    // 2. Server-side same-origin API fallback (guaranteed to bypass browser CORS)
+    if (remoteEvents.length === 0 && typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/events?organizerId=${encodeURIComponent(organizerId)}`, { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.events) && json.events.length > 0) {
+            remoteEvents = json.events.map(mapDbEventToExtended);
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API fetchOrganizerEvents error:', apiErr);
+      }
+    }
 
     // Also query events where user is a co-host / event admin
     let coHostedEvents: ExtendedEvent[] = [];
@@ -1907,14 +1961,37 @@ export async function fetchEventRegistrations(eventId: string): Promise<any[]> {
 
 export async function fetchUserRegistrations(userId: string): Promise<any[]> {
   try {
-    const { data, error } = await supabase
-      .from('registrations')
-      .select('*, events(*)')
-      .eq('user_id', userId)
-      .order('registered_at', { ascending: false });
+    if (!userId) return [];
+    let rows: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('*, events(*)')
+        .eq('user_id', userId)
+        .order('registered_at', { ascending: false });
 
-    if (error || !data) return [];
-    return data;
+      if (!error && data && data.length > 0) {
+        rows = data;
+      }
+    } catch (supaErr) {
+      console.warn('Direct Supabase fetchUserRegistrations notice (using server API):', supaErr);
+    }
+
+    if (rows.length === 0 && typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/registrations?userId=${encodeURIComponent(userId)}`, { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.registrations)) {
+            rows = json.registrations;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API fetchUserRegistrations error:', apiErr);
+      }
+    }
+
+    return rows;
   } catch {
     return [];
   }
